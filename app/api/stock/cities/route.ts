@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
 import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, stockCities, stockUserCityAccess } from '@/lib/db';
 import {
+  canUseSharedStockWorkerMode,
   forbiddenResponse,
   getStockApiUser,
   stockCorsPreflight,
@@ -49,6 +49,7 @@ export async function GET(request: Request) {
     .orderBy(asc(stockCities.name));
 
   return stockJsonResponse(request, {
+    capabilities: { sharedWorkerMode: canUseSharedStockWorkerMode(user) },
     items: rows.map((row) => ({
       id: row.id,
       slug: row.slug,

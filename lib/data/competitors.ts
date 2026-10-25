@@ -1,3 +1,5 @@
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
+
 /**
  * Competitor comparison data for "Tyre Rescue vs X" pages.
  * Each entry produces a page at /compare/tyre-rescue-vs-{slug}
@@ -39,7 +41,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — we come to you anywhere in Scotland', competitor: 'Limited — mainly garage-based with select mobile options', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24 hours, 7 days a week', competitor: 'No — standard business hours only', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Appointment-based, next available slot', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Appointment-based, next available slot', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (garage visit, tyre extra)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands', competitor: 'Nationwide chain with local branches', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — Michelin, Continental, Bridgestone', competitor: 'Wide range — budget to premium', winner: 'tie' },
@@ -63,7 +65,7 @@ export const competitors: CompetitorComparison[] = [
       },
     ],
     summary:
-      'While Kwik Fit offers a well-known nationwide garage network, Tyre Rescue provides a fundamentally different service: we come to you. With 24/7 emergency availability, 45-minute average response times, real-time GPS tracking, and a 4.8-star Trustpilot rating, Tyre Rescue is the superior choice for mobile tyre fitting in Scotland.',
+      `While Kwik Fit offers a well-known nationwide garage network, Tyre Rescue provides a fundamentally different service: we come to you. With 24/7 emergency availability, a response target of ${SEO_RESPONSE_TIME_LABEL}, real-time GPS tracking, and a 4.8-star Trustpilot rating, Tyre Rescue is the superior choice for mobile tyre fitting in Scotland.`,
     keywords: [
       'tyre rescue vs kwik fit', 'kwik fit alternative glasgow', 'mobile tyre fitting vs kwik fit',
       'kwik fit mobile tyres', 'kwik fit reviews glasgow', 'better than kwik fit',
@@ -83,7 +85,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile, we come to any location', competitor: 'Yes — mobile fitting available in some areas', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — round the clock, every day', competitor: 'No — limited mobile hours', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Pre-booked appointments, typically next day', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Pre-booked appointments, typically next day', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £50 (mobile fitting surcharge, tyre extra)', winner: 'tyrerescue' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Highlands and more', competitor: 'Select UK areas with mobile service', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — competitive pricing', competitor: 'Wide range of brands available', winner: 'tie' },
@@ -103,7 +105,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Can I get an emergency tyre change from National Tyres?',
-        answer: 'National Tyres operates during standard business hours and requires pre-booking. Tyre Rescue provides genuine emergency callout 24/7 across all of Scotland — average 45 minutes in Glasgow and Edinburgh, 60–90 minutes in Aberdeen and Inverness.',
+        answer: `National Tyres operates during standard business hours and requires pre-booking. Tyre Rescue provides genuine emergency callout 24/7 across all of Scotland with a response target of ${SEO_RESPONSE_TIME_LABEL}, including Glasgow, Edinburgh, Aberdeen and Inverness.`,
       },
     ],
     summary:
@@ -127,7 +129,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile across Scotland', competitor: 'Limited mobile service, mainly fleet-focused', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24/7 in Glasgow, Edinburgh and beyond', competitor: 'Roadside assistance via fleet contract', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Varies — appointment-based for consumers', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Varies — appointment-based for consumers', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (in-centre, tyre extra)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — deep local knowledge from Glasgow to Shetland', competitor: 'Nationwide chain, limited Scottish centres', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium selection', competitor: 'Wide brand range, strong fleet partnerships', winner: 'tie' },
@@ -171,7 +173,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile tyre fitting', competitor: 'Halfords Mobile Expert (limited areas)', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — always available', competitor: 'No — garage hours only', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Pre-booked only', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Pre-booked only', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £40 (in-store tyre only)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and more', competitor: 'Nationwide garage network', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Full range — budget to premium', competitor: 'Wide retail range', winner: 'tie' },
@@ -215,7 +217,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile, we come to your location', competitor: 'Garage-based only — you must bring your vehicle in', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24 hours, 7 days a week', competitor: 'No — standard business hours only', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average (Glasgow/Edinburgh)', competitor: 'Appointment-based — earliest available slot', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Appointment-based — earliest available slot', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (garage visit, tyre extra)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands', competitor: 'Multiple Scottish branches — must be near a centre', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — Michelin, Continental, Bridgestone', competitor: 'Wide range including manufacturer-approved fitments', winner: 'tie' },
@@ -264,7 +266,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile across all of Scotland', competitor: 'Limited mobile options — primarily garage-based', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — around the clock, every day', competitor: 'No — standard operating hours only', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average in Central Scotland', competitor: 'Pre-booked appointments required', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Pre-booked appointments required', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 in-centre (tyre extra)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow to Shetland', competitor: 'Selected UK locations with some Scottish branches', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — competitive pricing', competitor: 'Wide range, strong brand partnerships', winner: 'tie' },
@@ -280,7 +282,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Is Protyre good for emergency tyre fitting?',
-        answer: 'Protyre operates during standard business hours from fixed locations. For emergency tyre fitting — flat tyres, blowouts, or roadside assistance — Tyre Rescue is the better choice, with genuine 24/7 mobile service and an average 45-minute response time in Central Scotland.',
+        answer: `Protyre operates during standard business hours from fixed locations. For emergency tyre fitting — flat tyres, blowouts, or roadside assistance — Tyre Rescue is the better choice, with genuine 24/7 mobile service and a response target of ${SEO_RESPONSE_TIME_LABEL} across Scotland.`,
       },
       {
         question: 'How do Protyre prices compare to Tyre Rescue?',
@@ -308,7 +310,7 @@ export const competitors: CompetitorComparison[] = [
     features: [
       { feature: 'Mobile Service', tyreRescue: 'Yes — we come to your exact location across all of Scotland', competitor: 'Yes — mobile fitting at your home or work', winner: 'tie' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — genuine 24/7 emergency response, 365 days a year', competitor: 'Daytime and evening hours only', winner: 'tyrerescue' },
-      { feature: 'Average Response Time', tyreRescue: '45 minutes average across Scotland', competitor: 'Next available slot — often same day but not emergency', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Next available slot — often same day but not emergency', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Fitting from £20 per tyre; emergency callout from £49', competitor: 'Fitting included in tyre price — typically from £50+', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands', competitor: 'Central Belt and major Scottish cities — remote Highlands limited', winner: 'tyrerescue' },
       { feature: 'Highlands and Islands', tyreRescue: 'Yes — Skye, Lewis, Shetland, NC500 and remote Highland roads covered', competitor: 'Central Scotland and city areas only', winner: 'tyrerescue' },
@@ -398,7 +400,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: '24/7 Response', tyreRescue: 'Yes — 24 hours, 7 days', competitor: 'Yes — RAC covers 24/7 breakdowns', winner: 'tie' },
       { feature: 'Remote Scotland Coverage', tyreRescue: 'Yes — Highlands, NC500, Islands', competitor: 'Coverage varies; remote areas may involve long waits or tow to nearest town', winner: 'tyrerescue' },
       { feature: 'Flat Tyre Resolution', tyreRescue: 'Complete — new tyre fitted, back on road at your location', competitor: 'Partial — may inflate, apply sealant, or arrange tow; tyre still needs to be sourced elsewhere', winner: 'tyrerescue' },
-      { feature: 'Response Time', tyreRescue: 'Tyres: 45–90 min; varies by location', competitor: 'Target 30 min for serious breakdowns; flat tyres may be lower priority', winner: 'tie' },
+      { feature: 'Response Time', tyreRescue: SEO_RESPONSE_TIME_LABEL, competitor: 'Target 30 min for serious breakdowns; flat tyres may be lower priority', winner: 'tie' },
       { feature: 'Run-Flat Tyres', tyreRescue: 'Yes — we carry run-flat replacements', competitor: 'RAC patrol advises but does not supply run-flat replacements', winner: 'tyrerescue' },
     ],
     faq: [

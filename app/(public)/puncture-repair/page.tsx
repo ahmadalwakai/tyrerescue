@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 import {
   getLocalBusinessSchema,
   getBreadcrumbSchema,
@@ -60,7 +61,7 @@ const faqs = [
   },
   {
     question: 'Do you cover puncture repair in the Highlands and Islands?',
-    answer: 'Yes — we cover all of Scotland including the Highlands, NC500 route, and the islands (Skye, Lewis, Shetland). Response times for remote areas and islands are longer — call 0141 266 0690 for an honest ETA.',
+    answer: `Yes — we cover all of Scotland including the Highlands, NC500 route and the islands (Skye, Lewis, Shetland), with a response target of ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to confirm your exact ETA.`,
   },
 ];
 

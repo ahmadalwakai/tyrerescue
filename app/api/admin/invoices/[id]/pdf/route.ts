@@ -30,6 +30,7 @@ export async function GET(_request: Request, props: Props) {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.pdf"`,
         'Content-Length': String(pdfBytes.length),
+        'Cache-Control': 'private, no-store',
       },
     });
   } catch (error) {

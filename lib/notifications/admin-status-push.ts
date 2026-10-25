@@ -1,4 +1,4 @@
-import { sendAdminExpoPush } from './expo-admin-push';
+import { sendAdminExpoPushWithResult, type ExpoPushSendResult } from './expo-admin-push';
 import { isFcmConfigured, sendFcmTopicNotification } from './fcm';
 
 const STATUS_UPDATES_TOPIC = 'booking_updates';
@@ -11,6 +11,11 @@ export interface AdminStatusPushArgs {
   body: string;
   type?: string;
   sourceLabel?: string | null;
+  data?: Record<string, string>;
+  /** Restrict Expo acceptance accounting, e.g. to iPhone installs. */
+  platforms?: Array<'android' | 'ios'>;
+  /** Retry the iOS relay without duplicating the first Android topic attempt. */
+  skipFcm?: boolean;
 }
 
 /**
@@ -20,47 +25,72 @@ export interface AdminStatusPushArgs {
  *
  * Delivery:
  *  1. FCM topic `booking_updates` when FCM is configured
- *  2. Expo push relay for iOS (and Android when FCM is absent)
+ *  2. Expo push relay, optionally restricted by `platforms`
  *
  * Never throws.
  */
-export async function sendAdminStatusUpdatePush(args: AdminStatusPushArgs): Promise<void> {
-  const { bookingId, refNumber, title, body } = args;
-  const notifType = args.type ?? 'booking_update';
+export async function sendAdminStatusUpdatePushWithResult(args: AdminStatusPushArgs): Promise<ExpoPushSendResult> {
+  try {
+    const { bookingId, refNumber, title, body } = args;
+    const notifType = args.type ?? 'booking_update';
 
-  const data: Record<string, string> = {
-    type: notifType,
-    bookingId,
-    refNumber,
-    title,
-    body,
-  };
-  if (args.sourceLabel) data.sourceLabel = args.sourceLabel;
+    const data: Record<string, string> = {
+      ...args.data,
+      type: notifType,
+      bookingId,
+      refNumber,
+      title,
+      body,
+    };
+    if (args.sourceLabel) data.sourceLabel = args.sourceLabel;
 
-  if (isFcmConfigured()) {
-    try {
-      await sendFcmTopicNotification(
-        STATUS_UPDATES_TOPIC,
-        title,
-        body,
-        data,
-        {
-          priority: 'NORMAL',
-          ttl: '600s',
-          includeNotification: true,
-          channelId: STATUS_UPDATES_CHANNEL,
-        },
-      );
-    } catch (err) {
-      console.error('[admin-status-push] FCM topic send failed:', err);
-    }
+    // Start the iOS relay immediately; FCM availability must not delay APNs.
+    const expoResult = sendAdminExpoPushWithResult({
+      title, body, data, channelId: STATUS_UPDATES_CHANNEL, platforms: args.platforms, ttl: 600,
+    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const fcmAttempt = async () => {
+      try {
+        if (args.skipFcm || !isFcmConfigured()) return;
+        // The existing FCM helper does not expose an abort signal. Bound the
+        // caller's wait while leaving its promise handled if it finishes later.
+        await Promise.race([sendFcmTopicNotification(
+          STATUS_UPDATES_TOPIC,
+          title,
+          body,
+          data,
+          {
+            priority: 'NORMAL',
+            ttl: '600s',
+            includeNotification: true,
+            channelId: STATUS_UPDATES_CHANNEL,
+          },
+        ), new Promise<void>((resolve) => {
+          timer = setTimeout(() => {
+            console.error('[admin-status-push] FCM topic send timed out');
+            resolve();
+          }, 8_000);
+        })]);
+      } catch {
+        console.error('[admin-status-push] FCM topic send failed');
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
+    };
+
+    const [result] = await Promise.all([expoResult, fcmAttempt()]);
+    return result;
+  } catch {
+    console.error('[admin-status-push] send failed');
+    return { accepted: 0, failed: 0, unavailable: true };
   }
+}
 
-  // Always send via Expo relay — covers iOS installs and Android when FCM absent.
-  await sendAdminExpoPush({
-    title,
-    body,
-    data: { type: notifType, bookingId, refNumber },
-    channelId: STATUS_UPDATES_CHANNEL,
-  });
+/** Existing callers keep the best-effort, awaitable void contract. */
+export async function sendAdminStatusUpdatePush(args: AdminStatusPushArgs): Promise<void> {
+  try {
+    await sendAdminStatusUpdatePushWithResult(args);
+  } catch {
+    console.error('[admin-status-push] send failed');
+  }
 }

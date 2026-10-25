@@ -23,7 +23,9 @@ export async function GET(request: Request, { params }: Props) {
     } else {
       const url = new URL(request.url);
       const queryToken = url.searchParams.get('token');
-      if (queryToken) {
+      // Durable device credentials belong only in Authorization headers; a
+      // URL can be retained in browser history, logs and shared invoice links.
+      if (queryToken && !queryToken.startsWith('acs_v1.')) {
         try {
           const payload = await verifyMobileToken(queryToken);
           if (payload.role === 'admin') authorized = true;

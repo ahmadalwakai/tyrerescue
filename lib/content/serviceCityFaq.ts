@@ -1,6 +1,10 @@
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
+import { WORKSHOP_ADDRESS_LABEL } from '@/lib/config/business-contact';
+import { getServiceBySlug } from '@/lib/areas';
+
 /**
  * Dynamic FAQ generator for service+city pages.
- * Produces 5 unique Q&A per service/city combination for FAQPage JSON-LD
+ * Produces Q&A per service/city combination for FAQPage JSON-LD
  * and the visible FAQ section on the page.
  */
 
@@ -17,17 +21,9 @@ const serviceLabels: Record<string, string> = {
   'tyre-fitting': 'tyre fitting',
 };
 
-const servicePriceFrom: Record<string, string> = {
-  'mobile-tyre-fitting': '£20 per tyre (fitting fee)',
-  'emergency-tyre-fitting': '£49 callout fee',
-  'tyre-repair': '£25',
-  'puncture-repair': '£25',
-  'tyre-fitting': '£20 per tyre (fitting fee)',
-};
-
 const serviceResponseNote: Record<string, string> = {
   'mobile-tyre-fitting': 'For scheduled fittings we provide a confirmed two-hour arrival window.',
-  'emergency-tyre-fitting': 'Emergency callouts are prioritised — we aim to reach you within 45 minutes of your call.',
+  'emergency-tyre-fitting': `Emergency callouts are prioritised — we aim to reach you ${SEO_RESPONSE_TIME_LABEL} after your call.`,
   'tyre-repair': 'We assess the damage on arrival and advise you before doing any work.',
   'puncture-repair': 'Most standard punctures are repaired within 30 minutes of our arrival.',
   'tyre-fitting': 'We confirm your tyre size and availability before dispatching a fitter.',
@@ -36,21 +32,20 @@ const serviceResponseNote: Record<string, string> = {
 export function getServiceCityFaqs(
   serviceSlug: string,
   cityName: string,
-  avgResponseMin: number,
   priceFrom?: string,
 ): FaqItem[] {
   const label = serviceLabels[serviceSlug] ?? serviceSlug.replace(/-/g, ' ');
-  const price = priceFrom ?? servicePriceFrom[serviceSlug] ?? 'competitive rates';
+  const price = priceFrom ?? getServiceBySlug(serviceSlug)?.priceFrom ?? 'competitive rates';
   const responseNote = serviceResponseNote[serviceSlug] ?? '';
 
   return [
     {
       question: `How much does ${label} cost in ${cityName}?`,
-      answer: `Our ${label} in ${cityName} starts from ${price} plus the cost of any tyres required. There are no hidden charges — the price we quote includes labour and balancing. ${responseNote}`,
+      answer: `${label.charAt(0).toUpperCase()}${label.slice(1)} in ${cityName}: ${price}. We confirm the full quote before starting work. ${responseNote}`,
     },
     {
       question: `How long will it take for a fitter to reach me in ${cityName}?`,
-      answer: `Our average response time in ${cityName} is ${avgResponseMin} minutes. This can vary slightly depending on traffic and the time of day, but we always give you an accurate ETA when you book. We cover all postcodes in ${cityName} and the surrounding areas.`,
+      answer: `Our average response time in ${cityName} is ${SEO_RESPONSE_TIME_LABEL}. This can vary slightly depending on traffic and the time of day, but we always give you an accurate ETA when you book. We cover all postcodes in ${cityName} and the surrounding areas.`,
     },
     {
       question: `Do you offer ${label} in ${cityName} at night or on weekends?`,
@@ -66,7 +61,7 @@ export function getServiceCityFaqs(
     },
     {
       question: `Is Tyre Rescue a real tyre fitting company or a booking broker?`,
-      answer: `Tyre Rescue is a real mobile tyre fitting company with our own workshop at 3 Gateside Street, Parkhead, Glasgow G31 1PD. Every fitter who attends your vehicle is employed or directly contracted by us — not a random contractor sourced from a WhatsApp group. We are fully insured, trained, and accountable. You will always speak to our own team when you call 0141 266 0690.`,
+      answer: `Tyre Rescue is a real mobile tyre fitting company with our own workshop at ${WORKSHOP_ADDRESS_LABEL}. Every fitter who attends your vehicle is employed or directly contracted by us — not a random contractor sourced from a WhatsApp group. We are fully insured, trained, and accountable. You will always speak to our own team when you call 0141 266 0690.`,
     },
   ];
 }

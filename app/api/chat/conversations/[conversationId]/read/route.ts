@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authMobile } from '@/lib/auth';
-import { canAccessConversation } from '@/lib/chat/permissions';
 import { markConversationRead } from '@/lib/chat/queries';
-import type { ChatRole } from '@/lib/chat/types';
+import { resolveChatActor } from '@/lib/chat/customer-access';
+import { markGuestConversationRead } from '@/lib/chat/queries';
+import { z } from 'zod';
+import { ensureParticipant } from '@/lib/chat/permissions';
 
 type RouteContext = { params: Promise<{ conversationId: string }> };
 
 /** POST /api/chat/conversations/[conversationId]/read — mark conversation as read */
 export async function POST(req: NextRequest, ctx: RouteContext) {
-  const session = await authMobile(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { conversationId } = await ctx.params;
-  const role = session.user.role as ChatRole;
-
-  const hasAccess = await canAccessConversation({ id: session.user.id, role }, conversationId);
-  if (!hasAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-
-  await markConversationRead(conversationId, session.user.id);
+  if (!z.string().uuid().safeParse(conversationId).success) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 });
+  const actor = await resolveChatActor(req, conversationId);
+  if (!actor) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  if (actor.id) {
+    await ensureParticipant(conversationId, actor.id, actor.role);
+    await markConversationRead(conversationId, actor.id);
+  }
+  else {
+    const body = await req.json().catch(() => null);
+    const parsed = z.object({ lastReadMessageId: z.string().uuid() }).safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid read marker' }, { status: 400 });
+    await markGuestConversationRead(conversationId, parsed.data.lastReadMessageId);
+  }
   return NextResponse.json({ success: true });
 }

@@ -17,6 +17,7 @@ import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { colorTokens } from '@/lib/design-tokens';
 import type { CompetitorComparison } from '@/lib/data/competitors';
 import { trackCallClick } from '@/lib/analytics/gtag';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 
 const colors = {
   bg: colorTokens.bg,
@@ -254,7 +255,7 @@ export function ComparisonContent({ data }: { data: CompetitorComparison }) {
               mx="auto"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              24/7 emergency mobile tyre fitting across Scotland. We come to you — home, work, or roadside.
+              24/7 emergency mobile tyre fitting across Scotland. We come to you — home, work, or roadside — with a response target of {SEO_RESPONSE_TIME_LABEL}.
             </Text>
             <Flex gap={4} justify="center" wrap="wrap">
               <ChakraLink

@@ -4,6 +4,9 @@
  */
 
 import { SERVICE_PRICING, PRICE_RANGE_DISPLAY } from '@/lib/pricing';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
+import { WORKSHOP_ADDRESS } from '@/lib/config/business-contact';
+import { getServicePricingKey } from '@/lib/seo/service-pricing';
 
 const DEFAULT_BASE_URL = 'https://www.tyrerescue.uk';
 const PHONE = '+441412660690';
@@ -13,11 +16,7 @@ const TRUSTPILOT_REVIEW_COUNT = '3';
 
 const ADDRESS = {
   '@type': 'PostalAddress' as const,
-  streetAddress: '3, 10 Gateside St',
-  addressLocality: 'Glasgow',
-  postalCode: 'G31 1PD',
-  addressRegion: 'Scotland',
-  addressCountry: 'GB',
+  ...WORKSHOP_ADDRESS,
 };
 
 function getTrustpilotAggregateRating() {
@@ -285,7 +284,7 @@ export function getEmergencyServiceSchema(baseUrl: string = DEFAULT_BASE_URL) {
     '@type': 'EmergencyService',
     name: 'Tyre Rescue — 24/7 Emergency Tyre Fitting Scotland',
     description:
-      'Emergency mobile tyre fitting service covering all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Highlands, Islands and every postcode from G to ZE. Average 45-minute response in Central Scotland.',
+      `Emergency mobile tyre fitting service covering all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Highlands, Islands and every postcode from G to ZE. Average response time: ${SEO_RESPONSE_TIME_LABEL}.`,
     serviceType: 'Emergency Tyre Fitting',
     provider: {
       '@type': 'AutoRepair',
@@ -451,11 +450,12 @@ export function getCityLocalBusinessSchema(opts: {
   serviceSlug: string;
   serviceName: string;
   pageUrl: string;
-  avgResponseMin: number;
   priceFrom: string;
   baseUrl?: string;
 }) {
   const url = opts.baseUrl ?? DEFAULT_BASE_URL;
+  const pricingKey = getServicePricingKey(opts.serviceSlug);
+  const pricing = pricingKey ? SERVICE_PRICING[pricingKey] : undefined;
   return {
     '@context': 'https://schema.org',
     '@type': ['LocalBusiness', 'AutoRepair'],
@@ -481,10 +481,13 @@ export function getCityLocalBusinessSchema(opts: {
           itemOffered: {
             '@type': 'Service',
             name: `${opts.serviceName} in ${opts.cityName}`,
-            description: `Professional ${opts.serviceName.toLowerCase()} in ${opts.cityName}. Average ${opts.avgResponseMin} minute response. Call 0141 266 0690.`,
+            description: `Professional ${opts.serviceName.toLowerCase()} in ${opts.cityName}. Average response time: ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
           },
           priceCurrency: 'GBP',
-          price: opts.priceFrom,
+          ...(pricing && { price: pricing.from }),
+          description: pricing
+            ? `${pricing.label}. ${pricing.disclaimer}`
+            : opts.priceFrom,
           availability: 'https://schema.org/InStock',
           seller: {
             '@type': 'Organization',

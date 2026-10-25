@@ -13,6 +13,7 @@ export const PROJECT_BOOKING_ROUTE_SLUGS = {
   tyresos: 'tyresos',
   edinburgh_tyre_fitting: 'edinburgh-tyre-fitting',
   '247_mo_glasgow': '247-mo-glasgow',
+  caledonia_tyres: 'caledonia-tyres',
 } as const satisfies Record<IntegratedProjectSourceApp, string>;
 
 export interface ProjectIntegrationLink {

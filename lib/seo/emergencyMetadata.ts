@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getSiteUrl } from '@/lib/config/site';
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 import {
   EMERGENCY_PHONE_DISPLAY,
   emergencyCampaign,
@@ -30,7 +31,7 @@ function servicePath(area: ServiceArea, kind: EmergencyLocalKind): string {
 export function buildEmergencyMetadata(): Metadata {
   const title = 'Emergency Tyre Fitting Scotland | 24/7';
   const description =
-    'Flat tyre or puncture? Call Tyre Rescue for 24/7 emergency mobile tyre fitting across all of Scotland \u2014 Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. 45-minute response, callout from \u00a349.';
+    `Flat tyre or puncture? Call Tyre Rescue for 24/7 emergency mobile tyre fitting across all of Scotland \u2014 Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. ${SEO_RESPONSE_TIME_MINUTES}-minute response, callout from \u00a349.`;
 
   return {
     title,
@@ -75,7 +76,7 @@ export function buildEmergencyLocalMetadata(
   const description =
     kind === 'puncture'
       ? `Mobile puncture repair in ${area.areaName}, ${area.cityName}. Repair from \u00a325 where safe, 24/7 help, all of Scotland covered. Call ${EMERGENCY_PHONE_DISPLAY}.`
-      : `Emergency tyre fitting in ${area.areaName}, ${area.cityName}. 24/7 mobile tyre fitter, 45-minute response, callout from \u00a349. All of Scotland covered.`;
+      : `Emergency tyre fitting in ${area.areaName}, ${area.cityName}. 24/7 mobile tyre fitter, ${SEO_RESPONSE_TIME_MINUTES}-minute response, callout from \u00a349. All of Scotland covered.`;
 
   return {
     title,

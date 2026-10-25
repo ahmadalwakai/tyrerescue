@@ -17,6 +17,7 @@ import { anim } from '@/lib/animations';
 import { injectSmartLinks } from '@/lib/linking';
 import type { BlogArticle } from '@/lib/blog/articles';
 import { trackCallClick } from '@/lib/analytics/gtag';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 
 const colors = {
   bg: colorTokens.bg,
@@ -268,8 +269,7 @@ export function BlogArticleContent({
               Need a Tyre Fitted Now?
             </Heading>
             <Text color={colors.textSecondary} mb={5} fontSize="16px">
-              24/7 mobile tyre fitting across Glasgow &amp; Edinburgh — average
-              45-minute response.
+              24/7 mobile tyre fitting across Scotland — Response time: {SEO_RESPONSE_TIME_LABEL}.
             </Text>
             <Flex gap={4} justify="center" wrap="wrap">
               <Link

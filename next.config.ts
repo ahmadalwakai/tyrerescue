@@ -99,6 +99,19 @@ const nextConfig: NextConfig = {
       { source: '/emergency-tyre-fitting', destination: '/emergency', permanent: true },
       { source: '/book-tyre-fitting', destination: '/book', permanent: true },
       { source: '/services/:city', destination: '/mobile-tyre-fitting/:city', permanent: true },
+      {
+        source: '/mobile-tyre-fitting-price/:city',
+        destination: '/mobile-tyre-fitting-:city-price',
+        permanent: true,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/mobile-tyre-fitting-:city-price',
+        destination: '/mobile-tyre-fitting-price/:city',
+      },
     ];
   },
 };

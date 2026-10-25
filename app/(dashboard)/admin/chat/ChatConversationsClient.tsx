@@ -119,28 +119,23 @@ export function ChatConversationsClient() {
         <Text color={c.muted} py={8} textAlign="center">No conversations found</Text>
       ) : (
         <VStack align="stretch" gap={2}>
-          {conversations.map((conv, i) => (
-            <ChakraLink
-              key={conv.id}
-              asChild
-              _hover={{ textDecoration: 'none' }}
-            >
-              <NextLink href={`/admin/bookings/${conv.bookingRef}`}>
-                <Box
+          {conversations.map((conv, i) => {
+            const direct = conv.scope === 'direct_driver';
+            const card = <Box
                   bg={c.card}
                   borderWidth="1px"
                   borderColor={conv.unreadCount > 0 ? c.accent : c.border}
                   borderRadius="md"
                   p={4}
-                  cursor="pointer"
+                  cursor={direct ? 'default' : 'pointer'}
                   transition="all 0.2s"
-                  _hover={{ bg: c.surface, borderColor: c.accent }}
+                  _hover={direct ? undefined : { bg: c.surface, borderColor: c.accent }}
                   style={anim.stagger('fadeUp', i, '0.3s', 0.03)}
                 >
                   <Flex justify="space-between" align="center" mb={2}>
                     <HStack gap={3}>
                       <Text fontWeight="600" color={c.text}>
-                        {conv.bookingRef}
+                        {direct ? 'Direct driver chat · Assisted Chat app' : conv.bookingRef}
                       </Text>
                       <Text fontSize="xs" color={c.muted} px={2} py={0.5} bg={c.surface} borderRadius="full">
                         {CHANNEL_LABELS[conv.channel] ?? conv.channel}
@@ -186,10 +181,13 @@ export function ChatConversationsClient() {
                       </Text>
                     )}
                   </Flex>
-                </Box>
-              </NextLink>
-            </ChakraLink>
-          ))}
+                </Box>;
+            return direct ? <Box key={conv.id}>{card}</Box> : (
+              <ChakraLink key={conv.id} asChild _hover={{ textDecoration: 'none' }}>
+                <NextLink href={`/admin/bookings/${conv.bookingRef}`}>{card}</NextLink>
+              </ChakraLink>
+            );
+          })}
         </VStack>
       )}
     </VStack>

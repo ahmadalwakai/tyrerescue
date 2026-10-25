@@ -606,9 +606,11 @@ export async function POST(
       const quoteId = uuidv4();
       const expiresAt = new Date(breakdown.quoteExpiresAt);
 
+      const reservationIds: string[] = [];
       for (const selection of effectiveTyreSelections) {
         if (preOrderMap.get(selection.tyreId)) continue;
         const reservationId = uuidv4();
+        reservationIds.push(reservationId);
         await client.query(
           `INSERT INTO inventory_reservations (id, tyre_id, booking_id, quantity, expires_at, released)
            VALUES ($1, $2, NULL, $3, $4, false)`,
@@ -641,6 +643,7 @@ export async function POST(
           distanceMiles,
           JSON.stringify(breakdown),
           JSON.stringify({
+            reservationIds,
             ...distanceResult,
             serviceDistanceMiles,
             pricingDistanceMiles: distanceMiles,

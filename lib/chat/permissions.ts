@@ -4,6 +4,7 @@ import {
   conversationParticipants,
   bookings,
   drivers,
+  users,
 } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { ChatRole } from './types';
@@ -17,7 +18,7 @@ interface SessionUser {
  * Check whether a user can access a specific conversation.
  * - Admin: always allowed
  * - Customer: only if they are the booking owner
- * - Driver: only if they are assigned to the booking
+ * - Driver: assigned booking / explicit booking participant, or the direct chat's driver
  */
 export async function canAccessConversation(
   user: SessionUser,
@@ -32,6 +33,19 @@ export async function canAccessConversation(
     .limit(1);
 
   if (!conv) return false;
+
+  // Direct chats never inherit access from a participant row or a customer booking.
+  // Query the additive column only for direct rows so booking chats keep working
+  // while the new migration has not yet been applied.
+  if (!conv.bookingId) {
+    if (user.role !== 'driver' || conv.channel !== 'admin_driver') return false;
+    const [owner] = await db.select({ userId: drivers.userId })
+      .from(bookingConversations)
+      .innerJoin(drivers, eq(drivers.id, bookingConversations.directDriverId))
+      .innerJoin(users, eq(users.id, drivers.userId))
+      .where(and(eq(bookingConversations.id, conversationId), eq(users.role, 'driver'))).limit(1);
+    return owner?.userId === user.id;
+  }
 
   if (user.role === 'customer') {
     if (conv.channel === 'admin_driver') return false;

@@ -21,7 +21,7 @@ describe('project assisted-chat links', () => {
     vi.unstubAllEnvs();
   });
 
-  it('keeps the seven project sources registered', () => {
+  it('keeps existing project sources and Caledonia registered', () => {
     expect(PROJECT_SOURCES.map((source) => source.app)).toEqual([
       'tyre_rescue',
       'tyrerepair_uk',
@@ -30,6 +30,8 @@ describe('project assisted-chat links', () => {
       'tyrehawk_mobile',
       'tyresos',
       'edinburgh_tyre_fitting',
+      '247_mo_glasgow',
+      'caledonia_tyres',
     ]);
   });
 
@@ -53,6 +55,22 @@ describe('project assisted-chat links', () => {
     }
   });
 
+  it('maps the production domain and www alias to the existing Caledonia project', () => {
+    for (const alias of [
+      'mobiletyrefittings.com',
+      'www.mobiletyrefittings.com',
+      'https://mobiletyrefittings.com',
+      'https://www.mobiletyrefittings.com',
+    ]) {
+      expect(normalizeProjectSourceApp(alias)).toBe('caledonia_tyres');
+      expect(getProjectSource(alias)).toMatchObject({
+        app: 'caledonia_tyres',
+        label: 'Caledonia Tyres',
+        origin: 'https://mobiletyrefittings.com',
+      });
+    }
+  });
+
   it('does not treat the main Tyre Rescue source as an external project popup route', () => {
     expect(getProjectIntegrationLink(TYRE_RESCUE_SOURCE_APP)).toBeNull();
   });
@@ -70,6 +88,8 @@ describe('project assisted-chat links', () => {
       'tyrehawk.co.uk',
       'tyresos.co.uk',
       'edinburghtyrefitting.com',
+      '247moglasgow.uk',
+      'https://caledonia-tyres.vercel.app',
     ];
 
     for (const alias of aliases) {
@@ -93,7 +113,7 @@ describe('project assisted-chat links', () => {
 
       expect(context?.source.app).toBe(source.app);
       expect(context?.origin?.sourceApp ?? null).toBe(
-        source.app === 'edinburgh_tyre_fitting' ? 'edinburgh_tyre_fitting' : null,
+        ['edinburgh_tyre_fitting', '247_mo_glasgow'].includes(source.app) ? source.app : null,
       );
     }
   });

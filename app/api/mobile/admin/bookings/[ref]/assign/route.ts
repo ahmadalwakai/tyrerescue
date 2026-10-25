@@ -1,3 +1,4 @@
+import { buildCustomerBookingTrackingUrl } from '@/lib/customer-booking-access';
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres, users } from '@/lib/db';
@@ -131,7 +132,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
     // Notification emails — outbound customer link must always be production URL.
     const siteUrl = getOutboundUrl(booking.sourceApp);
-    const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
+    const trackingUrl = await buildCustomerBookingTrackingUrl(siteUrl, booking);
 
     const tyreRows = await db
       .select({

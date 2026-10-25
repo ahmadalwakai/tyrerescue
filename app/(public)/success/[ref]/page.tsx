@@ -7,6 +7,9 @@ import { and, desc, eq } from 'drizzle-orm';
 import { SuccessContent } from './SuccessContent';
 import { getBrandBySourceApp } from '@/lib/config/site';
 import { buildBookingConversionPayload } from '@/lib/analytics/booking-conversion';
+import { getBookingPaymentSummary, isPaymentFullySettledForInvoice } from '@/lib/payments/payment-summary';
+
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ ref: string }>;
@@ -95,6 +98,8 @@ export default async function SuccessPage({ params }: PageProps) {
     customerEmail: booking.customerEmail,
     payment: succeededPayment ?? null,
   });
+  const paymentSummary = await getBookingPaymentSummary(booking);
+  const paymentSucceeded = isPaymentFullySettledForInvoice(paymentSummary, booking.status);
 
   // Transform booking data for client component
   const bookingData = {
@@ -113,7 +118,7 @@ export default async function SuccessPage({ params }: PageProps) {
     subtotal: parseFloat(booking.subtotal),
     vatAmount: parseFloat(booking.vatAmount),
     totalAmount: parseFloat(booking.totalAmount),
-    paymentSucceeded: Boolean(succeededPayment),
+    paymentSucceeded,
     conversion,
     tyres: tyreDetails.map((t) => ({
       brand: t.brand || '',

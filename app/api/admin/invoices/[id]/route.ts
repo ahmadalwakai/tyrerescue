@@ -3,6 +3,9 @@ import { requireAdmin } from '@/lib/auth';
 import { db, invoices, invoiceItems, auditLogs } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
 import { z } from 'zod/v4';
+import { getLinkedInvoiceContext } from '@/lib/invoices/booking-invoice-sync';
+import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { readInvoicePresentation } from '@/lib/invoices/invoice-presentation';
 
 const itemSchema = z.object({
   id: z.string().uuid().optional(),
@@ -36,8 +39,13 @@ export async function GET(_request: Request, props: Props) {
     await requireAdmin();
     const { id } = await props.params;
 
-    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
+    let [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
     if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    const context = await getLinkedInvoiceContext(invoice, { reason: 'admin_invoice_get' });
+    invoice = context.invoice;
+    const booking = context.booking;
+    const bookingTotalPence = booking ? Math.round(Number(booking.totalAmount) * 100) : null;
+    const presentation = booking ? readInvoicePresentation(booking.priceSnapshot, bookingTotalPence!) : null;
 
     const items = await db
       .select()
@@ -48,6 +56,8 @@ export async function GET(_request: Request, props: Props) {
     return NextResponse.json({
       invoice: {
         ...invoice,
+        ...(booking ? { bookingRef: booking.refNumber, bookingTotalPence, ...presentation,
+          bookingUpdatedAt: booking.updatedAt?.toISOString() ?? null } : {}),
         subtotal: invoice.subtotal?.toString() ?? '0',
         vatRate: invoice.vatRate?.toString() ?? '0',
         vatAmount: invoice.vatAmount?.toString() ?? '0',
@@ -65,13 +75,14 @@ export async function GET(_request: Request, props: Props) {
         unitPrice: it.unitPrice?.toString() ?? '0',
         totalPrice: it.totalPrice?.toString() ?? '0',
       })),
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unauthorized'))
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (error instanceof Error && error.message.includes('Forbidden'))
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     console.error('GET /api/admin/invoices/[id] error:', error);
+    if (error instanceof InvoiceDomainError) return NextResponse.json({ error: error.message }, { status: error.status });
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -89,6 +100,10 @@ export async function PATCH(request: Request, props: Props) {
     if (existing.deletedAt) return NextResponse.json({ error: 'Invoice is deleted' }, { status: 400 });
 
     const data = parsed.data;
+    const linkedFields = ['customerName', 'customerEmail', 'customerPhone', 'customerAddress', 'issueDate', 'dueDate', 'status', 'items', 'bookingId', 'userId', 'vatRate'];
+    if ((existing.bookingId || data.bookingId) && linkedFields.some((field) => Object.hasOwn(data, field))) {
+      return NextResponse.json({ error: 'Edit the linked booking to change invoice details or totals. Use invoice presentation for customer-visible information.' }, { status: 409 });
+    }
     const updates: Record<string, unknown> = { updatedBy: session.user.id, updatedAt: new Date() };
 
     if (data.customerName !== undefined) updates.customerName = data.customerName;

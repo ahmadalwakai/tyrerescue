@@ -471,7 +471,7 @@ export function CustomerTrackingClient({ token }: Props) {
 
   const webTrackingLink = `/track/customer/${encodeURIComponent(token)}`;
   const appDeepLink = data.refNumber
-    ? `${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(data.refNumber)}`
+    ? `${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(data.refNumber)}&trackingToken=${encodeURIComponent(token)}`
     : webTrackingLink;
 
   const closeAppPrompt = () => {

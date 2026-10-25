@@ -26,7 +26,7 @@ async function trackingAppArgument(token: string): Promise<string> {
     .limit(1);
 
   if (booking?.refNumber) {
-    return `${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(booking.refNumber)}`;
+    return `${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(booking.refNumber)}&trackingToken=${encodeURIComponent(token)}`;
   }
 
   return `${CUSTOMER_APP_FALLBACK_ORIGIN}/track/customer/${token}`;
@@ -38,6 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: 'Live Tracking | Tyre Rescue',
     robots: { index: false, follow: false },
+    referrer: 'no-referrer',
     other: {
       'apple-itunes-app': `app-id=${CUSTOMER_APP_ID}, app-argument=${appArgument}`,
     },

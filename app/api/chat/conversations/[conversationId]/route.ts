@@ -4,9 +4,9 @@ import { db } from '@/lib/db';
 import { bookingConversations, messageAttachments, bookingMessages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
-import { canAccessConversation } from '@/lib/chat/permissions';
 import { getConversationDetail } from '@/lib/chat/queries';
-import type { ChatRole } from '@/lib/chat/types';
+import { resolveChatActor } from '@/lib/chat/customer-access';
+import { getGuestUnreadCount } from '@/lib/chat/queries';
 
 const adminControlSchema = z.object({
   lock: z.boolean().optional(),
@@ -24,19 +24,17 @@ type RouteContext = { params: Promise<{ conversationId: string }> };
 
 /** GET /api/chat/conversations/[conversationId] — conversation detail */
 export async function GET(req: NextRequest, ctx: RouteContext) {
-  const session = await authMobile(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { conversationId } = await ctx.params;
-  const role = session.user.role as ChatRole;
-
-  const hasAccess = await canAccessConversation({ id: session.user.id, role }, conversationId);
-  if (!hasAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  if (!z.string().uuid().safeParse(conversationId).success) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 });
+  const actor = await resolveChatActor(req, conversationId);
+  if (!actor) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
   const detail = await getConversationDetail(conversationId);
   if (!detail) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  return NextResponse.json(detail);
+  // A customer does not need staff account IDs/names to contact the support team.
+  return NextResponse.json({ ...detail, ...(actor.role === 'customer' ? { participants: [] } : {}),
+    ...(actor.id === null ? { unreadCount: await getGuestUnreadCount(conversationId) } : {}) });
 }
 
 /** PATCH /api/chat/conversations/[conversationId] — admin controls */

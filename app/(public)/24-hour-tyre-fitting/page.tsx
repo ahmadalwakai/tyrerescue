@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 import {
   getLocalBusinessSchema,
   getBreadcrumbSchema,
@@ -59,7 +60,7 @@ const faqs = [
   {
     question: 'How quickly can a fitter reach me in the middle of the night?',
     answer:
-      'Response times are the same day or night. In Greater Glasgow: 25–40 minutes. Edinburgh, Stirling, Falkirk: 50–70 minutes. Aberdeen, Inverness: approximately 90–100 minutes. Rural Highland areas: we give you an honest ETA based on your exact postcode.',
+      `Our response target is ${SEO_RESPONSE_TIME_LABEL}, day or night, across Scotland including Glasgow, Edinburgh, Stirling, Falkirk, Aberdeen, Inverness and the Highlands. We confirm your exact ETA when you call.`,
   },
   {
     question: 'Can you come to a motorway or dual carriageway at night?',
@@ -69,7 +70,7 @@ const faqs = [
   {
     question: 'Do you cover rural Scotland and the Highlands at night?',
     answer:
-      'Yes — we cover all of Scotland 24/7, including the Highlands, NC500, Argyll, Galloway, and Scottish islands. For very remote locations, call us to get an accurate ETA for your specific location. We will always be honest about timing.',
+      `Yes — we cover all of Scotland 24/7, including the Highlands, NC500, Argyll, Galloway and Scottish islands, with a response target of ${SEO_RESPONSE_TIME_LABEL}. Call us to confirm your exact ETA.`,
   },
   {
     question: 'What should I do while waiting for a 24-hour tyre fitter?',
@@ -79,18 +80,18 @@ const faqs = [
 ];
 
 const cities = [
-  { name: 'Glasgow', href: '/mobile-tyre-fitting/glasgow', response: '25–40 min' },
-  { name: 'Edinburgh', href: '/mobile-tyre-fitting/edinburgh', response: '50–65 min' },
-  { name: 'Aberdeen', href: '/mobile-tyre-fitting/aberdeen', response: '~90 min' },
-  { name: 'Inverness', href: '/mobile-tyre-fitting/inverness', response: '~100 min' },
-  { name: 'Dundee', href: '/mobile-tyre-fitting/dundee', response: '65–80 min' },
-  { name: 'Stirling', href: '/mobile-tyre-fitting/stirling', response: '45–60 min' },
-  { name: 'Paisley', href: '/mobile-tyre-fitting/paisley', response: '30–45 min' },
-  { name: 'Hamilton', href: '/mobile-tyre-fitting/hamilton', response: '35–50 min' },
-  { name: 'Falkirk', href: '/mobile-tyre-fitting/falkirk', response: '45–60 min' },
-  { name: 'Perth', href: '/mobile-tyre-fitting/perth', response: '70–85 min' },
-  { name: 'Kilmarnock', href: '/mobile-tyre-fitting/kilmarnock', response: '40–55 min' },
-  { name: 'Ayr', href: '/mobile-tyre-fitting/ayr', response: '45–60 min' },
+  { name: 'Glasgow', href: '/mobile-tyre-fitting/glasgow', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Edinburgh', href: '/mobile-tyre-fitting/edinburgh', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Aberdeen', href: '/mobile-tyre-fitting/aberdeen', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Inverness', href: '/mobile-tyre-fitting/inverness', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Dundee', href: '/mobile-tyre-fitting/dundee', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Stirling', href: '/mobile-tyre-fitting/stirling', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Paisley', href: '/mobile-tyre-fitting/paisley', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Hamilton', href: '/mobile-tyre-fitting/hamilton', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Falkirk', href: '/mobile-tyre-fitting/falkirk', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Perth', href: '/mobile-tyre-fitting/perth', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Kilmarnock', href: '/mobile-tyre-fitting/kilmarnock', response: SEO_RESPONSE_TIME_LABEL },
+  { name: 'Ayr', href: '/mobile-tyre-fitting/ayr', response: SEO_RESPONSE_TIME_LABEL },
 ];
 
 const s: Record<string, CSSProperties> = {
@@ -183,7 +184,7 @@ export default function TwentyFourHourTyreFittingPage() {
           <div style={s.wrap}>
             <h2 style={s.h2}>Why 24 Hour Tyre Fitting Matters in Scotland</h2>
             <p style={s.lead2}>
-              Scotland's road network — the A9, A82, A835, NC500, and countless rural B-roads —
+              Scotland&apos;s road network — the A9, A82, A835, NC500, and countless rural B-roads —
               means that a flat tyre can happen far from any garage, and at any hour. Waiting
               until morning is not always an option. We designed our service around this.
             </p>
@@ -258,7 +259,7 @@ export default function TwentyFourHourTyreFittingPage() {
               {cities.map((city) => (
                 <div key={city.href} style={s.cityCard}>
                   <Link href={city.href} style={s.cityLink}>{city.name}</Link>
-                  <p style={s.cityMeta}>Typical response: {city.response}</p>
+                  <p style={s.cityMeta}>Response target: {city.response}</p>
                 </div>
               ))}
             </div>

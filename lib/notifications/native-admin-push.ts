@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { adminPushTokens } from '@/lib/db/schema';
 import { sendFcmNotification, isFcmConfigured } from './fcm';
+import { activeAdminPushSession } from './admin-device-push';
 
 /**
  * Sends an urgent booking FCM push to all registered native admin alert devices.
@@ -48,12 +49,13 @@ export async function sendNativeAdminAlertPush(
 
   const rows = await db
     .select({ token: adminPushTokens.token })
-    .from(adminPushTokens);
+    .from(adminPushTokens)
+    .where(activeAdminPushSession());
 
   // Native FCM tokens do NOT start with "ExponentPushToken["
   const nativeTokens = rows
     .map((r) => r.token)
-    .filter((t) => !t.startsWith('ExponentPushToken['));
+    .filter((t) => !t.startsWith('ExponentPushToken[') && !t.startsWith('ExpoPushToken['));
 
   if (nativeTokens.length === 0) {
     return { sent: 0, failed: 0, skipped: 1, reason: 'No native tokens registered' };

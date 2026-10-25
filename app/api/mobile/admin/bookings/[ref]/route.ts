@@ -21,6 +21,8 @@ import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
 import { buildBookingTimeline, deriveBookingInformation } from '@/lib/bookings/booking-audit';
+import { applyBookingEditAndSyncInvoices, synchronizeBookingInvoices } from '@/lib/invoices/booking-invoice-sync';
+import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
 import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
@@ -369,20 +371,13 @@ export async function PUT(request: Request, { params }: Props) {
     updates.vatAmount = snapshotVatAmount.toFixed(2);
   }
 
-  await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
-
-  // Mirror customer/address changes into any linked invoice so the
-  // invoice doesn't show stale booking info after an edit.
-  const invoiceCustomerPatch: Record<string, unknown> = {};
-  if (updates.customerName) invoiceCustomerPatch.customerName = updates.customerName;
-  if (updates.customerEmail) invoiceCustomerPatch.customerEmail = updates.customerEmail;
-  if (updates.customerPhone) invoiceCustomerPatch.customerPhone = updates.customerPhone;
-  if (updates.addressLine) invoiceCustomerPatch.customerAddress = updates.addressLine;
-  if (Object.keys(invoiceCustomerPatch).length > 0) {
-    await db
-      .update(invoices)
-      .set({ ...invoiceCustomerPatch, updatedAt: new Date() })
-      .where(and(eq(invoices.bookingId, booking.id), isNull(invoices.deletedAt)));
+  try {
+    await applyBookingEditAndSyncInvoices(booking.id, updates, {
+      actorUserId: user.id, expectedUpdatedAt: booking.updatedAt, reason: 'mobile_booking_edit',
+    });
+  } catch (error) {
+    if (error instanceof InvoiceDomainError) return NextResponse.json({ error: error.message }, { status: error.status });
+    throw error;
   }
 
   await db.insert(bookingStatusHistory).values({
@@ -488,6 +483,12 @@ export async function PATCH(request: Request, { params }: Props) {
         via: 'mobile_admin',
       },
     });
+    try {
+      await synchronizeBookingInvoices(booking.id, { actorUserId: user.id, reason: 'mobile_admin_payment_confirmed' });
+    } catch (syncError) {
+      // The receipt is committed; a later invoice read retries synchronization.
+      console.error('Invoice sync after confirmed mobile admin payment failed:', syncError);
+    }
   }
 
   await notifyCustomerBookingStatus({

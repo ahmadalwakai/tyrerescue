@@ -1,3 +1,5 @@
+import { SEO_RESPONSE_TIME_LABEL, SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
+
 export interface Area {
   slug: string;
   name: string;
@@ -32,8 +34,8 @@ export const services: ServiceSEO[] = [
     slug: 'emergency-tyre-fitting',
     name: 'Emergency Tyre Fitting',
     h1Template: 'Emergency Tyre Fitting in {location}',
-    metaTitleTemplate: 'Emergency Tyre Fitting {location} | 45 Min Response | Tyre Rescue',
-    metaDescTemplate: 'Emergency tyre fitting in {location} — real fitters, not a broker. Flat tyre? We respond within 45 minutes, 24/7. Own workshop, direct-employed fitters. Call 0141 266 0690.',
+    metaTitleTemplate: `Emergency Tyre Fitting {location} | ${SEO_RESPONSE_TIME_MINUTES} Min Response | Tyre Rescue`,
+    metaDescTemplate: `Emergency tyre fitting in {location} — real fitters, not a broker. Flat tyre? We respond in ${SEO_RESPONSE_TIME_LABEL}, 24/7. Own workshop, direct-employed fitters. Call 0141 266 0690.`,
     heroText: 'Emergency tyre fitting in {location}. Rapid response, any time of day or night.',
     priceFrom: 'Callout from £49 + tyre price',
   },

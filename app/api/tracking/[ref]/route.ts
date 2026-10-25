@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, bookingStatusHistory, drivers, trackingSessions, users } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { getDirections, metersToMiles, secondsToMinutes } from '@/lib/mapbox';
+import { authMobile } from '@/lib/auth';
+import { authorizeCustomerBooking, getCustomerBookingAccessToken, verifyCustomerBookingAccessToken } from '@/lib/customer-booking-access';
+import { latestDriverLocation } from '@/lib/tracking/location-sample';
+import { getTrackingSessionByCustomerToken } from '@/lib/tracking-session';
 
 interface StatusHistoryItem {
   status: string;
@@ -11,6 +15,9 @@ interface StatusHistoryItem {
 }
 
 interface TrackingResponse {
+  bookingId: string;
+  canChat: boolean;
+  bookingAccessToken?: string;
   sourceApp: string;
   sourceLabel: string;
   status: string;
@@ -46,12 +53,28 @@ export async function GET(
       .where(eq(bookings.refNumber, ref))
       .limit(1);
 
-    if (!booking) {
+    const session = await authMobile(request);
+    const staffAccess = session?.user?.role === 'admin';
+    const customerAccess = booking ? await authorizeCustomerBooking(request, booking) : false;
+    // Older driver apps use this endpoint while waiting for a usable GPS fix.
+    // A driver session grants access only to its currently assigned booking.
+    const [assignedDriver] = booking?.driverId && session?.user?.role === 'driver' && session.user.id
+      ? await db.select({ id: drivers.id }).from(drivers)
+        .where(and(eq(drivers.id, booking.driverId), eq(drivers.userId, session.user.id))).limit(1)
+      : [];
+    const assignedDriverAccess = Boolean(assignedDriver);
+    const legacyToken = request.headers.get('X-Tracking-Token');
+    const legacySession = !customerAccess && legacyToken ? await getTrackingSessionByCustomerToken(legacyToken) : null;
+    const trackingOnlyAccess = Boolean(booking && legacySession?.bookingId === booking.id);
+    if (!booking || (!staffAccess && !customerAccess && !trackingOnlyAccess && !assignedDriverAccess)) {
       return NextResponse.json(
-        { error: 'Booking not found' },
-        { status: 404 }
+        { error: 'Sign in to the booking account or open the secure link from your confirmation.' },
+        { status: 403 }
       );
     }
+    const suppliedCapability = getCustomerBookingAccessToken(request, booking.refNumber);
+    const transferableCapability = customerAccess && suppliedCapability && await verifyCustomerBookingAccessToken(suppliedCapability, booking)
+      ? suppliedCapability : null;
 
     // Fetch status history
     const history = await db
@@ -68,7 +91,8 @@ export async function GET(
     const statusHistory: StatusHistoryItem[] = history.map((h) => ({
       status: h.status,
       timestamp: h.timestamp?.toISOString() || '',
-      note: h.note,
+      // Internal dispatch notes are never part of customer tracking.
+      note: null,
     }));
 
     // Fetch driver info if assigned
@@ -84,7 +108,9 @@ export async function GET(
     const customerLat = parseFloat(booking.lat);
     const customerLng = parseFloat(booking.lng);
 
-    const [trackingLocation] = await db
+    const liveTracking = !['completed', 'cancelled', 'cancelled_refund_pending', 'refunded', 'refunded_partial'].includes(booking.status);
+    // A finished booking must never expose the driver's location on a later job.
+    const [trackingLocation] = liveTracking ? await db
       .select({
         lastLatitude: trackingSessions.lastLatitude,
         lastLongitude: trackingSessions.lastLongitude,
@@ -92,9 +118,9 @@ export async function GET(
       })
       .from(trackingSessions)
       .where(eq(trackingSessions.bookingId, booking.id))
-      .limit(1);
+      .limit(1) : [];
 
-    if (booking.driverId) {
+    if (booking.driverId && liveTracking) {
       const [driverInfo] = await db
         .select({
           currentLat: drivers.currentLat,
@@ -107,20 +133,13 @@ export async function GET(
         .limit(1);
 
       if (driverInfo) {
-        driverLat = trackingLocation?.lastLatitude
-          ? parseFloat(trackingLocation.lastLatitude)
-          : driverInfo.currentLat
-            ? parseFloat(driverInfo.currentLat)
-            : null;
-        driverLng = trackingLocation?.lastLongitude
-          ? parseFloat(trackingLocation.lastLongitude)
-          : driverInfo.currentLng
-            ? parseFloat(driverInfo.currentLng)
-            : null;
-        driverLocationAt =
-          trackingLocation?.lastUpdatedAt?.toISOString() ||
-          driverInfo.locationAt?.toISOString() ||
-          null;
+        const location = latestDriverLocation([
+          { lat: trackingLocation?.lastLatitude, lng: trackingLocation?.lastLongitude, updatedAt: trackingLocation?.lastUpdatedAt },
+          { lat: driverInfo.currentLat, lng: driverInfo.currentLng, updatedAt: driverInfo.locationAt },
+        ]);
+        driverLat = location?.lat ?? null;
+        driverLng = location?.lng ?? null;
+        driverLocationAt = location?.updatedAt.toISOString() ?? null;
 
         // Fetch driver user info for name and phone
         if (driverInfo.userId) {
@@ -141,7 +160,8 @@ export async function GET(
         }
 
         // Calculate ETA + route if driver has location
-        if (driverLat && driverLng) {
+        if (driverLat !== null && driverLng !== null && driverLocationAt &&
+          Date.now() - Date.parse(driverLocationAt) <= 180_000) {
           const directions = await getDirections(
             { lat: driverLat, lng: driverLng },
             { lat: customerLat, lng: customerLng }
@@ -165,6 +185,9 @@ export async function GET(
     );
 
     const response: TrackingResponse = {
+      bookingId: booking.id,
+      canChat: customerAccess,
+      ...(transferableCapability ? { bookingAccessToken: transferableCapability } : {}),
       sourceApp: booking.sourceApp,
       sourceLabel: booking.sourceLabel,
       status: booking.status,
@@ -175,7 +198,7 @@ export async function GET(
       driverLng,
       driverLocationAt,
       driverName,
-      driverPhone,
+      driverPhone: customerAccess || staffAccess ? driverPhone : null,
       etaMinutes,
       estimatedArrivalAt,
       distanceMiles,
@@ -186,7 +209,7 @@ export async function GET(
       completedAt: completedEntry?.timestamp || null,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, { headers: { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' } });
   } catch (error) {
     console.error('Error fetching tracking data:', error);
     return NextResponse.json(

@@ -3,6 +3,8 @@
  * Integrates with existing cookie consent system.
  */
 
+import { analyticsUrl } from '@/lib/analytics/private-urls';
+
 const CONSENT_KEY = 'tyrerescue_consent_v2';
 const SESSION_KEY = 'tr_visitor_sid';
 const VISIT_KEY = 'tr_visit_count';
@@ -96,7 +98,7 @@ export async function trackEvent(
     const body = {
       event: eventType,
       sessionId: getOrCreateSessionId(),
-      path: typeof window !== 'undefined' ? window.location.pathname : '',
+      path: typeof window !== 'undefined' ? analyticsUrl(window.location.pathname) : '',
       metadata: metadata ?? {},
       consent: hasAnalyticsConsent(),
     };

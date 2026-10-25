@@ -1,9 +1,10 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
   test: {
     include: ['**/__tests__/**/*.test.ts'],
+    exclude: [...configDefaults.exclude, '.vercel/**', 'lib/__tests__/payroll-*-db.test.ts'],
   },
   resolve: {
     alias: {

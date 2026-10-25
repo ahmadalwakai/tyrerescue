@@ -28,6 +28,7 @@ interface StepServiceTypeProps {
   state: WizardState;
   updateState: (updates: Partial<WizardState>) => void;
   goToNext: () => void;
+  headingLevel?: 1 | 2;
 }
 
 const CARDS: {
@@ -56,6 +57,7 @@ export function StepServiceType({
   state,
   updateState,
   goToNext,
+  headingLevel = 1,
 }: StepServiceTypeProps) {
   const [availability, setAvailability] = useState<DriverAvailability | null>(
     null,
@@ -129,7 +131,7 @@ export function StepServiceType({
               Start your booking
             </Text>
             <Text
-              as="h1"
+              as={headingLevel === 1 ? 'h1' : 'h2'}
               fontFamily="var(--font-display), sans-serif"
               lineHeight={1}
               color={c.text}

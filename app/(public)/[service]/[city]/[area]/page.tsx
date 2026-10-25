@@ -8,6 +8,7 @@ import { getServiceSchema, getBreadcrumbSchema, getFAQSchema } from '@/lib/seo/s
 import { getNeighborhoodEnrichment } from '@/lib/data/neighborhoodEnrichment';
 import { getPriorityServiceAreaParams } from '@/lib/seo/priority';
 import { cityContent } from '@/lib/data/cityContent';
+import { SEO_RESPONSE_TIME_LABEL, SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 
 // Hybrid rendering: prebuild only the highest-priority routes, generate the
 // remaining ~3,000 service-area pages on-demand and cache for 7 days. Keeps
@@ -26,15 +27,12 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
   const area = getAreaBySlug(citySlug, areaSlug);
   if (!service || !city || !area) return {};
 
-  const estimatedArrival = Math.round(area.distanceFromCentre * 3.5 + 18);
   const enrichment = getNeighborhoodEnrichment(citySlug, areaSlug);
-  const enrichedDesc = enrichment
-    ? `${service.name} in ${area.name}, ${city.name} (${area.postcode}). ~${estimatedArrival} min response near ${area.nearestLandmark}. ${enrichment.characterDescription} Call 0141 266 0690 — 24/7.`
-    : `${service.name} in ${area.name}, ${city.name} (${area.postcode}). Response time approximately ${estimatedArrival} minutes. Near ${area.nearestLandmark}. Call 0141 266 0690 — available 24/7.`;
+  const description = `${service.name} in ${area.name}, ${city.name} (${area.postcode}). Available 24/7 at your home, work or roadside. ${SEO_RESPONSE_TIME_MINUTES} min response. Book online.`;
 
   return {
-    title: `${service.name} ${area.name} ${area.postcode} | ${estimatedArrival} Min Response | Tyre Rescue`,
-    description: enrichedDesc,
+    title: { absolute: `${service.name} ${area.name} ${area.postcode} | Tyre Rescue` },
+    description,
     keywords: [
       `${service.name.toLowerCase()} ${area.name.toLowerCase()}`,
       `${service.name.toLowerCase()} ${area.postcode}`,
@@ -46,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
     ].join(', '),
     openGraph: {
       title: `${service.name} in ${area.name}, ${city.name} | Tyre Rescue`,
-      description: `${service.name} in ${area.name} (${area.postcode}). ~${estimatedArrival} min response. Call 0141 266 0690.`,
+      description,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}/${area.slug}`,
       images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.webp', width: 1200, height: 630, alt: `${service.name} in ${area.name}, ${city.name}` }],
     },
@@ -65,17 +63,16 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ se
 
   const allCityAreas = getAreasForCity(citySlug);
   const enrichment = getNeighborhoodEnrichment(citySlug, areaSlug);
-  const estimatedArrival = Math.round(area.distanceFromCentre * 3.5 + 18);
   const cityData = cityContent[citySlug];
 
   const areaFaqs = [
     {
       question: `How quickly can you reach ${area.name} (${area.postcode}) for ${service.name.toLowerCase()}?`,
-      answer: `Our estimated response time in ${area.name} is ${estimatedArrival} minutes. We dispatch from our Glasgow base and navigate directly to your exact location — whether you are near ${area.nearestLandmark} or anywhere else in the ${area.postcode} postcode.`,
+      answer: `Our estimated response time in ${area.name} is ${SEO_RESPONSE_TIME_LABEL}. We dispatch the nearest available fitter to your exact location — whether you are near ${area.nearestLandmark} or anywhere else in the ${area.postcode} postcode.`,
     },
     {
       question: `How much does ${service.name.toLowerCase()} cost in ${area.name}?`,
-      answer: `${service.name} in ${area.name} starts from ${service.priceFrom}. There are no hidden charges — the price includes professional fitting, torqueing to manufacturer spec, and old tyre disposal. Call 0141 266 0690 for an instant quote.`,
+      answer: `${service.name} in ${area.name}: ${service.priceFrom}. We confirm the full quote before starting work. Call 0141 266 0690 for an instant quote.`,
     },
     {
       question: `Do you cover ${area.name} 24 hours a day?`,
@@ -108,7 +105,7 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ se
         { name: area.name, path: `/${service.slug}/${city.slug}/${area.slug}` },
       ])} />
       <JsonLd data={getFAQSchema(areaFaqs)} />
-      <ServiceAreaContent service={service} city={city} area={area} allCityAreas={allCityAreas} enrichment={enrichment} />
+      <ServiceAreaContent service={service} city={city} area={area} allCityAreas={allCityAreas} enrichment={enrichment} faqs={areaFaqs} />
     </>
   );
 }

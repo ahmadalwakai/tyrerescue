@@ -27,15 +27,6 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-const PAYMENT_CONFIRMED_STATUSES = new Set([
-  'paid',
-  'driver_assigned',
-  'en_route',
-  'arrived',
-  'in_progress',
-  'completed',
-]);
-
 export interface StepPaymentProps {
   clientSecret: string;
   bookingId: string;
@@ -66,10 +57,6 @@ function readServerConversion(value: unknown): { value: number; email?: string }
     value: payload.value,
     email: typeof payload.email === 'string' ? payload.email : undefined,
   };
-}
-
-function isServerPaidStatus(status: unknown): boolean {
-  return typeof status === 'string' && PAYMENT_CONFIRMED_STATUSES.has(status);
 }
 
 /**
@@ -122,7 +109,7 @@ function CheckoutForm({
           }),
         });
         const data = await res.json().catch(() => null);
-        if (res.ok && isServerPaidStatus(data?.status)) {
+        if (res.ok && data?.paymentConfirmed === true) {
           serverConversion = readServerConversion(data);
         }
       } catch {

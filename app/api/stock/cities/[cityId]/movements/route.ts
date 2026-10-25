@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db, stockMovements, tyreProducts, users } from '@/lib/db';
 import {
@@ -19,7 +18,8 @@ const movementTypes = new Set([
 ]);
 
 function parsePageParams(url: URL) {
-  const page = Math.max(1, Number.parseInt(url.searchParams.get('page') || '1', 10));
+  const rawPage = Number.parseInt(url.searchParams.get('page') || '1', 10);
+  const page = Math.max(1, Number.isFinite(rawPage) ? rawPage : 1);
   const rawPerPage = Number.parseInt(url.searchParams.get('perPage') || '50', 10);
   const perPage = Math.max(1, Math.min(100, Number.isFinite(rawPerPage) ? rawPerPage : 50));
   return { page, perPage, offset: (page - 1) * perPage };
@@ -40,6 +40,10 @@ export async function GET(
   const { page, perPage, offset } = parsePageParams(url);
   const search = url.searchParams.get('search')?.trim() || '';
   const movementType = url.searchParams.get('movementType')?.trim() || '';
+  const idempotencyKey = url.searchParams.get('idempotencyKey');
+  if (idempotencyKey !== null && (!idempotencyKey.trim() || idempotencyKey.length > 200)) {
+    return stockJsonResponse(request, { error: 'Invalid idempotencyKey filter' }, { status: 400 });
+  }
   if (movementType && !movementTypes.has(movementType)) {
     return stockJsonResponse(request, { error: 'Invalid movementType filter' }, { status: 400 });
   }
@@ -54,6 +58,7 @@ export async function GET(
   const movementTypeFilter = movementType ? eq(stockMovements.movementType, movementType as never) : undefined;
   const where = and(
     eq(stockMovements.cityId, cityId),
+    ...(idempotencyKey ? [eq(stockMovements.idempotencyKey, idempotencyKey)] : []),
     ...(searchFilter ? [searchFilter] : []),
     ...(movementTypeFilter ? [movementTypeFilter] : []),
   );
@@ -73,6 +78,7 @@ export async function GET(
       bookingId: stockMovements.bookingId,
       saleChannel: stockMovements.saleChannel,
       reversesMovementId: stockMovements.reversesMovementId,
+      idempotencyKey: stockMovements.idempotencyKey,
       reason: stockMovements.reason,
       note: stockMovements.note,
       occurredAt: stockMovements.occurredAt,
@@ -118,6 +124,7 @@ export async function GET(
       bookingId: row.bookingId,
       saleChannel: row.saleChannel,
       reversesMovementId: row.reversesMovementId,
+      idempotencyKey: row.idempotencyKey,
       reason: row.reason,
       note: row.note,
       occurredAt: row.occurredAt?.toISOString() ?? null,

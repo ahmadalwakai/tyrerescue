@@ -154,7 +154,7 @@ export async function GET(request: Request) {
       ...activeRows,
       ...upcomingRows,
       ...completedRows,
-    ].map(rowToPaymentBookingInput));
+    ].map(rowToPaymentBookingInput), { audience: 'driver' });
 
     const active = activeRows.map((row) =>
       serialiseJob(row, tyreMap.get(row.id) ?? [], paymentSummaryMap.get(row.id)),

@@ -19,6 +19,7 @@ import {
 } from '@/lib/ads/emergencyCampaign';
 import { getAreaBySlug, getAreasForCity, serviceCities } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 import {
   buildEmergencyBreadcrumbJsonLd,
   buildEmergencyLocalMetadata,
@@ -87,7 +88,7 @@ export default async function EmergencyTyreFittingLocalPage({ params }: Emergenc
         <EmergencyHero
           area={serviceArea}
           headline={`Emergency tyre fitting in ${location}`}
-          copy={`Flat tyre in ${location}? Tyre Rescue dispatches 24/7 mobile tyre fitters across all of Scotland, with a ${serviceArea.responseMinutes}-minute response target and emergency callout from \u00a349.`}
+          copy={`Flat tyre in ${location}? Tyre Rescue dispatches 24/7 mobile tyre fitters across all of Scotland, with a ${SEO_RESPONSE_TIME_MINUTES}-minute response target and emergency callout from \u00a349.`}
         />
         <EmergencyTrustBar />
         <EmergencyServiceCards />

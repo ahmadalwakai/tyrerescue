@@ -3,6 +3,9 @@ import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, invoices, invoiceItems, auditLogs } from '@/lib/db';
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
+import { getLinkedInvoiceContext } from '@/lib/invoices/booking-invoice-sync';
+import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { readInvoicePresentation } from '@/lib/invoices/invoice-presentation';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -38,16 +41,28 @@ export async function GET(request: Request, { params }: Props) {
 
   const { id } = await params;
 
-  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
+  let [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
   if (!invoice) {
     return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
   }
 
+  let context: Awaited<ReturnType<typeof getLinkedInvoiceContext>>;
+  try { context = await getLinkedInvoiceContext(invoice, { actorUserId: user.id, reason: 'admin_invoice_get' }); }
+  catch (error) {
+    if (error instanceof InvoiceDomainError) return NextResponse.json({ error: error.message }, { status: error.status });
+    throw error;
+  }
+  invoice = context.invoice;
+  const booking = context.booking;
+  const bookingTotalPence = booking ? Math.round(Number(booking.totalAmount) * 100) : null;
+  const presentation = booking ? readInvoicePresentation(booking.priceSnapshot, bookingTotalPence!) : null;
   const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, id)).orderBy(asc(invoiceItems.sortOrder));
 
   return NextResponse.json({
     invoice: {
       ...invoice,
+      ...(booking ? { bookingRef: booking.refNumber, bookingTotalPence, ...presentation,
+        bookingUpdatedAt: booking.updatedAt?.toISOString() ?? null } : {}),
       subtotal: invoice.subtotal?.toString() ?? '0',
       vatRate: invoice.vatRate?.toString() ?? '0',
       vatAmount: invoice.vatAmount?.toString() ?? '0',
@@ -65,7 +80,7 @@ export async function GET(request: Request, { params }: Props) {
       unitPrice: item.unitPrice?.toString() ?? '0',
       totalPrice: item.totalPrice?.toString() ?? '0',
     })),
-  });
+  }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
 export async function PATCH(request: Request, { params }: Props) {
@@ -86,6 +101,10 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   const data = parsed.data;
+  const linkedFields = ['customerName', 'customerEmail', 'customerPhone', 'customerAddress', 'issueDate', 'dueDate', 'status', 'items', 'bookingId', 'userId'];
+  if ((existing.bookingId || data.bookingId) && linkedFields.some((field) => Object.hasOwn(data, field))) {
+    return NextResponse.json({ error: 'Edit the linked booking to change invoice details or totals. Use invoice presentation for customer-visible information.' }, { status: 409 });
+  }
   const updates: Record<string, unknown> = { updatedBy: user.id, updatedAt: new Date() };
 
   if (data.customerName !== undefined) updates.customerName = data.customerName;

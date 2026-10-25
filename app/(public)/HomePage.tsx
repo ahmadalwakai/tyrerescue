@@ -30,6 +30,7 @@ import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewColle
 import { trackCallClick, trackContactSubmit } from '@/lib/analytics/gtag';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { HONEYPOT_FIELD } from '@/lib/security/honeypot';
+import { SEO_RESPONSE_TIME_MINUTES, SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 
 const colors = {
   bg: colorTokens.bg,
@@ -53,7 +54,7 @@ const heroHeadlineLines = [
 
 const heroTrustChips = [
   '★★★★★ 4.9 Google',
-  '45 min - 1 hour',
+  SEO_RESPONSE_TIME_LABEL,
   'All of Scotland',
   'Home & Work',
 ];
@@ -71,7 +72,7 @@ const services = [
     num: '01',
     title: 'Emergency Callout',
     description:
-      'Flat tyre anywhere in Scotland? Our emergency mobile tyre fitters respond across the whole of Scotland, 24 hours a day, 7 days a week. Glasgow and Edinburgh typically within 45 minutes.',
+      `Flat tyre anywhere in Scotland? Our emergency mobile tyre fitters respond across the whole of Scotland, 24 hours a day, 7 days a week, with a response target of ${SEO_RESPONSE_TIME_LABEL}.`,
     price: SERVICE_PRICING.emergency.label,
   },
   {
@@ -1419,7 +1420,7 @@ export function HomePage() {
                 <Text fontSize="12px" color={colors.textSecondary} maxW="160px" mx="auto" mt={1} style={{ fontFamily: 'var(--font-body)' }}>All fitters fully insured</Text>
               </Box>
               <Box textAlign="center">
-                <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>45 MIN</Text>
+                <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>{SEO_RESPONSE_TIME_MINUTES} MIN</Text>
                 <Text fontSize="14px" fontWeight="600" color={colors.textPrimary} mt={2} style={{ fontFamily: 'var(--font-body)' }}>Avg Response Time</Text>
                 <Text fontSize="12px" color={colors.textSecondary} maxW="160px" mx="auto" mt={1} style={{ fontFamily: 'var(--font-body)' }}>Emergency callouts Glasgow &amp; Edinburgh</Text>
               </Box>
@@ -1962,7 +1963,7 @@ export function HomePage() {
           <Container maxW="4xl">
             <AIOptimizedSection
               question="What is Mobile Tyre Fitting and How Does It Work?"
-              directAnswer="Mobile tyre fitting is when a certified technician comes to your location — home, work, or roadside — with all equipment needed to fit new tyres or repair punctures. Tyre Rescue covers all of Scotland: Glasgow and Edinburgh typically within 45 minutes, Aberdeen and Inverness within 90 minutes, with the Highlands and Islands served by advance booking. Fitting is completed on-site in 30–45 minutes and you pay only when the job is done."
+              directAnswer={`Mobile tyre fitting is when a certified technician comes to your location — home, work, or roadside — with all equipment needed to fit new tyres or repair punctures. Tyre Rescue covers all of Scotland with a response target of ${SEO_RESPONSE_TIME_LABEL}, with the Highlands and Islands served by advance booking. Confirm availability and your exact ETA when you call. Fitting is completed on-site in 30–45 minutes and you pay only when the job is done.`}
               entityType="process"
               detailedAnswer={
                 <Flex direction="column" gap="30px">

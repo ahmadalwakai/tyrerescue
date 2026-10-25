@@ -1,3 +1,4 @@
+import { buildCustomerBookingTrackingUrl } from '@/lib/customer-booking-access';
 import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
 import { requireAdminMobile } from '@/lib/auth';
@@ -211,7 +212,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
     // Send notification emails — outbound customer link must always be production URL.
     const siteUrl = getOutboundUrl(booking.sourceApp);
-    const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
+    const trackingUrl = await buildCustomerBookingTrackingUrl(siteUrl, booking);
 
     const tyreRows = await db
       .select({

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -7,18 +7,19 @@ import { db } from '@/lib/db';
 import { bookings, users } from '@/lib/db/schema';
 import {
   buildCustomerSessionPayload,
-  isCustomerVisibleBookingStatus,
   linkUnclaimedBookingsForEmail,
   sendCustomerVerification,
   type CustomerMobileUser,
 } from '@/app/api/mobile/customer/_lib';
 import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection, rateLimitedResponse } from '@/lib/security';
+import { getCustomerBookingAccessToken, verifyCustomerBookingAccessToken } from '@/lib/customer-booking-access';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const claimBookingSchema = z.object({
   refNumber: z.string().min(3).max(30),
+  bookingAccessToken: z.string().max(4096).optional(),
   name: z.string().min(2).max(255).optional(),
   email: z.string().email().max(255),
   phone: z.string().min(5).max(20).optional(),
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isCustomerVisibleBookingStatus(booking.status) || booking.status === 'awaiting_payment') {
+    if (!['paid', 'driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'].includes(booking.status)) {
       return NextResponse.json(
         { error: 'Create an account after payment is completed.' },
         { status: 409 },
@@ -82,6 +83,10 @@ export async function POST(request: Request) {
       .from(users)
       .where(sql`lower(${users.email}) = ${email}`)
       .limit(1);
+
+    const capability = data.bookingAccessToken ?? getCustomerBookingAccessToken(request, refNumber);
+    const hasBookingAccess = capability
+      ? await verifyCustomerBookingAccessToken(capability, booking) : false;
 
     let user: CustomerMobileUser;
     let created = false;
@@ -109,14 +114,27 @@ export async function POST(request: Request) {
         );
       }
 
+      if (booking.userId && booking.userId !== existingUser.id) {
+        return NextResponse.json({ error: 'This booking is already linked to another account.' }, { status: 409 });
+      }
+      if (!booking.userId && existingUser.emailVerified !== true && !hasBookingAccess) {
+        return NextResponse.json({ error: 'Verify your email or return to the device used to book before linking this booking.' }, { status: 403 });
+      }
+
       user = {
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
         phone: existingUser.phone,
         role: existingUser.role,
+        emailVerified: existingUser.emailVerified,
       };
     } else {
+      // Knowing a reference and email is not proof that a guest paid for it.
+      // The checkout device receives this capability only for its own booking.
+      if (!hasBookingAccess || booking.userId) {
+        return NextResponse.json({ error: 'Verify your email or return to the device used to book before linking this booking.' }, { status: 403 });
+      }
       const passwordHash = await bcrypt.hash(data.password, 12);
       const [newUser] = await db
         .insert(users)
@@ -134,6 +152,7 @@ export async function POST(request: Request) {
           name: users.name,
           phone: users.phone,
           role: users.role,
+          emailVerified: users.emailVerified,
         });
 
       user = newUser;
@@ -148,7 +167,16 @@ export async function POST(request: Request) {
       );
     }
 
-    await linkUnclaimedBookingsForEmail(user.id, email);
+    const linked = await db.update(bookings)
+      .set({ userId: user.id, updatedAt: new Date() })
+      .where(and(eq(bookings.id, booking.id), or(isNull(bookings.userId), eq(bookings.userId, user.id))))
+      .returning({ id: bookings.id });
+    if (linked.length === 0) {
+      return NextResponse.json({ error: 'This booking is already linked to another account.' }, { status: 409 });
+    }
+    // The helper independently checks current DB verification. A paid guest
+    // capability grants this booking only, never other bookings with its email.
+    if (user.emailVerified === true) await linkUnclaimedBookingsForEmail(user.id, email);
     const payload = await buildCustomerSessionPayload(user);
 
     return NextResponse.json({

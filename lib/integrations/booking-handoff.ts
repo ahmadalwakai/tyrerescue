@@ -72,6 +72,22 @@ const directBookingSchema = z.object({
   gclid: z.string().trim().max(255).optional(),
   utmTerm: z.string().trim().max(255).optional(),
   utmContent: z.string().trim().max(255).optional(),
+  dryRun: z.boolean().optional(),
+});
+
+// Caledonia submits a request estimate rather than taking an online payment.
+// Keep existing project validation and payment defaults unchanged.
+const strictMoney = moneyLike.transform(Number).pipe(z.number().finite().nonnegative().max(99_999_999.99));
+const caledoniaDirectBookingSchema = directBookingSchema.extend({
+  externalReference: z.string().trim().regex(/^CT-[A-F0-9]{16}$/),
+  lat: coordLike.transform(Number).pipe(z.number().finite().min(-90).max(90)),
+  lng: coordLike.transform(Number).pipe(z.number().finite().min(-180).max(180)),
+  totalAmount: strictMoney,
+  subtotal: strictMoney.optional(),
+  vatAmount: strictMoney.optional(),
+  distanceMiles: moneyLike.transform(Number).pipe(z.number().finite().nonnegative().max(999.99)).optional(),
+  scheduledAt: z.iso.datetime({ offset: true }).optional(),
+  vehicleReg: z.string().trim().max(10).optional(),
 });
 
 function validationError(error: z.ZodError) {
@@ -347,12 +363,18 @@ async function createBookingFromQuote(request: Request, source: ProjectSource, b
 }
 
 async function createDirectProjectBooking(source: ProjectSource, body: unknown) {
-  const parsed = directBookingSchema.safeParse(body);
+  const parsed = (source.app === 'caledonia_tyres' ? caledoniaDirectBookingSchema : directBookingSchema).safeParse(body);
   if (!parsed.success) return validationError(parsed.error);
 
   const externalReference = readExternalReference(parsed.data);
   if (!externalReference) {
     return NextResponse.json({ error: 'externalReference is required' }, { status: 400 });
+  }
+
+  // Authentication happens in the route wrapper. No database read, booking,
+  // payment or notification is created by this readiness check.
+  if (source.app === 'caledonia_tyres' && parsed.data.dryRun) {
+    return NextResponse.json({ success: true, dryRun: true });
   }
 
   const existing = await findBookingByExternalReference(source, externalReference);
@@ -451,9 +473,11 @@ async function createDirectProjectBooking(source: ProjectSource, body: unknown) 
     referrer: source.origin,
   };
 
-  const [created] = await db
-    .insert(bookings)
-    .values(bookingInsert)
+  const insert = db.insert(bookings).values(bookingInsert);
+  // Migration 0023 uniquely indexes (source_app, external_reference). The
+  // conflict path also covers two identical handoffs arriving concurrently.
+  const query = source.app === 'caledonia_tyres' ? insert.onConflictDoNothing() : insert;
+  const [created] = await query
     .returning({
       id: bookings.id,
       refNumber: bookings.refNumber,
@@ -465,6 +489,18 @@ async function createDirectProjectBooking(source: ProjectSource, body: unknown) 
       customerPhone: bookings.customerPhone,
       totalAmount: bookings.totalAmount,
     });
+
+  if (!created) {
+    const concurrent = await findBookingByExternalReference(source, externalReference);
+    if (concurrent) {
+      return NextResponse.json({
+        error: 'External reference is already linked to a Tyre Rescue booking',
+        booking: concurrent,
+        sourceDisplay: formatProjectReference(concurrent.sourceLabel, concurrent.externalReference),
+      }, { status: 409 });
+    }
+    return NextResponse.json({ error: 'Could not create a unique booking reference' }, { status: 503 });
+  }
 
   await db.insert(bookingStatusHistory).values({
     bookingId: created.id,
@@ -494,6 +530,13 @@ async function createDirectProjectBooking(source: ProjectSource, body: unknown) 
 export async function handleProjectBookingHandoff(request: Request, source: ProjectSource, body: unknown) {
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  if ('dryRun' in body && body.dryRun !== false && body.dryRun !== undefined) {
+    if (source.app !== 'caledonia_tyres' || 'quoteId' in body || 'tyreRescueRefNumber' in body) {
+      return NextResponse.json({ error: 'Dry runs are supported only for direct Caledonia bookings' }, { status: 400 });
+    }
+    return createDirectProjectBooking(source, body);
   }
 
   if ('quoteId' in body) {

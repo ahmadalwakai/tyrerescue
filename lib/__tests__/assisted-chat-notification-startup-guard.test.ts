@@ -61,6 +61,8 @@ vi.mock('../../assisted-chat-app/src/lib/api', () => ({
     hasAdminToken: true,
   },
   getAdminToken: () => 'admin-token',
+  getApiBaseUrl: () => 'https://www.tyrerescue.uk',
+  getApiContextRevision: () => 0,
 }));
 
 vi.mock('../../assisted-chat-app/src/lib/urgent-watcher', () => ({

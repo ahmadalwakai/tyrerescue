@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authMobile } from '@/lib/auth';
 import { z } from 'zod';
-import { canSendMessage, ensureParticipant } from '@/lib/chat/permissions';
-import { getMessages, sendMessage } from '@/lib/chat/queries';
-import type { ChatRole, MessageType } from '@/lib/chat/types';
+import { ensureParticipant } from '@/lib/chat/permissions';
+import { getMessageById, getMessages, sendMessage } from '@/lib/chat/queries';
+import type { MessageType } from '@/lib/chat/types';
 import { createAdminNotification } from '@/lib/notifications';
 import { notifyDriverNewMessage } from '@/lib/notifications/driver-push';
 import { db, bookingConversations, bookings, conversationParticipants, drivers } from '@/lib/db';
 import { and, eq } from 'drizzle-orm';
+import { canChatActorSend, resolveChatActor } from '@/lib/chat/customer-access';
+import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
+import { notifyCustomerChatMessage } from '@/lib/notifications/customer-push';
 
 const sendSchema = z.object({
   body: z.string().max(5000).nullable(),
+  clientMessageId: z.string().uuid().optional(),
   messageType: z.enum(['text', 'image', 'audio', 'admin_note']).default('text'),
   attachment: z.object({
     url: z.string().url(),
@@ -63,24 +66,17 @@ function normalizeMessageUploadUrls<T extends { attachments: { url: string }[] }
 
 /** GET /api/chat/conversations/[conversationId]/messages — paginated messages */
 export async function GET(req: NextRequest, ctx: RouteContext) {
-  const session = await authMobile(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { conversationId } = await ctx.params;
-  const role = session.user.role as ChatRole;
-
-  // Access check is done inside getMessages via permission check
-  const { canSendMessage: perm } = await import('@/lib/chat/permissions');
-  const check = await perm({ id: session.user.id, role }, conversationId);
-  // Even if locked, reading is allowed for participants
-  const { canAccessConversation } = await import('@/lib/chat/permissions');
-  const hasAccess = await canAccessConversation({ id: session.user.id, role }, conversationId);
-  if (!hasAccess) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-
+  if (!z.string().uuid().safeParse(conversationId).success) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 });
+  const actor = await resolveChatActor(req, conversationId);
+  if (!actor) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   const cursor = req.nextUrl.searchParams.get('cursor') ?? undefined;
-  const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10), 100);
-
-  const result = await getMessages(conversationId, role, cursor, limit);
+  const rawLimit = Number(req.nextUrl.searchParams.get('limit') ?? '50');
+  if ((cursor && !z.string().uuid().safeParse(cursor).success) || !Number.isInteger(rawLimit) || rawLimit < 1) {
+    return NextResponse.json({ error: 'Invalid pagination' }, { status: 400 });
+  }
+  if (actor.id) await ensureParticipant(conversationId, actor.id, actor.role);
+  const result = await getMessages(conversationId, actor.role, cursor, Math.min(rawLimit, 100));
   return NextResponse.json({
     ...result,
     messages: result.messages.map((message) => normalizeMessageUploadUrls(message, req)),
@@ -89,25 +85,25 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
 /** POST /api/chat/conversations/[conversationId]/messages — send a message */
 export async function POST(req: NextRequest, ctx: RouteContext) {
-  const session = await authMobile(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { conversationId } = await ctx.params;
-  const role = session.user.role as ChatRole;
+  if (!z.string().uuid().safeParse(conversationId).success) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 });
+  const actor = await resolveChatActor(req, conversationId);
+  if (!actor) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  const { role } = actor;
 
   // Permission check
-  const check = await canSendMessage({ id: session.user.id, role }, conversationId);
+  const check = await canChatActorSend(actor, conversationId);
   if (!check.allowed) {
     return NextResponse.json({ error: check.reason }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = sendSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.issues }, { status: 400 });
   }
 
-  const { body: msgBody, messageType, attachment } = parsed.data;
+  const { body: msgBody, messageType, attachment, clientMessageId } = parsed.data;
 
   // Only admins can send admin_note
   if (messageType === 'admin_note' && role !== 'admin') {
@@ -115,8 +111,13 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   }
 
   // Must have body or attachment
-  if (!msgBody && !attachment) {
+  if (!msgBody?.trim() && !attachment) {
     return NextResponse.json({ error: 'Message must have text or an attachment' }, { status: 400 });
+  }
+
+  // Guest messages are text only until media has booking-scoped private storage.
+  if (actor.id === null && (attachment || messageType !== 'text')) {
+    return NextResponse.json({ error: 'Guest chat currently supports text messages' }, { status: 400 });
   }
 
   if (messageType === 'audio' && !attachment?.mimeType.toLowerCase().startsWith('audio/')) {
@@ -128,27 +129,48 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   }
 
   // Ensure sender is a participant
-  await ensureParticipant(conversationId, session.user.id, role);
+  if (actor.id) await ensureParticipant(conversationId, actor.id, role);
 
-  const message = await sendMessage(
+  const findReplay = async () => {
+    if (!clientMessageId) return null;
+    const existing = await getMessageById(conversationId, clientMessageId, role);
+    if (!existing) return null;
+    if (existing.senderId !== actor.id || existing.senderRole !== role || existing.body !== msgBody || existing.messageType !== messageType ||
+        JSON.stringify(existing.attachments.map((item) => ({ url: item.url, mimeType: item.mimeType, fileSize: item.fileSize, fileName: item.fileName ?? null }))) !==
+          JSON.stringify(attachment ? [{ url: attachment.url, mimeType: attachment.mimeType, fileSize: attachment.fileSize, fileName: attachment.fileName ?? null }] : [])) {
+      return NextResponse.json({ error: 'Message identifier is already in use' }, { status: 409 });
+    }
+    return NextResponse.json(normalizeMessageUploadUrls(existing, req), { status: 201 });
+  };
+  const replay = await findReplay();
+  if (replay) return replay;
+  let message;
+  try { message = await sendMessage(
     conversationId,
-    session.user.id,
+    actor.id,
     role,
     msgBody,
     messageType as MessageType,
     attachment,
-  );
+    clientMessageId,
+  ); } catch (error) {
+    // A retried or overlapping send keeps the same ID and never inserts twice.
+    const duplicate = clientMessageId ? await findReplay() : null;
+    if (duplicate) return duplicate;
+    throw error;
+  }
 
   const [convContext] = await db
     .select({
       bookingId: bookingConversations.bookingId,
+      channel: bookingConversations.channel,
       bookingRef: bookings.refNumber,
       driverId: bookings.driverId,
       customerName: bookings.customerName,
       customerPhone: bookings.customerPhone,
     })
     .from(bookingConversations)
-    .innerJoin(bookings, eq(bookings.id, bookingConversations.bookingId))
+    .leftJoin(bookings, eq(bookings.id, bookingConversations.bookingId))
     .where(eq(bookingConversations.id, conversationId))
     .limit(1);
 
@@ -156,9 +178,10 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
     ? `/admin/bookings/${convContext.bookingRef}`
     : '/admin/chat';
 
-  // Notify admin when a customer or driver sends a message
+  const notificationTasks: Promise<unknown>[] = [];
+  // Await dispatch so a serverless request cannot end before the push is sent.
   if (role !== 'admin') {
-    createAdminNotification({
+    notificationTasks.push(createAdminNotification({
       type: 'chat.message.received',
       title: 'New Chat Message',
       body: `${role === 'driver' ? 'Driver' : 'Customer'}: ${msgBody?.slice(0, 80) || attachmentPreview(messageType)}`,
@@ -168,23 +191,40 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
       severity: 'info',
       createdBy: 'system',
       metadata: {
-        refNumber: convContext?.bookingRef,
-        customerName: convContext?.customerName,
-        customerPhone: convContext?.customerPhone,
+        refNumber: convContext?.bookingRef ?? undefined,
+        conversationId,
+        chatScope: convContext?.bookingId ? 'booking' : 'direct_driver',
+        customerName: convContext?.customerName ?? undefined,
+        customerPhone: convContext?.customerPhone ?? undefined,
         chatSenderRole: role,
         chatPreview: msgBody?.slice(0, 160) || attachmentPreview(messageType),
         important: true,
         updateType: 'created',
         adminPath: adminLink,
       },
-    }).catch(console.error);
+    }));
+    if (convContext?.channel === 'customer_admin') notificationTasks.push(sendAdminExpoPush({
+      title: 'Customer message', body: 'A customer has sent a message to Tyre Rescue.',
+      platforms: ['ios'], channelId: 'messages_v2', ttl: 600,
+      data: { type: 'chat_message', conversationId, bookingId: convContext.bookingId, refNumber: convContext.bookingRef },
+    }));
   }
 
-  // Notify driver via push when admin or customer sends a message
-  if (role !== 'driver') {
-    (async () => {
+  if (role === 'admin' && messageType !== 'admin_note' && convContext?.channel === 'customer_admin' && convContext.bookingId) {
+    notificationTasks.push(notifyCustomerChatMessage({ bookingId: convContext.bookingId, conversationId }));
+  }
+
+  // A customer/admin conversation never sends its content to a driver.
+  if (role !== 'driver' && messageType !== 'admin_note' &&
+      (convContext?.channel === 'admin_driver' || convContext?.channel === 'customer_driver')) {
+    notificationTasks.push((async () => {
       try {
-        const [participantDriver] = await db
+        const [directDriver] = convContext?.bookingId === null ? await db
+          .select({ driverId: bookingConversations.directDriverId })
+          .from(bookingConversations)
+          .where(eq(bookingConversations.id, conversationId))
+          .limit(1) : [];
+        const [participantDriver] = convContext?.bookingId !== null ? await db
           .select({ driverId: drivers.id })
           .from(conversationParticipants)
           .innerJoin(drivers, eq(drivers.userId, conversationParticipants.userId))
@@ -194,20 +234,22 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
               eq(conversationParticipants.role, 'driver'),
             ),
           )
-          .limit(1);
-        const notifyDriverId = participantDriver?.driverId ?? convContext?.driverId;
+          .limit(1) : [];
+        const notifyDriverId = directDriver?.driverId ?? participantDriver?.driverId ?? convContext?.driverId;
         if (!notifyDriverId) return;
         await notifyDriverNewMessage(
           notifyDriverId,
           conversationId,
-          session.user.name ?? (role === 'admin' ? 'Admin' : 'Customer'),
+          actor.name,
           msgBody?.slice(0, 100) || attachmentPreview(messageType),
         );
       } catch (err) {
         console.error('[chat] Failed to notify driver:', err);
       }
-    })();
+    })());
   }
+
+  await Promise.allSettled(notificationTasks);
 
   return NextResponse.json(normalizeMessageUploadUrls(message, req), { status: 201 });
 }

@@ -29,6 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     creator: brand.name,
     publisher: brand.name,
     robots: { index: false, follow: false },
+    referrer: 'no-referrer',
     other: {
       'apple-itunes-app': `app-id=6782555222, app-argument=${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(ref)}`,
     },
@@ -43,7 +44,6 @@ export default async function TrackingPage({ params }: PageProps) {
     .select({
       refNumber: bookings.refNumber,
       sourceApp: bookings.sourceApp,
-      status: bookings.status,
     })
     .from(bookings)
     .where(eq(bookings.refNumber, ref))
@@ -74,7 +74,7 @@ export default async function TrackingPage({ params }: PageProps) {
   return (
     <TrackingContent
       refNumber={ref}
-      initialStatus={booking.status}
+      initialStatus="pending"
       initialSourceApp={booking.sourceApp}
     />
   );

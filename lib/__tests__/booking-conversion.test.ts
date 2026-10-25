@@ -80,9 +80,13 @@ describe('booking conversion integration guards', () => {
     expect(pageSource).toContain('from(payments)');
     expect(pageSource).toContain("eq(payments.status, 'succeeded')");
     expect(pageSource).toContain('buildBookingConversionPayload');
-    expect(pageSource).toContain('paymentSucceeded: Boolean(succeededPayment)');
+    expect(pageSource).toContain('isPaymentFullySettledForInvoice(paymentSummary, booking.status)');
+    expect(pageSource).not.toContain('paymentSucceeded: Boolean(succeededPayment)');
 
-    expect(contentSource).toContain('booking.paymentSucceeded && !isPaidStatus(booking.status)');
+    expect(contentSource).toContain('useState(booking.paymentSucceeded)');
+    expect(contentSource).toContain('setPaymentConfirmed(data.paymentConfirmed === true)');
+    expect(contentSource).toContain('router.refresh()');
+    expect(contentSource).not.toContain('PAYMENT_CONFIRMED_STATUSES');
     expect(contentSource).toContain('setServerConversion(conversion)');
     expect(contentSource).toContain('return () => clearInterval(interval);');
     expect(contentSource).not.toContain('booking.totalAmount, booking.customerEmail');

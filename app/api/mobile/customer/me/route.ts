@@ -19,7 +19,8 @@ export async function GET(request: Request) {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      emailVerified: user.emailVerified === true,
     },
     bookings: await listCustomerMobileBookings(user.id),
-  });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

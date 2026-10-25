@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { bookings, drivers, bookingConversations } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { bookings, drivers } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { listConversations, getOrCreateConversation } from '@/lib/chat/queries';
 import { ensureParticipant } from '@/lib/chat/permissions';
 import type { ChatChannel, ChatRole } from '@/lib/chat/types';
+import { authorizeCustomerBooking } from '@/lib/customer-booking-access';
 
 const createSchema = z.object({
   bookingId: z.string().uuid(),
@@ -28,6 +29,8 @@ export async function GET(req: NextRequest) {
   };
 
   const role = session.user.role as ChatRole;
+  if (!['customer', 'admin', 'driver'].includes(role)) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+
   const conversations = await listConversations(session.user.id, role, filters);
 
   return NextResponse.json({ conversations });
@@ -36,20 +39,24 @@ export async function GET(req: NextRequest) {
 /** POST /api/chat/conversations — create or get a conversation for a booking */
 export async function POST(req: NextRequest) {
   const session = await authMobile(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.issues }, { status: 400 });
   }
 
   const { bookingId, channel, driverId } = parsed.data;
-  const role = session.user.role as ChatRole;
+  const role = (session?.user.role ?? 'customer') as ChatRole;
+  if (!['customer', 'admin', 'driver'].includes(role)) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+
+  if (role === 'customer' && channel === 'admin_driver') {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  }
 
   // Verify booking exists and user has access
   const [booking] = await db
-    .select({ id: bookings.id, userId: bookings.userId, driverId: bookings.driverId })
+    .select({ id: bookings.id, refNumber: bookings.refNumber, userId: bookings.userId, driverId: bookings.driverId })
     .from(bookings)
     .where(eq(bookings.id, bookingId))
     .limit(1);
@@ -59,7 +66,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Authorization checks
-  if (role === 'customer' && booking.userId !== session.user.id) {
+  const ownerId = session?.user.role === 'customer' && booking.userId === session.user.id ? session.user.id : null;
+  if (role === 'customer' && !ownerId && (channel !== 'customer_admin' || !await authorizeCustomerBooking(req, booking))) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
@@ -70,7 +78,7 @@ export async function POST(req: NextRequest) {
     const [driver] = await db
       .select({ id: drivers.id })
       .from(drivers)
-      .where(eq(drivers.userId, session.user.id))
+      .where(eq(drivers.userId, session!.user.id))
       .limit(1);
     if (!driver || booking.driverId !== driver.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -108,13 +116,14 @@ export async function POST(req: NextRequest) {
   const conversationId = await getOrCreateConversation(
     bookingId,
     channel as ChatChannel,
-    session.user.id,
+    role === 'customer' ? ownerId : session!.user.id,
     role,
     { targetDriverUserId },
   );
 
   // Ensure current user is a participant
-  await ensureParticipant(conversationId, session.user.id, role);
+  const participantId = role === 'customer' ? ownerId : session!.user.id;
+  if (participantId) await ensureParticipant(conversationId, participantId, role);
   if (targetDriverUserId) {
     await ensureParticipant(conversationId, targetDriverUserId, 'driver');
   }

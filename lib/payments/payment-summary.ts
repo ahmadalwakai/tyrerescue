@@ -97,6 +97,10 @@ export type PaymentSummary = {
   linkOpenedAt: string | null;
   linkExpiresAt: string | null;
   reason: PaymentReason;
+  /** Driver API only: true after exact, deduplicated server ledger settlement. */
+  settlementVerified?: boolean;
+  /** Driver API only: cash still due, never the deposit or original price. */
+  cashToCollectPence?: number | null;
 };
 
 const FINAL_INVOICE_BLOCKED_STATUSES = new Set([
@@ -727,19 +731,146 @@ export function buildPaymentSummary(
   };
 }
 
+/**
+ * Driver settlement is deliberately stricter than legacy administrative copy.
+ * Booking lifecycle, an opened link, or a deposit timestamp cannot prove that
+ * the final booking price was paid. Only confirmed, deduplicated GBP receipts
+ * count, and a refunded/closed booking must never invite another collection.
+ */
+export function buildDriverPaymentSummary(
+  booking: PaymentBookingInput,
+  eventRows: PaymentEvent[],
+  legacyPaymentRows: LegacyPaymentRow[] = [],
+): PaymentSummary {
+  const ownedRows = eventRows.filter((row) => row.bookingId === booking.id &&
+    (row.bookingRef == null || row.bookingRef === booking.refNumber));
+  const ledgerEvents = ownedRows.map(rowToCanonicalEvent);
+  const legacyEvents = legacyPaymentRows
+    .filter((row) => row.bookingId === booking.id)
+    .flatMap((row) => legacyRowToCanonicalEvents(booking, row))
+    .filter((event) => !hasMatchingLedgerEvent(ledgerEvents, event));
+  const allEvents = [...ledgerEvents, ...legacyEvents].sort(compareEvents);
+  const base = buildPaymentSummary(booking, ownedRows, legacyPaymentRows.filter((row) => row.bookingId === booking.id));
+  const confirmed = new Set(['succeeded', 'paid']);
+  const receiptTypes = new Set(['payment_succeeded', 'deposit_succeeded', 'cash_confirmed', 'manual_paid']);
+  const seenReceipts = new Set<string>();
+  const seenRefunds = new Set<string>();
+  const receiptAmounts = new Map<string, number>();
+  const refundAmounts = new Map<string, number>();
+  let receivedPence = 0;
+  let refundedPence = 0;
+  let hasUnresolvedRefund = false;
+  let hasInvalidReceipt = false;
+  let paidVia: PaidVia = null;
+
+  for (const event of allEvents) {
+    const isRefund = event.eventType === 'refund_created' || event.eventType === 'refund_succeeded';
+    if (!receiptTypes.has(event.eventType) && !isRefund) continue;
+    if (isRefund && event.eventType === 'refund_created' && !confirmed.has(event.status ?? '')) {
+      hasUnresolvedRefund = true;
+      continue;
+    }
+    const validAmount = Number.isSafeInteger(event.amountPence) && (event.amountPence ?? 0) > 0;
+    const valid = confirmed.has(event.status ?? '') && event.currency?.toLowerCase() === 'gbp' && validAmount;
+    if (!valid) {
+      // Manual/cash confirmations are claims that collection already happened.
+      // Missing legacy status or money cannot safely mean "collect it again".
+      if (isRefund) hasUnresolvedRefund = true;
+      else if (confirmed.has(event.status ?? '') ||
+          event.eventType === 'cash_confirmed' || event.eventType === 'manual_paid') hasInvalidReceipt = true;
+      continue;
+    }
+    const stripeEventId = typeof event.metadata?.stripeEventId === 'string' ? event.metadata.stripeEventId : null;
+    const refundId = typeof event.metadata?.stripeRefundId === 'string'
+      ? event.metadata.stripeRefundId
+      : typeof event.metadata?.refundId === 'string' ? event.metadata.refundId : null;
+    // Checkout/session and PaymentIntent receipts for the same charge count once.
+    // Amount is deliberately absent from the identity: conflicting duplicates
+    // cannot turn a partial receipt into a paid booking.
+    const identity = isRefund
+      ? refundId ?? stripeEventId ?? `${event.stripePaymentIntentId ?? event.stripeSessionId ?? 'refund'}:${eventTime(event)?.toISOString() ?? 'unknown'}`
+      : event.stripePaymentIntentId ?? event.stripeSessionId ?? stripeEventId ??
+        `${event.eventType}:${event.source}:${eventTime(event)?.toISOString() ?? 'unknown'}`;
+    const aliases = isRefund ? [identity] : [identity, event.stripePaymentIntentId, event.stripeSessionId, stripeEventId]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
+    const seen = isRefund ? seenRefunds : seenReceipts;
+    const amounts = isRefund ? refundAmounts : receiptAmounts;
+    if (aliases.some((value) => seen.has(value))) {
+      if (aliases.some((value) => amounts.has(value) && amounts.get(value) !== event.amountPence)) {
+        if (isRefund) hasUnresolvedRefund = true;
+        else hasInvalidReceipt = true;
+      }
+      for (const alias of aliases) seen.add(alias);
+      continue;
+    }
+    for (const alias of aliases) {
+      seen.add(alias);
+      amounts.set(alias, event.amountPence!);
+    }
+    if (isRefund) refundedPence += event.amountPence!;
+    else {
+      receivedPence += event.amountPence!;
+      paidVia = event.eventType === 'manual_paid' ? 'manual'
+        : event.eventType === 'cash_confirmed' ? 'cash' : 'payment_link';
+    }
+  }
+
+  const totalPence = base.totalPence;
+  const netPaidPence = Math.max(0, receivedPence - refundedPence);
+  const validTotal = Number.isSafeInteger(totalPence) && (totalPence ?? 0) > 0;
+  const blocked = booking.status != null && FINAL_INVOICE_BLOCKED_STATUSES.has(booking.status);
+  const refundNeedsReview = hasUnresolvedRefund || refundedPence > 0;
+  const exactSettlement = validTotal && Number.isSafeInteger(netPaidPence) &&
+    netPaidPence >= totalPence! && !blocked && !refundNeedsReview && !hasInvalidReceipt;
+  const remaining = validTotal ? Math.max(0, totalPence! - netPaidPence) : null;
+  const cashBooking = booking.paymentType === 'cash';
+  const requiresReview = blocked || refundNeedsReview || hasInvalidReceipt || !validTotal;
+  const state: CanonicalPaymentState = exactSettlement ? 'paid'
+    : requiresReview ? 'needs_checking'
+    : cashBooking ? 'cash_to_collect'
+    : base.state === 'failed' ? 'failed' : 'pending';
+  const reason: PaymentReason = exactSettlement
+    ? paidVia === 'cash' ? 'cash_confirmed' : paidVia === 'manual' ? 'manual_paid' : 'paid_amount_covers_total'
+    : requiresReview ? 'conflicting_fields'
+    : cashBooking ? 'cash_unpaid'
+    : base.state === 'paid' || base.state === 'balance_due' || base.state === 'deposit_paid'
+      ? 'booking_paid_without_payment_evidence' : base.reason;
+  const amountToCollectPence = requiresReview ? null : exactSettlement ? 0 : remaining;
+  const text = summaryText({ state, reason, amountToCollectPence, linkStatus: base.linkStatus });
+
+  return {
+    ...base,
+    ...text,
+    state,
+    reason,
+    method: cashBooking ? 'cash' : base.method,
+    methodLabel: cashBooking ? 'Cash' : base.methodLabel,
+    paidVia: netPaidPence > 0 ? paidVia : null,
+    paidPence: netPaidPence,
+    remainingBalancePence: remaining,
+    amountToCollectPence,
+    settlementVerified: exactSettlement,
+    cashToCollectPence: cashBooking && !requiresReview && !exactSettlement ? remaining : null,
+  };
+}
+
 export async function getBookingPaymentSummary(
   booking: PaymentBookingInput,
+  options?: { audience: 'driver' },
 ): Promise<PaymentSummary> {
   const [events, legacyRows] = await Promise.all([
     selectPaymentEventsForBooking(booking.id),
     selectLegacyPaymentRowsForBooking(booking.id),
   ]);
 
-  return buildPaymentSummary(booking, events, legacyRows);
+  return options?.audience === 'driver'
+    ? buildDriverPaymentSummary(booking, events, legacyRows)
+    : buildPaymentSummary(booking, events, legacyRows);
 }
 
 export async function getBookingPaymentSummaryMap(
   bookingInputs: PaymentBookingInput[],
+  options?: { audience: 'driver' },
 ): Promise<Map<string, PaymentSummary>> {
   const ids = Array.from(new Set(bookingInputs.map((booking) => booking.id).filter(Boolean)));
   const result = new Map<string, PaymentSummary>();
@@ -769,7 +900,7 @@ export async function getBookingPaymentSummaryMap(
   for (const booking of bookingInputs) {
     result.set(
       booking.id,
-      buildPaymentSummary(
+      (options?.audience === 'driver' ? buildDriverPaymentSummary : buildPaymentSummary)(
         booking,
         eventsByBooking.get(booking.id) ?? [],
         legacyByBooking.get(booking.id) ?? [],
@@ -830,7 +961,7 @@ export async function recordPaymentEvent(input: RecordPaymentEventInput): Promis
       occurredAt: input.occurredAt ?? new Date(),
       expiresAt: input.expiresAt ?? null,
       updatedAt: new Date(),
-    });
+    }).onConflictDoNothing();
   } catch (error) {
     if (isMissingPaymentEventsTableError(error)) {
       warnMissingPaymentEventsTable();

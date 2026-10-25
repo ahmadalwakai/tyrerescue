@@ -19,12 +19,12 @@ import type { ServiceSEO, Area } from '@/lib/areas';
 import { services } from '@/lib/areas';
 import type { City } from '@/lib/cities';
 import type { NeighborhoodEnrichment } from '@/lib/data/neighborhoodEnrichment';
+import type { FaqItem } from '@/lib/content/serviceCityFaq';
+import { SEO_RESPONSE_TIME_LABEL, SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 
 const c = colorTokens;
 
-export function ServiceAreaContent({ service, city, area, allCityAreas, enrichment }: { service: ServiceSEO; city: City; area: Area; allCityAreas: Area[]; enrichment?: NeighborhoodEnrichment }) {
-  const estimatedArrival = Math.round(area.distanceFromCentre * 3.5 + 18);
-
+export function ServiceAreaContent({ service, city, area, allCityAreas, enrichment, faqs }: { service: ServiceSEO; city: City; area: Area; allCityAreas: Area[]; enrichment?: NeighborhoodEnrichment; faqs: FaqItem[] }) {
   const nearbyAreas = allCityAreas
     .filter((a) => a.slug !== area.slug)
     .sort((a, b) =>
@@ -80,7 +80,7 @@ export function ServiceAreaContent({ service, city, area, allCityAreas, enrichme
               mt={6}
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              {service.name} in {area.name} ({area.postcode}). We typically reach customers near {area.nearestLandmark} in approximately {estimatedArrival} minutes from our Glasgow base. Available 24 hours a day, 7 days a week.
+              {service.name} in {area.name} ({area.postcode}). We typically reach customers near {area.nearestLandmark} in {SEO_RESPONSE_TIME_LABEL}. Available 24 hours a day, 7 days a week.
             </Text>
 
             <Box className="hero-cta-panel" mt={10} maxW={{ md: '520px' }}>
@@ -235,7 +235,7 @@ export function ServiceAreaContent({ service, city, area, allCityAreas, enrichme
               maxW="640px"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              We know {area.name} well. Our mobile tyre fitters regularly serve customers throughout the {area.postcode} area. We typically reach {area.name} in approximately {estimatedArrival} minutes from our base, making us one of the fastest mobile tyre services available in {city.county}.
+              We know {area.name} well. Our mobile tyre fitters regularly serve customers throughout the {area.postcode} area. We typically reach {area.name} in {SEO_RESPONSE_TIME_LABEL}, making us one of the fastest mobile tyre services available in {city.county}.
             </Text>
           </Container>
         </Box>
@@ -245,17 +245,17 @@ export function ServiceAreaContent({ service, city, area, allCityAreas, enrichme
           <Container maxW="1200px">
             <AIOptimizedSection
               question={`How fast can a mobile tyre fitter get to ${area.name}?`}
-              directAnswer={`Our mobile tyre fitters typically reach ${area.name} (${area.postcode}) in approximately ${estimatedArrival} minutes. We are ${area.distanceFromCentre.toFixed(1)} miles from ${city.name} city centre, and our 24/7 dispatch means help is always on the way — day or night.`}
+              directAnswer={`Our mobile tyre fitters typically reach ${area.name} (${area.postcode}) in ${SEO_RESPONSE_TIME_LABEL}. We are ${area.distanceFromCentre.toFixed(1)} miles from ${city.name} city centre, and our 24/7 dispatch means help is always on the way — day or night.`}
               entityType="location"
               detailedAnswer={
                 <Box>
                   <Text fontSize="15px" color={c.muted} lineHeight="1.8" mb={4} style={{ fontFamily: 'var(--font-body)' }}>
-                    Response times to {area.name} depend on traffic conditions and fitter availability, but our average is {estimatedArrival} minutes.
+                    Response times to {area.name} depend on traffic conditions and fitter availability, but our average is {SEO_RESPONSE_TIME_LABEL}.
                     We carry a full range of tyres in our vans, so in most cases we complete the job in a single visit near {area.nearestLandmark}.
                   </Text>
                   <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
                     <Box bg={c.card} borderRadius="8px" p={5} borderWidth="1px" borderColor={c.border}>
-                      <Text fontSize="28px" color={c.accent} fontWeight="700" style={{ fontFamily: 'var(--font-display)' }}>~{estimatedArrival} MIN</Text>
+                      <Text fontSize="28px" color={c.accent} fontWeight="700" style={{ fontFamily: 'var(--font-display)' }}>{SEO_RESPONSE_TIME_MINUTES} MIN</Text>
                       <Text fontSize="13px" color={c.muted} mt={1} style={{ fontFamily: 'var(--font-body)' }}>Average response to {area.name}</Text>
                     </Box>
                     <Box bg={c.card} borderRadius="8px" p={5} borderWidth="1px" borderColor={c.border}>
@@ -276,6 +276,50 @@ export function ServiceAreaContent({ service, city, area, allCityAreas, enrichme
                 `Can you fit run-flat tyres in ${area.name}?`,
               ]}
             />
+          </Container>
+        </Box>
+
+        {/* The visible answers use the same FAQ data as the page's JSON-LD. */}
+        <Box as="section" aria-labelledby="area-faq-heading" bg={c.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Text
+              as="h2"
+              id="area-faq-heading"
+              fontSize={{ base: '36px', md: '48px' }}
+              color={c.text}
+              mb={8}
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              FREQUENTLY ASKED QUESTIONS
+            </Text>
+            <Flex direction="column" gap={4} maxW="760px">
+              {faqs.map((faq) => (
+                <Box
+                  as="details"
+                  key={faq.question}
+                  bg={c.card}
+                  borderWidth="1px"
+                  borderColor={c.border}
+                  borderRadius="8px"
+                  p={6}
+                >
+                  <Box
+                    as="summary"
+                    cursor="pointer"
+                    fontSize={{ base: '16px', md: '18px' }}
+                    color={c.text}
+                    fontWeight="700"
+                    _focusVisible={{ outline: '2px solid', outlineColor: c.accent, outlineOffset: '4px' }}
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    {faq.question}
+                  </Box>
+                  <Text fontSize="15px" color={c.muted} lineHeight="1.7" mt={3} style={{ fontFamily: 'var(--font-body)' }}>
+                    {faq.answer}
+                  </Text>
+                </Box>
+              ))}
+            </Flex>
           </Container>
         </Box>
 

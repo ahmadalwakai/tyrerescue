@@ -11,6 +11,7 @@ import {
   buildStandaloneAdminInvoicePdfData,
 } from '@/lib/invoice-pdf-data';
 import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { recordLinkedInvoiceSent } from '@/lib/invoices/booking-invoice-sync';
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -19,14 +20,16 @@ export async function POST(request: Request, { params }: Props) {
   if (!user) return unauthorizedResponse();
 
   const { id } = await params;
-  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
+  let [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
   if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
   if (invoice.deletedAt) return NextResponse.json({ error: 'Invoice is deleted' }, { status: 400 });
-  if (invoice.status === 'cancelled') return NextResponse.json({ error: 'Cannot send a cancelled invoice' }, { status: 400 });
+  if (invoice.status === 'cancelled' || (invoice.bookingId && (invoice.status === 'archived' || invoice.archivedAt))) return NextResponse.json({ error: 'Cannot send a cancelled or archived invoice' }, { status: 400 });
 
   let pdfBytes: Uint8Array;
   try {
-    const bookingInvoice = await buildBookingCustomerInvoicePdfData(invoice, { requireFullPayment: false });
+    const bookingInvoice = await buildBookingCustomerInvoicePdfData(invoice, {
+      requireFullPayment: false, onSynchronizedInvoice: (current) => { invoice = current; },
+    });
     pdfBytes = bookingInvoice
       ? await generateBookingCustomerInvoicePdf(bookingInvoice)
       : await generateStandaloneAdminInvoicePdf(await buildStandaloneAdminInvoicePdfData(invoice));
@@ -35,6 +38,10 @@ export async function POST(request: Request, { params }: Props) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     throw error;
+  }
+
+  if (invoice.bookingId && (invoice.deletedAt || invoice.archivedAt || invoice.status === 'cancelled' || invoice.status === 'archived')) {
+    return NextResponse.json({ error: 'Invoice is no longer available for sending.' }, { status: 409 });
   }
 
   const siteUrl = getOutboundUrl();
@@ -61,12 +68,14 @@ export async function POST(request: Request, { params }: Props) {
     ],
   });
 
-  await db.update(invoices).set({
-    status: 'sent',
-    sentAt: new Date(),
-    updatedBy: user.id,
-    updatedAt: new Date(),
-  }).where(eq(invoices.id, id));
+  if (invoice.bookingId) {
+    await recordLinkedInvoiceSent(invoice, user.id);
+  } else {
+    await db.update(invoices).set({
+      status: 'sent',
+      sentAt: new Date(), updatedBy: user.id, updatedAt: new Date(),
+    }).where(eq(invoices.id, id));
+  }
 
   await db.insert(auditLogs).values({
     actorUserId: user.id,

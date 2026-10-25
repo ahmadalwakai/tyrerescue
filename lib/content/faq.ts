@@ -1,3 +1,5 @@
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
+
 /**
  * Single source of truth for all FAQ content across the site.
  * Used by both the FAQ page UI and FAQPage JSON-LD structured data.
@@ -17,7 +19,7 @@ export const faqItems: FAQItem[] = [
     id: 'emergency-response-time',
     question: 'How quickly can you get to me in an emergency?',
     answer:
-      'For emergency callouts in Glasgow and Edinburgh city centres, we typically arrive within 45 minutes. For other cities across Scotland — Aberdeen, Inverness, Dundee, Perth and beyond — response times vary by distance and we always provide an accurate ETA when you book.',
+      `For emergency callouts across Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, the Highlands and Islands — our response target is ${SEO_RESPONSE_TIME_LABEL}. We confirm your exact ETA when you book.`,
     category: 'emergency',
     isHomepageVisible: true,
   },
@@ -169,7 +171,7 @@ export const faqItems: FAQItem[] = [
     id: 'aberdeen-coverage',
     question: 'Do you offer mobile tyre fitting in Aberdeen?',
     answer:
-      'Yes. We cover Aberdeen and all AB postcodes including the city centre, Bridge of Don, Dyce, Westhill, Portlethen and Stonehaven. Response time to Aberdeen city centre is approximately 90 minutes. We also cover Inverurie, Ellon, Peterhead and Fraserburgh — call 0141 266 0690 for your exact ETA.',
+      `Yes. We cover Aberdeen and all AB postcodes including the city centre, Bridge of Don, Dyce, Westhill, Portlethen and Stonehaven. Our response target to Aberdeen city centre is ${SEO_RESPONSE_TIME_LABEL}. We also cover Inverurie, Ellon, Peterhead and Fraserburgh — call 0141 266 0690 for your exact ETA.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -177,7 +179,7 @@ export const faqItems: FAQItem[] = [
     id: 'inverness-coverage',
     question: 'Do you cover Inverness and the Scottish Highlands?',
     answer:
-      'Yes. We cover Inverness and all IV postcodes, plus Aviemore, Grantown-on-Spey, Nairn, Dingwall, and Invergordon. For most Inverness city locations, response time is 90–120 minutes. We also serve the NC500 route — if you have a flat tyre in the Highlands, call 0141 266 0690 immediately and we will dispatch the nearest available fitter.',
+      `Yes. We cover Inverness and all IV postcodes, plus Aviemore, Grantown-on-Spey, Nairn, Dingwall, and Invergordon. Our response target in Inverness is ${SEO_RESPONSE_TIME_LABEL}. We also serve the NC500 route — if you have a flat tyre in the Highlands, call 0141 266 0690 immediately and we will dispatch the nearest available fitter.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -185,7 +187,7 @@ export const faqItems: FAQItem[] = [
     id: 'dundee-coverage',
     question: 'Do you offer mobile tyre fitting in Dundee?',
     answer:
-      'Yes. We cover Dundee and all DD postcodes including the city centre, Broughty Ferry, Monifieth, and the Angus towns of Arbroath and Forfar. Response time to Dundee city centre is approximately 65 minutes from our base.',
+      `Yes. We cover Dundee and all DD postcodes including the city centre, Broughty Ferry, Monifieth, and the Angus towns of Arbroath and Forfar. Our response target to Dundee city centre is ${SEO_RESPONSE_TIME_LABEL}.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -193,7 +195,7 @@ export const faqItems: FAQItem[] = [
     id: 'nc500-flat-tyre',
     question: 'What should I do if I get a flat tyre on the NC500?',
     answer:
-      'Pull safely off the road, turn on hazard lights, and call 0141 266 0690 immediately. We cover the entire NC500 route. Tell us your exact location — a postcode, road number, nearest village, or what3words address. Response times vary depending on your location on the route, from 90 minutes near Inverness to 3+ hours on the most remote north-west sections. For remote sections of the NC500 we recommend checking all four tyres before setting off.',
+      `Pull safely off the road, turn on hazard lights, and call 0141 266 0690 immediately. We cover the entire NC500 route. Tell us your exact location — a postcode, road number, nearest village, or what3words address. Our response target across the route is ${SEO_RESPONSE_TIME_LABEL}, including the remote north-west sections. For remote sections of the NC500 we recommend checking all four tyres before setting off.`,
     category: 'emergency',
     isHomepageVisible: false,
   },
@@ -201,7 +203,7 @@ export const faqItems: FAQItem[] = [
     id: 'rural-scotland-coverage',
     question: 'Can you reach rural areas and villages in Scotland?',
     answer:
-      'Yes. We cover rural Scotland including Perthshire, Angus, Aberdeenshire, the Scottish Borders, Argyll, and the Highlands. For most rural locations we can dispatch a fitter the same day. In very remote areas — beyond 30 miles from a major town — we recommend calling in advance so we can confirm a realistic ETA and ensure the right tyres are on the van.',
+      `Yes. We cover rural Scotland including Perthshire, Angus, Aberdeenshire, the Scottish Borders, Argyll, and the Highlands. Our response target for rural locations is ${SEO_RESPONSE_TIME_LABEL}. For very remote areas — beyond 30 miles from a major town — call to confirm your exact ETA and ensure the right tyres are on the van.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -209,7 +211,7 @@ export const faqItems: FAQItem[] = [
     id: 'scotland-islands',
     question: 'Do you cover the Scottish Islands?',
     answer:
-      'We operate mobile tyre fitting on the larger Scottish islands including Lewis and Harris (Stornoway), Shetland (Lerwick), and Orkney (Kirkwall), as well as Skye, Arran, and the Inner Hebrides. Island services require advance booking of at least 24 hours due to ferry logistics. Call 0141 266 0690 to check availability and confirm your booking.',
+      `We operate mobile tyre fitting on the larger Scottish islands including Lewis and Harris (Stornoway), Shetland (Lerwick), and Orkney (Kirkwall), as well as Skye, Arran, and the Inner Hebrides. Island services require advance booking of at least 24 hours; the Western Isles, Shetland, Orkney and ferry-served Argyll islands require at least 48 hours. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to check availability and confirm your booking.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -249,7 +251,7 @@ export const faqItems: FAQItem[] = [
     id: 'glasgow-airport-flat-tyre',
     question: 'Can you come to Glasgow Airport if I have a flat tyre?',
     answer:
-      'Yes. Glasgow Airport (PA3) is one of our most frequent callout locations. We cover all car parks including long-stay, short-stay and multi-storey. If you return from a flight to find a flat tyre, call 0141 266 0690 and we typically reach the airport in 25–35 minutes. For the multi-storey, meet us at the ground-floor barrier or give the bay number.',
+      `Yes. Glasgow Airport (PA3) is one of our most frequent callout locations. We cover all car parks including long-stay, short-stay and multi-storey. If you return from a flight to find a flat tyre, call 0141 266 0690 and we reach the airport in ${SEO_RESPONSE_TIME_LABEL}. For the multi-storey, meet us at the ground-floor barrier or give the bay number.`,
     category: 'emergency',
     isHomepageVisible: false,
   },
@@ -265,7 +267,7 @@ export const faqItems: FAQItem[] = [
     id: 'shetland-western-isles-coverage',
     question: 'Do you cover Shetland and the Western Isles (Outer Hebrides)?',
     answer:
-      'Yes — we cover both Shetland (Lerwick, ZE postcodes) and the Western Isles (Stornoway, Lewis, Harris, Uists, Barra — HS postcodes). Island services require a minimum 24 hours advance booking due to ferry and logistics scheduling. Call 0141 266 0690 as early as possible to arrange island cover. For genuine emergencies, we will explore all available options including local partner fitters.',
+      `Yes — we cover both Shetland (Lerwick, ZE postcodes) and the Western Isles (Stornoway, Lewis, Harris, Uists, Barra — HS postcodes). Island services require a minimum 48 hours advance booking due to ferry and logistics scheduling. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 as early as possible to arrange island cover and confirm your exact ETA. For genuine emergencies, we will explore all available options including local partner fitters.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -273,7 +275,7 @@ export const faqItems: FAQItem[] = [
     id: 'isle-of-skye-coverage',
     question: 'Do you cover the Isle of Skye?',
     answer:
-      'Yes — the Isle of Skye is accessible via the Skye Bridge and is within our coverage area. We serve Portree (IV51), Broadford (IV49), Kyle of Lochalsh (IV40), Uig, Dunvegan, and the Sleat Peninsula. Response times on Skye are typically 90–140 minutes depending on your location on the island. Call 0141 266 0690 as soon as you notice a tyre fault — the earlier you call, the faster we can reach you.',
+      `Yes — the Isle of Skye is accessible via the Skye Bridge and is within our coverage area. We serve Portree (IV51), Broadford (IV49), Kyle of Lochalsh (IV40), Uig, Dunvegan, and the Sleat Peninsula. Advance booking of at least 24 hours is required. Our response target for confirmed bookings on Skye is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to check availability and confirm your exact ETA.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -281,7 +283,7 @@ export const faqItems: FAQItem[] = [
     id: 'scottish-borders-coverage',
     question: 'Do you cover the Scottish Borders — Galashiels, Hawick, Peebles?',
     answer:
-      'Yes — we cover all Scottish Borders towns including Galashiels (TD1), Hawick (TD9), Peebles (EH45), Melrose (TD6), Jedburgh (TD8), Kelso (TD5), and Duns (TD11). Response times from Glasgow and Edinburgh bases are typically 60–100 minutes. We cover the full A68 (Edinburgh to Jedburgh) and A7 (Edinburgh to Hawick) corridors.',
+      `Yes — we cover all Scottish Borders towns including Galashiels (TD1), Hawick (TD9), Peebles (EH45), Melrose (TD6), Jedburgh (TD8), Kelso (TD5), and Duns (TD11). Our response target across the Scottish Borders is ${SEO_RESPONSE_TIME_LABEL}. We cover the full A68 (Edinburgh to Jedburgh) and A7 (Edinburgh to Hawick) corridors.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -289,7 +291,7 @@ export const faqItems: FAQItem[] = [
     id: 'nc500-wick-thurso',
     question: 'Do you cover Wick, Thurso and the far north of Scotland?',
     answer:
-      'Yes — we cover Wick (KW1), Thurso (KW14), and Caithness (KW postcodes). These are among our most remote mainland locations, so response times are typically 150–180 minutes from our nearest Highland base. For NC500 breakdowns in Caithness, call 0141 266 0690 immediately rather than waiting — the sooner you call, the faster we can reach you. We cover the full NC500 route including the north coast.',
+      `Yes — we cover Wick (KW1), Thurso (KW14), and Caithness (KW postcodes). Our response target across these mainland locations is ${SEO_RESPONSE_TIME_LABEL}. For NC500 breakdowns in Caithness, call 0141 266 0690 immediately rather than waiting — the sooner you call, the faster we can reach you. We cover the full NC500 route including the north coast.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -297,7 +299,7 @@ export const faqItems: FAQItem[] = [
     id: 'argyll-oban-coverage',
     question: 'Do you cover Oban, Argyll and the Rest and Be Thankful area?',
     answer:
-      'Yes — we cover Oban (PA34), Inveraray, Lochgilphead, Campbeltown, and the wider Argyll region (PA postcodes). We also attend callouts on the A83 through the Rest and Be Thankful mountain pass. Response times to Oban are typically 90–120 minutes from Glasgow. For Campbeltown at the tip of Kintyre, response times are 150–180 minutes — please call as soon as you notice a problem.',
+      `Yes — we cover Oban (PA34), Inveraray, Lochgilphead, Campbeltown, and the wider Argyll region (PA postcodes). We also attend callouts on the A83 through the Rest and Be Thankful mountain pass. Our response target across Argyll, including Oban and Campbeltown at the tip of Kintyre, is ${SEO_RESPONSE_TIME_LABEL}. Please call as soon as you notice a problem.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -305,7 +307,7 @@ export const faqItems: FAQItem[] = [
     id: 'cumbernauld-motherwell-coverage',
     question: 'Do you cover Cumbernauld, Motherwell and North Lanarkshire?',
     answer:
-      'Yes — North Lanarkshire is fully covered. This includes Motherwell (ML1–ML2), Wishaw, Coatbridge (ML5), Airdrie (ML6), Cumbernauld (G67–G68), Kilsyth, and Bellshill. Response times are typically 30–60 minutes from our Glasgow base. We also cover the M74 and M80 motorway corridors that run through North Lanarkshire.',
+      `Yes — North Lanarkshire is fully covered. This includes Motherwell (ML1–ML2), Wishaw, Coatbridge (ML5), Airdrie (ML6), Cumbernauld (G67–G68), Kilsyth, and Bellshill. Our response target is ${SEO_RESPONSE_TIME_LABEL}. We also cover the M74 and M80 motorway corridors that run through North Lanarkshire.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -313,7 +315,7 @@ export const faqItems: FAQItem[] = [
     id: 'dunfermline-fife-coverage',
     question: 'Do you cover Dunfermline and West Fife?',
     answer:
-      'Yes — we cover Dunfermline (KY11–KY12), Rosyth, Inverkeithing, Cowdenbeath, and surrounding West Fife communities. Response times are typically 45–65 minutes. We also cover drivers who notice problems after crossing the Forth Road Bridge or Queensferry Crossing — common callout locations near the north end of the bridge.',
+      `Yes — we cover Dunfermline (KY11–KY12), Rosyth, Inverkeithing, Cowdenbeath, and surrounding West Fife communities. Our response target is ${SEO_RESPONSE_TIME_LABEL}. We also cover drivers who notice problems after crossing the Forth Road Bridge or Queensferry Crossing — common callout locations near the north end of the bridge.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -435,7 +437,7 @@ export const faqItems: FAQItem[] = [
     id: '24-hour-tyre-fitting-scotland',
     question: 'Is your tyre fitting service available 24 hours a day?',
     answer:
-      'Yes. Tyre Rescue operates 24 hours a day, 7 days a week, 365 days a year including bank holidays and Christmas Day. Our dispatch team answers the phone immediately — no answering service or voicemail. Emergency callout fee starts from £49 (same rate day and night — no night premium). For a 2am flat tyre in Glasgow, our typical response is 25–40 minutes. Call 0141 266 0690 any time.',
+      `Yes. Tyre Rescue operates 24 hours a day, 7 days a week, 365 days a year including bank holidays and Christmas Day. Our dispatch team answers the phone immediately — no answering service or voicemail. Emergency callout fee starts from £49 (same rate day and night — no night premium). For a 2am flat tyre in Glasgow, our response target is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 any time.`,
     category: 'emergency',
     isHomepageVisible: false,
   },

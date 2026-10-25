@@ -130,15 +130,17 @@ export async function POST(request: NextRequest) {
       result.durationMinutes ?? Math.round((result.distanceMiles / 30) * 60);
 
     // Produce a realistic range — never show misleading single-minute precision
-    const etaMinRaw = Math.max(15, Math.round(rawEta * 0.8));
-    const etaMaxRaw = Math.round(rawEta * 1.4);
+    const etaMinRaw = Math.max(45, Math.round(rawEta * 0.8));
+    const etaMaxRaw = Math.max(60, Math.round(rawEta * 1.4));
     // Guard: min must never exceed max
     const etaMinMinutes = Math.min(etaMinRaw, etaMaxRaw);
     const etaMaxMinutes = Math.max(etaMinRaw, etaMaxRaw);
 
-    // Customer-facing emergency availability promise. The route card still shows
-    // live drive time separately, so this should stay a simple service window.
-    const etaLabel = '45 min - 1 hour';
+    // Keep the advertised dispatch window while allowing longer journeys to
+    // extend it. A garage/driver route remains an estimate, never a guarantee.
+    const etaLabel = etaMinMinutes === 45 && etaMaxMinutes === 60
+      ? '45 min - 1 hour'
+      : `${etaMinMinutes}-${etaMaxMinutes} min`;
 
     // Find matching driver name if sourced from a driver
     let driverName: string | null = null;

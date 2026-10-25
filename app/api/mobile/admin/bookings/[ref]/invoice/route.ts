@@ -1,164 +1,71 @@
 import { NextResponse } from 'next/server';
-import { and, count, desc, eq, ilike, isNull } from 'drizzle-orm';
-
+import { eq } from 'drizzle-orm';
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
-import { db, auditLogs, bookings, bookingStatusHistory, invoices } from '@/lib/db';
-import { GARAGE_ADDRESS } from '@/lib/garage';
-import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
-import { assertBookingInvoiceTotalMatches, InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { db, bookings } from '@/lib/db';
+import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { InvoicePresentationError, readInvoicePresentation } from '@/lib/invoices/invoice-presentation';
+import { ensureBookingInvoice, updateBookingInvoicePresentation } from '@/lib/invoices/booking-invoice-sync';
 
-interface Props {
-  params: Promise<{ ref: string }>;
+interface Props { params: Promise<{ ref: string }> }
+
+function presentationResponse(booking: typeof bookings.$inferSelect) {
+  const totalPence = Math.round(Number(booking.totalAmount) * 100);
+  if (!Number.isSafeInteger(totalPence) || totalPence < 0) throw new InvoiceDomainError('Booking has an invalid final amount.', 409);
+  return {
+    ...readInvoicePresentation(booking.priceSnapshot, totalPence), totalPence,
+    bookingUpdatedAt: booking.updatedAt?.toISOString() ?? null,
+  };
 }
 
-const COMPANY = {
-  name: 'Tyre Rescue',
-  address: GARAGE_ADDRESS,
-  phone: '0141 266 0690',
-  email: 'support@tyrerescue.uk',
-};
+function failure(error: unknown) {
+  if (error instanceof InvoiceDomainError || error instanceof InvoicePresentationError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  console.error('Booking invoice operation failed:', error);
+  return NextResponse.json({ error: 'Could not update booking invoice.' }, { status: 500 });
+}
 
-async function generateInvoiceNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `INV-${year}-`;
-  const [result] = await db
-    .select({ cnt: count() })
-    .from(invoices)
-    .where(ilike(invoices.invoiceNumber, `${prefix}%`));
-  const next = (result?.cnt ?? 0) + 1;
-  return `${prefix}${String(next).padStart(4, '0')}`;
+export async function GET(request: Request, { params }: Props) {
+  const user = await getMobileAdminUser(request);
+  if (!user) return unauthorizedResponse();
+  try {
+    const { ref } = await params;
+    const [booking] = await db.select().from(bookings).where(eq(bookings.refNumber, ref.trim().toUpperCase())).limit(1);
+    if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    return NextResponse.json(presentationResponse(booking), { headers: { 'Cache-Control': 'private, no-store' } });
+  } catch (error) { return failure(error); }
+}
+
+export async function PATCH(request: Request, { params }: Props) {
+  const user = await getMobileAdminUser(request);
+  if (!user) return unauthorizedResponse();
+  try {
+    const body: unknown = await request.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Invalid invoice presentation.' }, { status: 400 });
+    const record = body as Record<string, unknown>;
+    if (Object.keys(record).some((key) => key !== 'invoicePresentation' && key !== 'expectedUpdatedAt') ||
+      !Object.hasOwn(record, 'invoicePresentation') || !Object.hasOwn(record, 'expectedUpdatedAt') ||
+      (record.expectedUpdatedAt !== null && (typeof record.expectedUpdatedAt !== 'string' || !Number.isFinite(new Date(record.expectedUpdatedAt).getTime())))) {
+      return NextResponse.json({ error: 'Invoice presentation and the current booking version are required.' }, { status: 400 });
+    }
+    const { ref } = await params;
+    const result = await updateBookingInvoicePresentation(ref, record.invoicePresentation, {
+      actorUserId: user.id, expectedUpdatedAt: record.expectedUpdatedAt as string | null,
+    });
+    return NextResponse.json(presentationResponse(result.booking), { headers: { 'Cache-Control': 'private, no-store' } });
+  } catch (error) { return failure(error); }
 }
 
 export async function POST(request: Request, { params }: Props) {
   const user = await getMobileAdminUser(request);
   if (!user) return unauthorizedResponse();
-
-  const { ref } = await params;
-  const refNumber = ref.trim().toUpperCase();
-  const [booking] = await db.select().from(bookings).where(eq(bookings.refNumber, refNumber)).limit(1);
-  if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-
-  const paymentSummary = await getBookingPaymentSummary({
-    id: booking.id,
-    refNumber: booking.refNumber,
-    status: booking.status,
-    paymentType: booking.paymentType,
-    totalAmount: booking.totalAmount.toString(),
-    subtotal: booking.subtotal.toString(),
-    vatAmount: booking.vatAmount.toString(),
-    depositAmountPence: booking.depositAmountPence,
-    remainingBalancePence: booking.remainingBalancePence,
-    depositPaidAt: booking.depositPaidAt,
-    stripePiId: booking.stripePiId,
-    stripeDepositPiId: booking.stripeDepositPiId,
-  });
-
-  const [existing] = await db
-    .select()
-    .from(invoices)
-    .where(and(eq(invoices.bookingId, booking.id), isNull(invoices.deletedAt)))
-    .orderBy(desc(invoices.createdAt))
-    .limit(1);
-
-  const finalTotal = Number(booking.totalAmount);
-  if (existing) {
-    const existingTotal = Number(existing.totalAmount);
-    try {
-      assertBookingInvoiceTotalMatches({
-        booking: {
-          refNumber: booking.refNumber,
-          totalAmount: booking.totalAmount.toString(),
-        },
-        invoiceTotalAmount: existing.totalAmount.toString(),
-      });
-    } catch (error) {
-      if (error instanceof InvoiceDomainError) {
-        return NextResponse.json({ error: error.message }, { status: error.status });
-      }
-      throw error;
-    }
-
-    await db.insert(bookingStatusHistory).values({
-      bookingId: booking.id,
-      fromStatus: booking.status,
-      toStatus: booking.status,
-      actorUserId: user.id,
-      actorRole: 'admin',
-      note: `Invoice downloaded (${existing.invoiceNumber})`,
-    });
-
+  try {
+    const { ref } = await params;
+    const result = await ensureBookingInvoice(ref, { actorUserId: user.id, reason: 'generate_booking_invoice' });
     return NextResponse.json({
-      invoice: {
-        id: existing.id,
-        invoiceNumber: existing.invoiceNumber,
-        status: existing.status,
-        totalAmount: existingTotal.toFixed(2),
-      },
-      reused: true,
-    });
-  }
-
-  const now = new Date();
-  const invoiceNumber = await generateInvoiceNumber();
-  const totalAmount = Number.isFinite(finalTotal) ? finalTotal : 0;
-  const [created] = await db
-    .insert(invoices)
-    .values({
-      invoiceNumber,
-      bookingId: booking.id,
-      userId: booking.userId,
-      status: paymentSummary.state === 'paid' ? 'paid' : 'issued',
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      customerPhone: booking.customerPhone,
-      customerAddress: booking.addressLine,
-      companyName: COMPANY.name,
-      companyAddress: COMPANY.address,
-      companyPhone: COMPANY.phone,
-      companyEmail: COMPANY.email,
-      companyVatNumber: null,
-      issueDate: now,
-      dueDate: now,
-      subtotal: totalAmount.toFixed(2),
-      vatRate: '0.00',
-      vatAmount: '0.00',
-      totalAmount: totalAmount.toFixed(2),
-      notes: null,
-      internalNotes: `Generated from booking ${booking.refNumber} final payable amount.`,
-      createdBy: user.id,
-      updatedBy: user.id,
-    })
-    .returning({ id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status, totalAmount: invoices.totalAmount });
-
-  await db.insert(auditLogs).values({
-    actorUserId: user.id,
-    actorRole: 'admin',
-    entityType: 'invoice',
-    entityId: created.id,
-    action: 'create_booking_invoice_mobile',
-    afterJson: {
-      bookingRef: booking.refNumber,
-      invoiceNumber: created.invoiceNumber,
-      totalAmount: totalAmount.toFixed(2),
-    },
-  });
-
-  await db.insert(bookingStatusHistory).values({
-    bookingId: booking.id,
-    fromStatus: booking.status,
-    toStatus: booking.status,
-    actorUserId: user.id,
-    actorRole: 'admin',
-    note: `Invoice downloaded (${created.invoiceNumber})`,
-  });
-
-  return NextResponse.json({
-    invoice: {
-      id: created.id,
-      invoiceNumber: created.invoiceNumber,
-      status: created.status,
-      totalAmount: created.totalAmount?.toString() ?? totalAmount.toFixed(2),
-    },
-    reused: false,
-  }, { status: 201 });
+      invoice: { id: result.invoice.id, invoiceNumber: result.invoice.invoiceNumber,
+        status: result.invoice.status, totalAmount: result.invoice.totalAmount.toString() },
+      reused: result.reused,
+    }, { status: result.reused ? 200 : 201 });
+  } catch (error) { return failure(error); }
 }

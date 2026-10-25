@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { db, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { signMobileToken } from '@/lib/auth';
+import { adminDeviceSessionMetadataFromRequest, createAdminDeviceSession } from '@/lib/auth/admin-device-sessions';
 import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection } from '@/lib/security';
 
@@ -49,7 +50,8 @@ export async function POST(request: Request) {
       return jsonWithExpoDevCors(request, { error: 'Please verify your email before signing in' }, { status: 403 });
     }
 
-    const token = await signMobileToken({
+    const token = body?.persistentSession === true ? await createAdminDeviceSession(user.id,
+      adminDeviceSessionMetadataFromRequest(request, body?.device, true)) : await signMobileToken({
       id: user.id,
       email: user.email,
       name: user.name,
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
         email: user.email,
         role: 'admin',
       },
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch {
     return jsonWithExpoDevCors(request, { error: 'Login failed' }, { status: 500 });
   }

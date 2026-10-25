@@ -2,6 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { PDFDocument } from 'pdf-lib';
 
 type InvoiceDomainModule = typeof import('../invoices/invoice-domain');
 type InvoicePdfModule = typeof import('../invoice-pdf');
@@ -459,5 +460,67 @@ describe('BookingCustomerInvoice domain boundary', () => {
 
     expect(bytes).toBeInstanceOf(Uint8Array);
     expect(bytes.length).toBeGreaterThan(0);
+  });
+
+  it('uses current booking customer and vehicle details while retaining the invoice identity', () => {
+    const invoice = invoiceDomain.buildBookingCustomerInvoiceFromStoredInvoice({
+      invoice: {
+        invoiceNumber: 'INV-KEEP-IDENTITY', issueDate: new Date('2026-06-01T10:00:00Z'), totalAmount: '120.00',
+        companyName: company.name, companyAddress: company.address, companyPhone: company.phone, companyEmail: company.email,
+        customerName: 'Old name', customerEmail: 'old@example.com', customerPhone: 'Old phone', customerAddress: 'Old address',
+      },
+      booking: { ...booking, customerName: 'Updated name', customerEmail: 'updated@example.com', customerPhone: null, addressLine: 'Updated address', vehicleReg: 'NEW 123' },
+      paymentSummary: paidSummary,
+    });
+    expect(invoice.invoiceNumber).toBe('INV-KEEP-IDENTITY');
+    expect(invoice.invoiceDate).toBe('2026-06-01T10:00:00.000Z');
+    expect(invoice.customer).toEqual({ name: 'Updated name', email: 'updated@example.com', phone: null, address: 'Updated address' });
+    expect(invoice.vehicle.registration).toBe('NEW 123');
+    expect(invoicePdf.buildBookingCustomerInvoicePdfText(invoice).join('\n')).not.toContain('Old address');
+  });
+
+  it('shows only the admin-selected optional breakdown and additional customer information', async () => {
+    const invoice = invoiceDomain.buildBookingCustomerInvoiceFromBooking({
+      booking: { ...booking, priceSnapshot: {
+        internalCost: 12.34,
+        items: [{ description: 'Hidden supplier margin', amount: 99 }],
+        customerInvoice: { version: 1, extraInformation: 'Replacement agreed with customer.', priceBreakdown: [
+          { label: 'Replacement tyre and fitting', amountPence: 9500 }, { label: 'Mobile service', amountPence: 2500 },
+        ] },
+      } }, paymentSummary: paidSummary, company,
+    });
+    const text = invoicePdf.buildBookingCustomerInvoicePdfText(invoice).join('\n');
+    expect(text).toContain('PRICE BREAKDOWN');
+    expect(text).toContain('Replacement tyre and fitting');
+    expect(text).toContain('£95.00');
+    expect(text).toContain('£25.00');
+    expect(text).toContain('Replacement agreed with customer.');
+    expect(text).not.toContain('Hidden supplier margin');
+    const pdf = await PDFDocument.load(await invoicePdf.generateBookingCustomerInvoicePdf(invoice));
+    expect(pdf.getPageCount()).toBe(2);
+  });
+
+  it('omits stale breakdown rows after a booking price change while preserving optional notes', () => {
+    const invoice = invoiceDomain.buildBookingCustomerInvoiceFromBooking({
+      booking: { ...booking, totalAmount: '150.00', priceSnapshot: { customerInvoice: {
+        version: 1, extraInformation: 'Customer information retained.', priceBreakdown: [{ label: 'Old agreed price', amountPence: 12000 }],
+      } } }, paymentSummary: { ...paidSummary, state: 'balance_due', label: 'Balance due', totalPence: 15000, amountToCollectPence: 3000 }, company, requireFullPayment: false,
+    });
+    expect(invoice.finalTotal).toBe(150);
+    expect(invoice.priceBreakdown).toBeUndefined();
+    expect(invoice.extraInformation).toBe('Customer information retained.');
+    expect(invoice.payment.status).toBe('Balance due');
+    expect(invoicePdf.buildBookingCustomerInvoicePdfText(invoice).join('\n')).not.toContain('Old agreed price');
+  });
+
+  it('keeps the default PDF one page and paginates maximum-length optional details', async () => {
+    const normal = await PDFDocument.load(await invoicePdf.generateBookingCustomerInvoicePdf(customerInvoice()));
+    expect(normal.getPageCount()).toBe(1);
+    const detailed = customerInvoice({
+      extraInformation: 'Additional customer information about the work agreed. '.repeat(27),
+      priceBreakdown: Array.from({ length: 12 }, (_, index) => ({ label: `Service ${index + 1}: ${'long unbroken reference '.repeat(7)}`.slice(0, 160), amountPence: 1000 })),
+    });
+    const long = await PDFDocument.load(await invoicePdf.generateBookingCustomerInvoicePdf(detailed));
+    expect(long.getPageCount()).toBeGreaterThanOrEqual(3);
   });
 });

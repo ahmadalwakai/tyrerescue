@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendUrgentBookingTopicPush } from '@/lib/notifications/urgent-booking-push';
 import {
@@ -8,18 +7,18 @@ import {
   bookingTyres,
   bookingStatusHistory,
   tyreProducts,
-  inventoryReservations,
 } from '@/lib/db/schema';
-import { eq, and, inArray, isNull } from 'drizzle-orm';
-import { createPaymentIntent } from '@/lib/stripe';
+import { eq, inArray } from 'drizzle-orm';
+import { createPaymentIntent, StripePaymentConflict } from '@/lib/stripe';
 import { generateRefNumber } from '@/lib/utils';
-import { auth } from '@/lib/auth';
+import { authMobile } from '@/lib/auth';
+import { getCustomerBookingAccessToken, setCustomerBookingAccessCookie, signCustomerBookingAccessToken, verifyCustomerBookingAccessToken } from '@/lib/customer-booking-access';
 import { v4 as uuidv4 } from 'uuid';
 import type { PricingBreakdown } from '@/lib/pricing-engine';
 import { Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import {
   parseQuoteTyreSelectionsSnapshot,
-  type QuoteTyreSelectionSnapshot,
 } from '@/lib/quote-snapshot';
 import { validateScheduledSlotForBooking } from '@/lib/availability';
 import {
@@ -36,6 +35,8 @@ import {
   getProjectSource,
   TYRE_RESCUE_SOURCE_APP,
 } from '@/lib/integrations/project-sources';
+
+export const maxDuration = 60;
 
 // Input validation schema
 const createBookingSchema = z.object({
@@ -76,6 +77,7 @@ interface CreateBookingResponse {
   refNumber: string;
   stripeClientSecret: string | null;
   total: number;
+  bookingAccessToken: string;
 }
 
 interface ErrorResponse {
@@ -118,7 +120,7 @@ export async function POST(
   }
   try {
     // Check for authenticated user (optional)
-    const session = await auth();
+    const session = await authMobile(request);
     const userId = session?.user?.id;
 
     // Parse and validate request body
@@ -156,6 +158,7 @@ export async function POST(
 
     try {
       await client.query('BEGIN');
+      const tx = drizzle(client);
 
       // Lock the quote row and check if it's valid
       const quoteResult = await client.query(
@@ -175,6 +178,44 @@ export async function POST(
       }
 
       const quote = quoteResult.rows[0];
+
+      // The quote is the idempotency token for public checkout. Repeating the
+      // same request resumes its saved booking, price and inventory instead
+      // of creating a second booking/payment after a canceled checkout.
+      if (quote.used && typeof quote.metadata?.bookingId === 'string') {
+        let [existing] = await tx.select().from(bookings)
+          .where(eq(bookings.id, quote.metadata.bookingId)).limit(1);
+        if (existing && existing.customerEmail.toLowerCase() === data.customerEmail.toLowerCase() &&
+            existing.customerPhone === data.customerPhone &&
+            ['awaiting_payment', 'payment_failed'].includes(existing.status)) {
+          const capability = getCustomerBookingAccessToken(request, existing.refNumber);
+          if (existing.userId && existing.userId !== userId &&
+            !(capability && await verifyCustomerBookingAccessToken(capability, existing))) {
+            await client.query('ROLLBACK');
+            return NextResponse.json({ error: 'This booking belongs to another account.', code: 'BOOKING_ACCESS_DENIED' }, { status: 403 });
+          }
+          await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`tyrerescue:payment:${existing.id}`]);
+          [existing] = await tx.select().from(bookings).where(eq(bookings.id, existing.id)).limit(1);
+          if (!existing || !['awaiting_payment', 'payment_failed'].includes(existing.status)) {
+            await client.query('ROLLBACK');
+            return NextResponse.json({ error: 'Payment is already being confirmed.', code: 'PAYMENT_REQUIRES_CHECK' }, { status: 409 });
+          }
+          let secret: string | null = null;
+          if (data.paymentFlow === 'payment_intent') {
+            const intent = await createPaymentIntent(Number(existing.totalAmount), {
+              bookingId: existing.id, refNumber: existing.refNumber,
+              customerEmail: existing.customerEmail, source: 'website',
+            }, { existingStripeRef: existing.stripePiId });
+            secret = intent.clientSecret;
+            await tx.update(bookings).set({ stripePiId: intent.paymentIntentId, updatedAt: new Date() })
+              .where(eq(bookings.id, existing.id));
+          }
+          const bookingAccessToken = await signCustomerBookingAccessToken({ bookingId: existing.id, refNumber: existing.refNumber });
+          await client.query('COMMIT');
+          return setCustomerBookingAccessCookie(NextResponse.json({ bookingId: existing.id, refNumber: existing.refNumber,
+            stripeClientSecret: secret, total: Number(existing.totalAmount), bookingAccessToken }), existing.refNumber, bookingAccessToken);
+        }
+      }
 
       if (quote.booking_type === 'scheduled') {
         if (!quote.scheduled_at) {
@@ -240,8 +281,7 @@ export async function POST(
           );
         }
 
-        const tyreSelections: QuoteTyreSelectionSnapshot[] = parsedSnapshot.data!;
-        await releaseQuoteReservations(client, tyreSelections);
+        await releaseQuoteReservations(client, quote.metadata?.reservationIds);
 
         // Mark quote as used (expired)
         await client.query(
@@ -287,10 +327,10 @@ export async function POST(
 
       // Verify stock is still available (double-check against race conditions)
       const tyreIds = tyreSelections.map((s) => s.tyreId);
-      const tyres = await db
+      const tyres = await tx
         .select()
         .from(tyreProducts)
-        .where(inArray(tyreProducts.id, tyreIds));
+        .where(inArray(tyreProducts.id, tyreIds)).for('update');
 
       const tyreMap = new Map(tyres.map((t) => [t.id, t]));
       const stockErrors: string[] = [];
@@ -320,7 +360,7 @@ export async function POST(
 
       if (stockErrors.length > 0) {
         // Release reservations and restore stock
-        await releaseQuoteReservations(client, tyreSelections);
+        await releaseQuoteReservations(client, quote.metadata?.reservationIds);
 
         // Mark quote as used
         await client.query(
@@ -355,7 +395,7 @@ export async function POST(
             ? 'garage'
             : null;
 
-      await db.insert(bookings).values({
+      await tx.insert(bookings).values({
         id: bookingId,
         refNumber,
         sourceApp: projectSource?.app ?? TYRE_RESCUE_SOURCE_APP,
@@ -416,7 +456,7 @@ export async function POST(
           );
         }
 
-        await db.insert(bookingTyres).values({
+        await tx.insert(bookingTyres).values({
           id: uuidv4(),
           bookingId,
           tyreId: selection.tyreId,
@@ -432,20 +472,23 @@ export async function POST(
       // the same tyre.
       for (const selection of tyreSelections) {
         if (selection.isPreOrder) continue;
-        await db
-          .update(inventoryReservations)
-          .set({ bookingId })
-          .where(
-            and(
-              eq(inventoryReservations.tyreId, selection.tyreId),
-              eq(inventoryReservations.released, false),
-              isNull(inventoryReservations.bookingId),
-            )
-          );
+        // Claim only this quote's reservations. Legacy quotes did not store
+        // IDs, so claim at most one exact tyre/quantity/expiry match.
+        const ids = quote.metadata?.reservationIds;
+        if (Array.isArray(ids) && ids.every((value: unknown) => typeof value === 'string')) {
+          await client.query(`UPDATE inventory_reservations SET booking_id = $1
+            WHERE id = ANY($2::uuid[]) AND tyre_id = $3 AND booking_id IS NULL AND released = false`,
+            [bookingId, ids, selection.tyreId]);
+        } else {
+          await client.query(`UPDATE inventory_reservations SET booking_id = $1 WHERE id IN (
+            SELECT id FROM inventory_reservations WHERE tyre_id = $2 AND quantity = $3
+              AND expires_at = $4 AND booking_id IS NULL AND released = false LIMIT 1 FOR UPDATE)`,
+            [bookingId, selection.tyreId, selection.quantity, expiresAt]);
+        }
       }
 
       // Record status history
-      await db.insert(bookingStatusHistory).values({
+      await tx.insert(bookingStatusHistory).values({
         id: uuidv4(),
         bookingId,
         fromStatus: null,
@@ -457,6 +500,7 @@ export async function POST(
 
       let clientSecret: string | null = null;
       let amountInPence: number | null = null;
+      let stripePaymentIntentId: string | null = null;
 
       if (data.paymentFlow === 'payment_intent') {
         const paymentIntent = await createPaymentIntent(
@@ -465,10 +509,12 @@ export async function POST(
             bookingId,
             refNumber,
             customerEmail: data.customerEmail,
+            source: 'website',
           }
         );
         clientSecret = paymentIntent.clientSecret;
         amountInPence = paymentIntent.amountInPence;
+        stripePaymentIntentId = paymentIntent.paymentIntentId;
         const expectedAmountPence = Math.round(Number(breakdown.total) * 100);
         if (paymentIntent.amountInPence !== expectedAmountPence) {
           await client.query('ROLLBACK');
@@ -482,7 +528,7 @@ export async function POST(
         }
 
         // Update booking with Stripe Payment Intent ID.
-        await db
+        await tx
           .update(bookings)
           .set({ stripePiId: paymentIntent.paymentIntentId })
           .where(eq(bookings.id, bookingId));
@@ -490,11 +536,71 @@ export async function POST(
 
       // Mark quote as used
       await client.query(
-        `UPDATE quotes SET used = true WHERE id = $1`,
-        [data.quoteId]
+        `UPDATE quotes SET used = true, metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('bookingId', $2::text) WHERE id = $1`,
+        [data.quoteId, bookingId]
       );
 
+      const bookingAccessToken = await signCustomerBookingAccessToken({ bookingId, refNumber });
       await client.query('COMMIT');
+
+      // Notify once for the newly committed booking, before payment. A resumed
+      // quote returns above and does not schedule another alert. after() keeps
+      // both notification promises within the serverless request lifetime.
+      const bookingType = quote.booking_type === 'emergency' ? 'emergency' : 'scheduled';
+      const scheduledAt = quote.scheduled_at ? new Date(quote.scheduled_at).toISOString() : null;
+      after(async () => {
+        const results = await Promise.allSettled([
+          sendUrgentBookingTopicPush({
+            bookingId,
+            refNumber,
+            bookingType,
+            scheduledAt,
+            sourceApp: projectSource?.app ?? TYRE_RESCUE_SOURCE_APP,
+            urgent: isProjectBooking || bookingType === 'emergency',
+            customerPhone: data.customerPhone,
+            createdAt: new Date().toISOString(),
+            title: isProjectBooking
+              ? 'New project booking received'
+              : bookingType === 'emergency'
+                ? 'Emergency booking received'
+                : 'Scheduled booking received',
+            body: isProjectBooking
+              ? sourceDisplay
+                ? `${sourceDisplay} — ${data.customerName}`
+                : `${projectSource?.label ?? 'Project'} booking — ${data.customerName}`
+              : `${data.customerName} — ${refNumber} — awaiting payment`,
+          }),
+          createAdminNotification({
+            type: 'booking.created',
+            title: isProjectBooking ? 'New Booking' : bookingType === 'emergency' ? 'New Emergency Booking' : 'New Scheduled Booking',
+            body: `Booking ${refNumber} — ${data.customerName} — ${data.customerPhone}`,
+            entityType: 'booking',
+            entityId: bookingId,
+            link: `/admin/bookings/${refNumber}`,
+            severity: 'info',
+            createdBy: 'system',
+            metadata: {
+              refNumber,
+              bookingType: String(quote.booking_type || ''),
+              serviceType: String(quote.service_type || ''),
+              scheduledAt,
+              customerName: data.customerName,
+              customerPhone: data.customerPhone,
+              important: true,
+              updateType: 'created',
+              adminPath: `/admin/bookings/${refNumber}`,
+            },
+          }),
+        ]);
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error('[booking:create] notification failed', {
+              bookingId,
+              channel: index === 0 ? 'mobile_push' : 'internal',
+            });
+          }
+        });
+      });
 
       if (data.paymentFlow === 'payment_intent' && amountInPence != null) {
         await recordPaymentEvent({
@@ -505,68 +611,20 @@ export async function POST(
           linkStatus: 'created',
           amountPence: amountInPence,
           currency: 'gbp',
+          stripePaymentIntentId,
           source: 'public_booking',
           status: 'pending',
-          metadata: { kind: 'public_booking_payment_intent' },
+          metadata: { kind: 'public_booking_payment_intent', type: 'full' },
         });
       }
 
-      // Send urgent push for customer emergency bookings immediately on creation.
-      // Fires before payment so the admin is alerted as soon as the customer
-      // submits — not only after the Stripe webhook fires minutes later.
-      // Idempotency: the quote is atomically marked used=true in the same
-      // transaction above, so this code path only runs once per booking.
-      // Admin quick-book finalize uses a separate route; this file is always
-      // a customer-originated booking.
-      if (isProjectBooking) {
-        void sendUrgentBookingTopicPush({
-          bookingId,
-          customerPhone: data.customerPhone,
-          createdAt: new Date().toISOString(),
-          title: 'New project booking received',
-          body: sourceDisplay
-            ? `${sourceDisplay} — ${data.customerName}`
-            : `${projectSource?.label ?? 'Project'} booking — ${data.customerName}`,
-        }).catch((err: unknown) => console.error('[booking:create] project urgent push failed:', err));
-      } else if (quote.booking_type === 'emergency') {
-        void sendUrgentBookingTopicPush({
-          bookingId,
-          customerPhone: data.customerPhone,
-          createdAt: new Date().toISOString(),
-          title: 'Emergency booking received',
-          body: `${data.customerName} — awaiting payment`,
-        }).catch((err: unknown) => console.error('[booking:create] urgent push failed:', err));
-      }
-
-      // Notify admin of new booking (fire-and-forget)
-      createAdminNotification({
-        type: 'booking.created',
-        title: 'New Booking',
-        body: `Booking ${refNumber} — ${data.customerName} — ${data.customerPhone}`,
-        entityType: 'booking',
-        entityId: bookingId,
-        link: `/admin/bookings/${refNumber}`,
-        severity: 'info',
-        createdBy: 'system',
-        metadata: {
-          refNumber,
-          bookingType: String(quote.booking_type || ''),
-          serviceType: String(quote.service_type || ''),
-          scheduledAt: quote.scheduled_at ? new Date(quote.scheduled_at).toISOString() : null,
-          customerName: data.customerName,
-          customerPhone: data.customerPhone,
-          important: true,
-          updateType: 'created',
-          adminPath: `/admin/bookings/${refNumber}`,
-        },
-      }).catch(console.error);
-
-      return NextResponse.json({
+      return setCustomerBookingAccessCookie(NextResponse.json({
         bookingId,
         refNumber,
         stripeClientSecret: clientSecret,
         total: breakdown.total,
-      });
+        bookingAccessToken,
+      }), refNumber, bookingAccessToken);
     } catch (txError) {
       await client.query('ROLLBACK');
       throw txError;
@@ -575,6 +633,9 @@ export async function POST(
       await pool.end();
     }
   } catch (error) {
+    if (error instanceof StripePaymentConflict) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+    }
     console.error('Booking creation error:', error);
     return NextResponse.json(
       {
@@ -597,18 +658,17 @@ async function releaseQuoteReservations(
   client: {
     query: (queryText: string, values?: unknown[]) => Promise<unknown>;
   },
-  tyreSelections: QuoteTyreSelectionSnapshot[]
+  reservationIds: unknown,
 ) {
-  for (const selection of tyreSelections) {
-    if (selection.isPreOrder) continue;
-
+  if (Array.isArray(reservationIds) && reservationIds.length > 0 &&
+      reservationIds.every((value) => typeof value === 'string')) {
     await client.query(
       `UPDATE inventory_reservations
           SET released = true
-        WHERE tyre_id = $1
+        WHERE id = ANY($1::uuid[])
           AND booking_id IS NULL
           AND released = false`,
-      [selection.tyreId]
+      [reservationIds]
     );
   }
 }

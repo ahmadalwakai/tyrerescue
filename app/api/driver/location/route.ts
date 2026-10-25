@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { db, drivers, driverLocationHistory, bookings, trackingSessions } from '@/lib/db';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { z } from 'zod';
 import { isOlderLocationSample, parseLocationSampleTimestamp } from '@/lib/tracking/tracking-format';
 import { logTrackingDiagnostic } from '@/lib/tracking/diagnostic-log';
+import { processDriverJourneyFix } from '@/lib/tracking/driver-journeys';
 
 const ACTIVE_STATUSES = ['driver_assigned', 'en_route', 'arrived', 'in_progress'] as const;
 const MAX_ACCEPTED_ACCURACY_METERS = 100;
+export const maxDuration = 60;
 
 const bodySchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -133,7 +135,7 @@ export async function POST(request: Request) {
       source: parsed.data.source ?? null,
     };
     const sampleAt = timestamp ? parseLocationSampleTimestamp(timestamp) : new Date();
-    if (!sampleAt) {
+    if (!sampleAt || sampleAt.getTime() > Date.now() + 10_000) {
       logTrackingDiagnostic('timestamp_validation_result', {
         ...logBase,
         result: 'invalid',
@@ -445,6 +447,19 @@ export async function POST(request: Request) {
       httpStatus: 200,
       acceptedLocationTimestamp: sampleAt.toISOString(),
     });
+
+    // Inference is admin-only and independent of assignment. Never infer from
+    // a receipt-time fallback or a web sample superseded by native GPS.
+    if (shouldUpdatePrimary && timestamp && accuracy != null) {
+      after(async () => {
+        try {
+          await processDriverJourneyFix(driver.id, { lat, lng, at: sampleAt.getTime(),
+            accuracy, heading: heading ?? null, speed: speed ?? null });
+        } catch {
+          console.error('[driver-journeys] evaluation unavailable');
+        }
+      });
+    }
 
     return jsonLocationResponse({
       accepted: true,

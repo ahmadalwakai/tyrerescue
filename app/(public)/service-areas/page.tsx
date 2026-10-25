@@ -5,6 +5,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getBreadcrumbSchema, getFAQSchema, getLocalBusinessSchema } from '@/lib/seo/schemas';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 
 const SITE_URL = 'https://www.tyrerescue.uk';
 
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 const regions = [
   {
     name: 'Glasgow & West Scotland',
-    description: 'Our home territory. Fastest response times — typically 25–45 minutes across Greater Glasgow and the surrounding areas.',
+    description: `Our home territory. Response target: ${SEO_RESPONSE_TIME_LABEL} across Greater Glasgow and the surrounding areas.`,
     cities: [
       { name: 'Glasgow', slug: 'glasgow', postcode: 'G' },
       { name: 'Paisley', slug: 'paisley', postcode: 'PA1–PA3' },
@@ -53,7 +54,7 @@ const regions = [
   },
   {
     name: 'Edinburgh & East Scotland',
-    description: 'Scotland\'s capital and surrounding Lothians. Response typically 50–65 minutes from our base.',
+    description: `Scotland's capital and surrounding Lothians. Response target: ${SEO_RESPONSE_TIME_LABEL}.`,
     cities: [
       { name: 'Edinburgh', slug: 'edinburgh', postcode: 'EH1–EH17' },
       { name: 'Livingston', slug: 'livingston', postcode: 'EH54' },
@@ -66,7 +67,7 @@ const regions = [
   },
   {
     name: 'Ayrshire & South Scotland',
-    description: 'Ayrshire coast and South Scotland. Dispatched via M77 — typically 40–55 minutes.',
+    description: `Ayrshire coast and South Scotland. Response target: ${SEO_RESPONSE_TIME_LABEL}.`,
     cities: [
       { name: 'Kilmarnock', slug: 'kilmarnock', postcode: 'KA1–KA3' },
       { name: 'Ayr', slug: 'ayr', postcode: 'KA7–KA8' },
@@ -77,7 +78,7 @@ const regions = [
   },
   {
     name: 'Dundee & Tayside',
-    description: 'Dundee city and surrounding Angus and Perthshire. Response typically 65–85 minutes.',
+    description: `Dundee city and surrounding Angus and Perthshire. Response target: ${SEO_RESPONSE_TIME_LABEL}.`,
     cities: [
       { name: 'Dundee', slug: 'dundee', postcode: 'DD1–DD5' },
       { name: 'Perth', slug: 'perth', postcode: 'PH1–PH2' },
@@ -88,7 +89,7 @@ const regions = [
   },
   {
     name: 'Aberdeen & North-East Scotland',
-    description: 'Aberdeen and Aberdeenshire. Scotland\'s oil capital. Response approximately 90 minutes.',
+    description: `Aberdeen and Aberdeenshire. Scotland's oil capital. Response target: ${SEO_RESPONSE_TIME_LABEL}.`,
     cities: [
       { name: 'Aberdeen', slug: 'aberdeen', postcode: 'AB10–AB25' },
       { name: 'Elgin', slug: 'elgin', postcode: 'IV30' },
@@ -97,7 +98,7 @@ const regions = [
   },
   {
     name: 'Inverness & the Highlands',
-    description: 'Highland capital and surrounding area including the NC500 route. Response 90–120 minutes from Central Belt.',
+    description: `Highland capital and surrounding area including the NC500 route. Response target: ${SEO_RESPONSE_TIME_LABEL}.`,
     cities: [
       { name: 'Inverness', slug: 'inverness', postcode: 'IV1–IV3' },
       { name: 'Fort William', slug: 'fort-william', postcode: 'PH33–PH34' },
@@ -107,7 +108,7 @@ const regions = [
   },
   {
     name: 'Scottish Islands',
-    description: 'Island services operate by advance booking (minimum 24 hours) due to ferry logistics.',
+    description: `Island services require advance booking: at least 24 hours for Skye and 48 hours for ferry-served routes. Response target for confirmed bookings: ${SEO_RESPONSE_TIME_LABEL}.`,
     cities: [
       { name: 'Isle of Skye', slug: 'isle-of-skye', postcode: 'IV41–IV56' },
       { name: 'Stornoway (Lewis & Harris)', slug: 'stornoway', postcode: 'HS1–HS9' },
@@ -130,7 +131,7 @@ const coverageFaqs = [
   },
   {
     question: 'How quickly can you reach areas outside Glasgow and Edinburgh?',
-    answer: 'Response times vary by location: Central Belt cities (Hamilton, Falkirk, Stirling) are typically 35–50 minutes. Dundee, Perth and Kirkcaldy are 60–80 minutes. Aberdeen and Inverness are approximately 90 minutes. For very remote Highland locations and island services, advance booking of at least 24 hours is required.',
+    answer: `Our response target is ${SEO_RESPONSE_TIME_LABEL} across Scotland, including Hamilton, Falkirk, Stirling, Dundee, Perth, Kirkcaldy, Aberdeen, Inverness, the Highlands and Islands. Very remote Highland locations and island services require advance booking, including at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Call 0141 266 0690 to confirm availability and your exact ETA.`,
   },
   {
     question: 'Do you cover the NC500 tourist route?',
@@ -142,7 +143,7 @@ const coverageFaqs = [
   },
   {
     question: 'Do you cover the Scottish islands?',
-    answer: 'Yes — we operate on Skye (accessible by bridge), Lewis and Harris, Shetland, and other islands. Island services require minimum 24 hours advance booking due to ferry scheduling. Call 0141 266 0690 to arrange island service.',
+    answer: `Yes — we operate on Skye (accessible by bridge), Lewis and Harris, Shetland and other islands. Island services require advance booking: at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to confirm availability and your exact ETA.`,
   },
 ];
 
@@ -241,8 +242,9 @@ export default function ServiceAreasPage() {
           <div style={s.wrap}>
             <h2 style={s.h2}>Services Available Across Scotland</h2>
             <p style={{ color: '#A1A1AA', fontSize: '16px', maxWidth: '760px', marginBottom: '0' }}>
-              All services are available at every location in our coverage area. Response times
-              and advance booking requirements vary by distance.
+              All services are available across our coverage area, with a response target
+              of {SEO_RESPONSE_TIME_LABEL}. Advance booking requirements vary by location:
+              at least 24 hours for Skye and 48 hours for ferry-served island routes.
             </p>
             <div style={s.serviceGrid}>
               {services.map((svc) => (

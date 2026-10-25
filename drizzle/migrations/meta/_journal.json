@@ -183,6 +183,83 @@
       "when": 1756944000000,
       "tag": "0025_ai_receptionist",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1760400000000,
+      "tag": "0026_tax_payroll_phase1",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1760400001000,
+      "tag": "0027_tax_payroll_phase2a",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1760400002000,
+      "tag": "0028_tax_payroll_phase2b_to_5",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792540800000,
+      "tag": "0029_driver_journey_monitor",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792540801000,
+      "tag": "0030_admin_device_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792540802000,
+      "tag": "0031_admin_device_session_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792540803000,
+      "tag": "0032_payroll_monthly_liability",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792540804000,
+      "tag": "0033_driver_device_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792627200000,
+      "tag": "0034_direct_driver_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792627201000,
+      "tag": "0035_customer_push_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792627202000,
+      "tag": "0036_customer_guest_chat",
+      "breakpoints": true
     }
   ]
 }

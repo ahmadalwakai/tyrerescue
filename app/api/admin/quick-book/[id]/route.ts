@@ -18,6 +18,7 @@ import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-d
 import { GARAGE_ADDRESS } from '@/lib/garage';
 import { ASSISTED_CHAT_AUTO_PRICING_MAX_MILES } from '@/lib/fitting-location-pricing';
 import { normalizeCustomerPhoneInput, normalizeRecipientEmailInput } from '@/lib/contact-normalization';
+import { withStripePaymentLock } from '@/lib/payments/stripe-payment-lock';
 
 function normalizeOptionalEmailInput(input: unknown): string | undefined {
   if (input === undefined) return undefined;
@@ -179,6 +180,9 @@ export async function PATCH(
     );
   }
 
+  // Share finalization's lock across the complete read/reprice/write sequence.
+  // A concurrent finalize must not commit in the middle of a price refresh.
+  return withStripePaymentLock(`quick-book:${id}`, async () => {
   const [existing] = await db
     .select()
     .from(quickBookings)
@@ -187,6 +191,12 @@ export async function PATCH(
 
   if (!existing) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // A phone may have lost the successful finalize response. Never reprice
+  // its finalized quick-book row; let the app recover the actual booking.
+  if (existing.bookingId) {
+    return NextResponse.json({ error: 'Already finalized', bookingId: existing.bookingId }, { status: 409 });
   }
 
   const data = parsed.data;
@@ -497,4 +507,5 @@ export async function PATCH(
     .limit(1);
 
   return NextResponse.json({ booking: updated });
+  });
 }

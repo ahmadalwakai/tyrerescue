@@ -1,6 +1,7 @@
 import { hasMarketingConsent } from '@/lib/analytics/consent';
 import { ADS_ACTUAL_WEBSITE_CALL_CONVERSION } from '@/lib/analytics/website-calls';
 import { trackEvent } from '@/lib/analytics-tracker';
+import { analyticsUrl } from '@/lib/analytics/private-urls';
 
 /** GA4 measurement ID used by the global gtag.js install in app/layout.tsx. */
 const ENV_GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
@@ -100,6 +101,16 @@ function safeGtag(...args: Parameters<Gtag>): boolean {
   if (!gtag) return false;
 
   try {
+    if (args[0] === 'config' || args[0] === 'event') {
+      const data = args[2] && typeof args[2] === 'object' ? args[2] as Record<string, unknown> : {};
+      const location = typeof data.page_location === 'string' ? data.page_location : getBrowserWindow()?.location?.href;
+      const referrer = typeof document === 'undefined' ? undefined : document.referrer;
+      args[2] = { ...data,
+        ...(typeof data.page_path === 'string' ? { page_path: analyticsUrl(data.page_path) } : {}),
+        ...(typeof location === 'string' ? { page_location: analyticsUrl(location) } : {}),
+        ...(typeof referrer === 'string' ? { page_referrer: analyticsUrl(referrer) } : {}),
+      };
+    }
     gtag(...args);
     return true;
   } catch {

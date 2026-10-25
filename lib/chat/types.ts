@@ -1,4 +1,4 @@
-/** Shared types for the booking-bound chat system */
+/** Shared types for booking chats and private staff-to-driver chats. */
 
 export type ChatChannel = 'customer_admin' | 'customer_driver' | 'admin_driver';
 export type ChatRole = 'customer' | 'admin' | 'driver';
@@ -8,7 +8,8 @@ export type DeliveryStatus = 'sending' | 'sent' | 'delivered' | 'failed';
 
 export interface ConversationSummary {
   id: string;
-  bookingId: string;
+  bookingId: string | null;
+  scope: 'booking' | 'direct_driver';
   bookingRef: string;
   channel: ChatChannel;
   status: ConversationStatus;
@@ -26,7 +27,7 @@ export interface ConversationSummary {
 
 export interface MessageView {
   id: string;
-  senderId: string;
+  senderId: string | null;
   senderName: string;
   senderRole: ChatRole;
   body: string | null;
@@ -48,7 +49,8 @@ export interface AttachmentView {
 
 export interface ConversationDetail {
   id: string;
-  bookingId: string;
+  bookingId: string | null;
+  scope: 'booking' | 'direct_driver';
   bookingRef: string;
   channel: ChatChannel;
   status: ConversationStatus;

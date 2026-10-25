@@ -19,8 +19,7 @@ import { anim } from '@/lib/animations';
 import { trackBookingConversion } from '@/lib/analytics/gtag';
 import type { BookingConversionPayload } from '@/lib/analytics/booking-conversion';
 
-const PAYMENT_CONFIRMED_STATUSES = [
-  'paid',
+const TRACKING_STATUSES = [
   'driver_assigned',
   'en_route',
   'arrived',
@@ -85,10 +84,6 @@ function readBookingConversionPayload(value: unknown): BookingConversionPayload 
   };
 }
 
-function isPaidStatus(status: string): boolean {
-  return PAYMENT_CONFIRMED_STATUSES.includes(status);
-}
-
 export function SuccessContent({ booking }: SuccessContentProps) {
   const brand = getBrandBySourceApp(booking.sourceApp);
   const searchParams = useSearchParams();
@@ -104,11 +99,10 @@ export function SuccessContent({ booking }: SuccessContentProps) {
   }, [booking.bookingType, booking.distanceMiles]);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(
-    failedStripeRedirect ? 'Payment was not completed. You have not been charged.' : null,
+    failedStripeRedirect ? 'Payment was not completed. Check the payment status before retrying.' : null,
   );
-  const [confirmedStatus, setConfirmedStatus] = useState<string>(
-    booking.paymentSucceeded && !isPaidStatus(booking.status) ? 'paid' : booking.status,
-  );
+  const [confirmedStatus, setConfirmedStatus] = useState<string>(booking.status);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(booking.paymentSucceeded);
   const [serverConversion, setServerConversion] = useState<BookingConversionPayload | null>(
     booking.conversion,
   );
@@ -116,9 +110,26 @@ export function SuccessContent({ booking }: SuccessContentProps) {
   const [redirectCancelled, setRedirectCancelled] = useState(false);
 
   // Check if tracking is available
-  const trackingStatuses = PAYMENT_CONFIRMED_STATUSES.filter((status) => status !== 'paid');
-  const isTrackingAvailable = trackingStatuses.includes(confirmedStatus);
-  const isPaid = isPaidStatus(confirmedStatus);
+  const isTrackingAvailable = TRACKING_STATUSES.includes(confirmedStatus);
+  const isPaid = paymentConfirmed;
+
+  // router.refresh receives current server payment evidence after a webhook.
+  useEffect(() => {
+    setConfirmedStatus(booking.status);
+    setPaymentConfirmed(booking.paymentSucceeded);
+    setServerConversion(booking.conversion);
+  }, [booking.status, booking.paymentSucceeded, booking.conversion]);
+
+  useEffect(() => {
+    if (isPaid || ['cancelled', 'refunded', 'refunded_partial'].includes(booking.status)) return;
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts += 1;
+      router.refresh();
+      if (attempts >= 60) clearInterval(interval);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isPaid, booking.status, router]);
 
   useEffect(() => {
     if (!serverConversion) return;
@@ -150,7 +161,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
 
   // On mount: if booking is still awaiting_payment AND we have Stripe redirect params, confirm it
   useEffect(() => {
-    if (confirmedStatus !== 'awaiting_payment') return;
+    if (paymentConfirmed) return;
     if (!paymentIntent) return;
 
     // Do not attempt confirmation if Stripe redirect clearly failed
@@ -171,9 +182,10 @@ export function SuccessContent({ booking }: SuccessContentProps) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Confirmation failed');
-        setConfirmedStatus(data.status);
+        if (typeof data.status === 'string') setConfirmedStatus(data.status);
+        setPaymentConfirmed(data.paymentConfirmed === true);
         const conversion = readBookingConversionPayload(data.conversion);
-        if (typeof data.status === 'string' && isPaidStatus(data.status) && conversion) {
+        if (data.paymentConfirmed === true && conversion) {
           setServerConversion(conversion);
         }
       } catch (err) {

@@ -5,8 +5,9 @@ import { db } from '@/lib/db';
 import { quickBookings, bookings, payments } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { createCheckoutSession } from '@/lib/stripe';
+import { createCheckoutSession, getStripePaymentSource, StripePaymentConflict } from '@/lib/stripe';
 import { recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { withStripePaymentLock } from '@/lib/payments/stripe-payment-lock';
 
 /**
  * POST /api/admin/quick-book/[id]/checkout-session
@@ -36,7 +37,7 @@ export async function POST(
     return NextResponse.json({ error: 'Quick booking not finalized' }, { status: 404 });
   }
 
-  const [booking] = await db
+  let [booking] = await db
     .select()
     .from(bookings)
     .where(eq(bookings.id, qb.bookingId))
@@ -46,6 +47,10 @@ export async function POST(
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
+  return withStripePaymentLock(booking.id, async () => {
+  [booking] = await db.select().from(bookings).where(eq(bookings.id, booking.id)).limit(1);
+  if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+
   if (booking.paymentType !== 'full' && booking.paymentType !== 'stripe') {
     return NextResponse.json(
       { error: `Booking is not configured for full Stripe payment (paymentType: ${booking.paymentType})` },
@@ -53,7 +58,7 @@ export async function POST(
     );
   }
 
-  if (booking.status !== 'awaiting_payment') {
+  if (!['awaiting_payment', 'payment_failed'].includes(booking.status)) {
     return NextResponse.json(
       { error: `Cannot retry payment in status: ${booking.status}` },
       { status: 409 }
@@ -69,8 +74,10 @@ export async function POST(
       bookingId: booking.id,
       refNumber: booking.refNumber,
       customerEmail,
+      source: getStripePaymentSource(request),
     },
     {
+      existingStripeRef: booking.stripePiId,
       successUrl: `${baseUrl}/admin/bookings/${booking.refNumber}?stripe=success`,
       cancelUrl: `${baseUrl}/admin/bookings/${booking.refNumber}?stripe=cancelled`,
     }
@@ -104,7 +111,7 @@ export async function POST(
       checkoutUrl: checkout.checkoutUrl,
       amountPence: checkout.amountInPence,
     },
-  });
+  }).onConflictDoNothing();
 
   await recordPaymentEvent({
     bookingId: booking.id,
@@ -126,5 +133,11 @@ export async function POST(
   return NextResponse.json({
     checkoutUrl: checkout.checkoutUrl,
     sessionId: checkout.sessionId,
+  });
+  }).catch((error: unknown) => {
+    if (error instanceof StripePaymentConflict) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+    }
+    throw error;
   });
 }

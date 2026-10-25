@@ -3,6 +3,7 @@
 import { Box, Container, Text, Flex, SimpleGrid } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 import { EmergencyStickyCta } from './EmergencyStickyCta';
 import { EmergencyServiceAreas, type ServiceArea } from './EmergencyServiceAreas';
 import { EmergencyFaq } from './EmergencyFaq';
@@ -41,10 +42,10 @@ const TRUST_BULLETS = [
 ];
 
 const RESPONSE_TIMES = [
-  { time: '30–45 min', area: 'Glasgow City Centre', sub: 'G1–G4 postcodes' },
-  { time: '45–60 min', area: 'Greater Glasgow', sub: 'Paisley, East Kilbride, Hamilton' },
-  { time: '60–90 min', area: 'Edinburgh, Dundee, Perth, Stirling', sub: 'EH, DD, PH, FK postcodes' },
-  { time: '90–120 min', area: 'Aberdeen & Inverness', sub: 'AB, IV postcodes' },
+  { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Glasgow City Centre', sub: 'G1–G4 postcodes' },
+  { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Greater Glasgow', sub: 'Paisley, East Kilbride, Hamilton' },
+  { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Edinburgh, Dundee, Perth, Stirling', sub: 'EH, DD, PH, FK postcodes' },
+  { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Aberdeen & Inverness', sub: 'AB, IV postcodes' },
 ];
 
 const HOW_IT_WORKS = [

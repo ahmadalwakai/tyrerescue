@@ -2,12 +2,15 @@ import bcrypt from 'bcryptjs';
 import { db, users, drivers } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { signMobileToken } from '@/lib/auth';
+import { createDriverDeviceSession } from '@/lib/auth/driver-device-sessions';
 import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
-import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection } from '@/lib/security';
+import { checkRateLimit, getClientIp, logSecurityRejection } from '@/lib/security';
+
+const DRIVER_LOGIN_RATE_LIMIT = { limit: 8, windowMs: 15 * 60_000 };
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = await checkRateLimit(`driver-login:${ip}`, RATE_LIMITS.login);
+  const rl = await checkRateLimit(`driver-login:${ip}`, DRIVER_LOGIN_RATE_LIMIT);
   if (!rl.ok) {
     logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/driver/auth/login', status: 429, routeKey: 'driver-login' });
     return jsonWithExpoDevCors(
@@ -63,7 +66,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = await signMobileToken({
+    const token = body.persistentSession === true ? await createDriverDeviceSession(user.id, body.device, true) : await signMobileToken({
       id: user.id,
       email: user.email,
       name: user.name,
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
         role: user.role,
         driverId: driver.id,
       },
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch {
     return jsonWithExpoDevCors(request, { error: 'Login failed' }, { status: 500 });
   }

@@ -5,8 +5,9 @@ import { eq } from 'drizzle-orm';
 import { getAppOrigin } from '@/lib/config/site';
 import { requireAdminMobile } from '@/lib/auth';
 import { db, bookings, bookingStatusHistory, payments } from '@/lib/db';
-import { createCheckoutSession } from '@/lib/stripe';
+import { createCheckoutSession, getStripePaymentSource, StripePaymentConflict } from '@/lib/stripe';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { withStripePaymentLock } from '@/lib/payments/stripe-payment-lock';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -126,7 +127,7 @@ export async function POST(request: Request, { params }: Props) {
     );
   }
 
-  const [booking] = await db
+  let [booking] = await db
     .select()
     .from(bookings)
     .where(eq(bookings.refNumber, ref))
@@ -135,6 +136,10 @@ export async function POST(request: Request, { params }: Props) {
   if (!booking) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
+
+  return withStripePaymentLock(booking.id, async () => {
+  [booking] = await db.select().from(bookings).where(eq(bookings.id, booking.id)).limit(1);
+  if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
   if (TERMINAL_STATUSES.has(booking.status)) {
     return NextResponse.json(
@@ -180,9 +185,11 @@ export async function POST(request: Request, { params }: Props) {
       bookingId: booking.id,
       refNumber: booking.refNumber,
       customerEmail: booking.customerEmail,
+      source: getStripePaymentSource(request),
     },
     {
       purpose: 'admin_link',
+      existingStripeRef: booking.stripePiId,
       metadata: {
         adminLinkKind: 'full_outstanding_balance',
         amountPence: String(amountPence),
@@ -213,7 +220,6 @@ export async function POST(request: Request, { params }: Props) {
 
   // Record a PENDING payment row (existing schema). The webhook flips this to
   // 'succeeded'. payments.stripePiId is unique, giving idempotency for free.
-  try {
     await db.insert(payments).values({
       id: uuidv4(),
       bookingId: booking.id,
@@ -230,12 +236,7 @@ export async function POST(request: Request, { params }: Props) {
         outstandingPence,
         createdAtIso,
       },
-    });
-  } catch (err) {
-    // A unique-constraint clash only happens on a rare PI-id reuse; the link
-    // itself is still valid, so we log and continue rather than fail the call.
-    console.error('[payment-link] failed to record pending payment:', err);
-  }
+    }).onConflictDoNothing();
 
   await db
     .update(bookings)
@@ -253,11 +254,12 @@ export async function POST(request: Request, { params }: Props) {
     stripeSessionId: checkout.sessionId,
     stripePaymentIntentId: checkout.paymentIntentId,
     stripeCheckoutUrl: checkout.checkoutUrl,
-    source: 'admin',
+    source: getStripePaymentSource(request),
     status: 'pending',
     expiresAt: checkout.expiresAt,
     metadata: {
       kind: 'admin_payment_link',
+      type: 'admin_link',
       paymentScope: 'full_outstanding_balance',
       note: parsed.data.note ?? null,
     },
@@ -287,5 +289,11 @@ export async function POST(request: Request, { params }: Props) {
     // The link is only SENT/awaiting — never paid until the webhook confirms.
     status: 'awaiting_payment',
     createdAtIso,
+  });
+  }).catch((error: unknown) => {
+    if (error instanceof StripePaymentConflict) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+    }
+    throw error;
   });
 }

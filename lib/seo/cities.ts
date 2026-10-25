@@ -1,3 +1,6 @@
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
+import { WORKSHOP_ADDRESS_LABEL } from '@/lib/config/business-contact';
+
 /**
  * City-specific data for /mobile-tyre-fitting-[city]-price SEO pages.
  * Every city has genuinely unique copy — no duplicated content.
@@ -15,7 +18,7 @@ export const cityData: Record<string, CityPriceData> = {
   glasgow: {
     name: 'Glasgow',
     description:
-      "Our Glasgow depot on Duke Street means we reach most G-postcode areas within 30 minutes. Whether you're stuck on the M8, parked up in the West End, or at home in Shawlands, our fitters carry a full range of budget, mid-range and premium tyres on the van \u2014 ready to fit roadside or on your driveway.",
+      `Our Glasgow depot at ${WORKSHOP_ADDRESS_LABEL} means we reach most G-postcode areas in ${SEO_RESPONSE_TIME_LABEL}. Whether you're stuck on the M8, parked up in the West End, or at home in Shawlands, our fitters carry a full range of budget, mid-range and premium tyres on the van \u2014 ready to fit roadside or on your driveway.`,
     depotDistance: 0,
     coordinates: { lat: 55.8642, lng: -4.2518 },
     postcodeHint: 'G1',
@@ -39,7 +42,7 @@ export const cityData: Record<string, CityPriceData> = {
   'east-kilbride': {
     name: 'East Kilbride',
     description:
-      'East Kilbride and the surrounding South Lanarkshire villages get the same competitive pricing as central Glasgow. We regularly fit tyres at Kingsgate Retail Park, Hairmyres Hospital car park, and residential driveways across Westwood and Murray. Average arrival under 40 minutes.',
+      `East Kilbride and the surrounding South Lanarkshire villages get the same competitive pricing as central Glasgow. We regularly fit tyres at Kingsgate Retail Park, Hairmyres Hospital car park, and residential driveways across Westwood and Murray. Average arrival in ${SEO_RESPONSE_TIME_LABEL}.`,
     depotDistance: 9,
     coordinates: { lat: 55.7644, lng: -4.1769 },
     postcodeHint: 'G75',
@@ -103,7 +106,7 @@ export const cityData: Record<string, CityPriceData> = {
   'east-lothian': {
     name: 'East Lothian',
     description:
-      'East Lothian covering EH21 (Musselburgh) and EH31–EH42 — Prestonpans, Tranent, Haddington, Gullane, North Berwick and Dunbar. We reach most of East Lothian within 55 minutes from Edinburgh. Run-flat tyres for premium golf-tourism vehicles carried as standard. No hidden distance surcharges across the EH postcode area.',
+      `East Lothian covering EH21 (Musselburgh) and EH31–EH42 — Prestonpans, Tranent, Haddington, Gullane, North Berwick and Dunbar. We reach most of East Lothian in ${SEO_RESPONSE_TIME_LABEL}. Run-flat tyres for premium golf-tourism vehicles carried as standard. No hidden distance surcharges across the EH postcode area.`,
     depotDistance: 50,
     coordinates: { lat: 55.9570, lng: -2.7791 },
     postcodeHint: 'EH41',
@@ -175,7 +178,7 @@ export const cityData: Record<string, CityPriceData> = {
   stirling: {
     name: 'Stirling',
     description:
-      'Stirling and the surrounding FK postcode area — covering Bridge of Allan, Dunblane, Bannockburn, St Ninians, Cambusbarron and the Trossachs gateway. We arrive via M9 or M80, typically within 40–45 minutes. We carry a full tyre range for the mix of commuter vehicles, tourist cars and commercial traffic on the A9 and M9 corridors.',
+      `Stirling and the surrounding FK postcode area — covering Bridge of Allan, Dunblane, Bannockburn, St Ninians, Cambusbarron and the Trossachs gateway. We arrive via M9 or M80, typically in ${SEO_RESPONSE_TIME_LABEL}. We carry a full tyre range for the mix of commuter vehicles, tourist cars and commercial traffic on the A9 and M9 corridors.`,
     depotDistance: 26,
     coordinates: { lat: 56.1165, lng: -3.9369 },
     postcodeHint: 'FK8',
@@ -231,7 +234,7 @@ export const cityData: Record<string, CityPriceData> = {
   greenock: {
     name: 'Greenock',
     description:
-      'Greenock and the PA15–PA16 postcode area — covering Port Glasgow, Gourock, Inverkip and the Inverclyde coast. The A8 and M8 extension bring us from Glasgow in 30 minutes. We carry a full range of fitments for this Clyde coastal community and serve the commercial vehicle operators at Greenock Ocean Terminal.',
+      'Greenock and the PA15–PA16 postcode area — covering Port Glasgow, Gourock, Inverkip and the Inverclyde coast. The A8 and M8 extension provide road links from Glasgow. We carry a full range of fitments for this Clyde coastal community and serve the commercial vehicle operators at Greenock Ocean Terminal.',
     depotDistance: 22,
     coordinates: { lat: 55.9459, lng: -4.7658 },
     postcodeHint: 'PA15',
@@ -239,7 +242,7 @@ export const cityData: Record<string, CityPriceData> = {
   dunfermline: {
     name: 'Dunfermline',
     description:
-      'Dunfermline and the KY11–KY12 postcode area — covering Rosyth, Inverkeithing, Charlestown, Crossford and the Dunfermline Business Park. We reach Dunfermline in 45–50 minutes via the M9/M90 Forth crossing. We carry a full range of passenger and van tyres for this busy commuter town and the nearby Rosyth dockyard.',
+      `Dunfermline and the KY11–KY12 postcode area — covering Rosyth, Inverkeithing, Charlestown, Crossford and the Dunfermline Business Park. We reach Dunfermline in ${SEO_RESPONSE_TIME_LABEL} via the M9/M90 Forth crossing. We carry a full range of passenger and van tyres for this busy commuter town and the nearby Rosyth dockyard.`,
     depotDistance: 40,
     coordinates: { lat: 56.0718, lng: -3.4530 },
     postcodeHint: 'KY11',
@@ -255,7 +258,7 @@ export const cityData: Record<string, CityPriceData> = {
   ayr: {
     name: 'Ayr',
     description:
-      'Ayr and the KA7–KA8 postcode area — covering Prestwick, Alloway, Annbank, Mossblown and the Ayr racecourse corridor. We reach Ayr in 55 minutes via the M77 and A77. Race day and festival season sees high demand for tyre services near the racecourse and Prestwick Airport. We carry run-flat tyres for premium golf resort vehicles.',
+      `Ayr and the KA7–KA8 postcode area — covering Prestwick, Alloway, Annbank, Mossblown and the Ayr racecourse corridor. We reach Ayr in ${SEO_RESPONSE_TIME_LABEL} via the M77 and A77. Race day and festival season sees high demand for tyre services near the racecourse and Prestwick Airport. We carry run-flat tyres for premium golf resort vehicles.`,
     depotDistance: 32,
     coordinates: { lat: 55.4590, lng: -4.6292 },
     postcodeHint: 'KA7',
@@ -271,7 +274,7 @@ export const cityData: Record<string, CityPriceData> = {
   dingwall: {
     name: 'Dingwall',
     description:
-      'Dingwall and the IV15–IV18 postcode area — covering Invergordon, Alness, Tain, Evanton and the Easter Ross peninsula. We dispatch via the A9 from Inverness, typically arriving in 110–120 minutes. We carry fitments for SUVs and commercial vehicles common on the Easter Ross oil industry roads and the A9 north corridor.',
+      `Dingwall and the IV15–IV18 postcode area — covering Invergordon, Alness, Tain, Evanton and the Easter Ross peninsula. We dispatch via the A9 from Inverness, typically arriving in ${SEO_RESPONSE_TIME_LABEL}. We carry fitments for SUVs and commercial vehicles common on the Easter Ross oil industry roads and the A9 north corridor.`,
     depotDistance: 174,
     coordinates: { lat: 57.5952, lng: -4.4255 },
     postcodeHint: 'IV15',

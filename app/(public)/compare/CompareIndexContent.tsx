@@ -13,6 +13,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { colorTokens } from '@/lib/design-tokens';
 import { competitors } from '@/lib/data/competitors';
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 
 const colors = {
   bg: colorTokens.bg,
@@ -176,7 +177,7 @@ export function CompareIndexContent() {
             </Text>
             <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} maxW="700px" mx="auto">
               {[
-                { stat: '45 min', label: 'Avg Response' },
+                { stat: `${SEO_RESPONSE_TIME_MINUTES} min`, label: 'Response Target' },
                 { stat: '24/7', label: 'Emergency Service' },
                 { stat: '4.8★', label: 'Google Rating' },
                 { stat: 'Callout £49 + tyre', label: 'Starting Price' },

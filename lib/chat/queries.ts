@@ -1,3 +1,5 @@
+import { sendBookingChatMessage } from './booking-message';
+import { getOrCreateBookingConversation } from './booking-conversation';
 import { db } from '@/lib/db';
 import {
   bookingConversations,
@@ -5,6 +7,7 @@ import {
   bookingMessages,
   messageAttachments,
   messageReadState,
+  guestChatReadState,
   bookings,
   drivers,
   users,
@@ -28,11 +31,11 @@ function isDeletedMessage(message: BookingMessageRow, attachments: Array<typeof 
 }
 
 async function toMessageView(message: BookingMessageRow): Promise<MessageView> {
-  const [sender] = await db
+  const [sender] = message.senderId ? await db
     .select({ name: users.name })
     .from(users)
     .where(eq(users.id, message.senderId))
-    .limit(1);
+    .limit(1) : [];
 
   const attachments = await db
     .select()
@@ -42,7 +45,7 @@ async function toMessageView(message: BookingMessageRow): Promise<MessageView> {
   return {
     id: message.id,
     senderId: message.senderId,
-    senderName: sender?.name ?? 'Unknown',
+    senderName: sender?.name ?? (message.senderId === null && message.senderRole === 'customer' ? 'Guest customer' : 'Unknown'),
     senderRole: message.senderRole as ChatRole,
     body: message.body,
     messageType: message.messageType as MessageView['messageType'],
@@ -65,82 +68,12 @@ async function toMessageView(message: BookingMessageRow): Promise<MessageView> {
 export async function getOrCreateConversation(
   bookingId: string,
   channel: ChatChannel,
-  initiatorUserId: string,
+  initiatorUserId: string | null,
   initiatorRole: ChatRole,
   options?: { targetDriverUserId?: string | null },
 ): Promise<string> {
-  const targetDriverUserId = options?.targetDriverUserId ?? null;
-
-  // Check for existing
-  const [existing] =
-    targetDriverUserId && channel === 'admin_driver'
-      ? await db
-          .select({ id: bookingConversations.id })
-          .from(bookingConversations)
-          .innerJoin(
-            conversationParticipants,
-            and(
-              eq(conversationParticipants.conversationId, bookingConversations.id),
-              eq(conversationParticipants.userId, targetDriverUserId),
-            ),
-          )
-          .where(
-            and(
-              eq(bookingConversations.bookingId, bookingId),
-              eq(bookingConversations.channel, channel),
-            ),
-          )
-          .limit(1)
-      : await db
-          .select({ id: bookingConversations.id })
-          .from(bookingConversations)
-          .where(
-            and(
-              eq(bookingConversations.bookingId, bookingId),
-              eq(bookingConversations.channel, channel),
-            ),
-          )
-          .limit(1);
-
-  if (existing) return existing.id;
-
-  // Create new
-  const [conv] = await db
-    .insert(bookingConversations)
-    .values({ bookingId, channel })
-    .returning({ id: bookingConversations.id });
-
-  // Add initiator as participant
-  await db.insert(conversationParticipants).values({
-    conversationId: conv.id,
-    userId: initiatorUserId,
-    role: initiatorRole,
-  });
-
-  // Initialize their read state
-  await db.insert(messageReadState).values({
-    conversationId: conv.id,
-    userId: initiatorUserId,
-    unreadCount: 0,
-  });
-
-  if (targetDriverUserId && targetDriverUserId !== initiatorUserId) {
-    await db.insert(conversationParticipants).values({
-      conversationId: conv.id,
-      userId: targetDriverUserId,
-      role: 'driver',
-    });
-
-    await db.insert(messageReadState).values({
-      conversationId: conv.id,
-      userId: targetDriverUserId,
-      unreadCount: 0,
-    });
-  }
-
-  return conv.id;
+  return getOrCreateBookingConversation({ bookingId, channel, initiatorUserId, initiatorRole, targetDriverUserId: options?.targetDriverUserId });
 }
-
 /* ─── List conversations for a user (role-scoped) ──────────────── */
 
 export async function listConversations(
@@ -253,7 +186,7 @@ export async function listConversations(
   const result: ConversationSummary[] = [];
 
   for (const conv of convRows) {
-    const [booking] = await db
+    const [booking] = conv.bookingId ? await db
       .select({
         refNumber: bookings.refNumber,
         customerName: bookings.customerName,
@@ -261,10 +194,21 @@ export async function listConversations(
       })
       .from(bookings)
       .where(eq(bookings.id, conv.bookingId))
-      .limit(1);
+      .limit(1) : [];
 
-    let driverId: string | null = booking?.driverId ?? null;
-    let driverName: string | null = null;
+    const [directDriver] = !conv.bookingId ? await db.select({ id: drivers.id, userId: drivers.userId, name: users.name })
+      .from(bookingConversations)
+      .innerJoin(drivers, eq(drivers.id, bookingConversations.directDriverId))
+      .innerJoin(users, eq(users.id, drivers.userId))
+      .where(and(eq(bookingConversations.id, conv.id), eq(users.role, 'driver'))).limit(1) : [];
+    if (!conv.bookingId && (
+      conv.channel !== 'admin_driver' || !directDriver || role === 'customer' ||
+      (role === 'driver' && directDriver.userId !== userId) ||
+      (filters?.driverId && directDriver.id !== filters.driverId)
+    )) continue;
+
+    let driverId: string | null = directDriver?.id ?? booking?.driverId ?? null;
+    let driverName: string | null = directDriver?.name ?? null;
     const [participantDriver] = await db
       .select({
         driverId: drivers.id,
@@ -281,10 +225,10 @@ export async function listConversations(
       )
       .limit(1);
 
-    if (participantDriver) {
+    if (!directDriver && participantDriver) {
       driverId = participantDriver.driverId;
       driverName = participantDriver.name ?? null;
-    } else if (booking?.driverId) {
+    } else if (!directDriver && booking?.driverId) {
       const [d] = await db
         .select({ userId: drivers.userId })
         .from(drivers)
@@ -303,7 +247,7 @@ export async function listConversations(
     // Last message (excluding admin notes for non-admin)
     const msgConditions = [eq(bookingMessages.conversationId, conv.id)];
     if (role !== 'admin') {
-      // exclude admin_note type — we can't use ne easily, so use raw sql
+      msgConditions.push(sql`${bookingMessages.messageType} != 'admin_note'`);
     }
     const [lastMsg] = await db
       .select({
@@ -329,10 +273,23 @@ export async function listConversations(
       )
       .limit(1);
 
+    let unreadCount = readState?.unreadCount ?? 0;
+    if (!readState && conv.channel === 'customer_admin') {
+      // A new guest thread has no staff participants yet. A claimed guest
+      // booking also has no account read state until its owner first opens it.
+      const unreadConditions = [eq(bookingMessages.conversationId, conv.id),
+        sql`${bookingMessages.senderId} IS DISTINCT FROM ${userId}::uuid`];
+      if (role === 'customer') unreadConditions.push(sql`${bookingMessages.senderRole} != 'customer'`);
+      if (role !== 'admin') unreadConditions.push(sql`${bookingMessages.messageType} != 'admin_note'`);
+      const [unread] = await db.select({ count: sql<number>`count(*)::int` }).from(bookingMessages).where(and(...unreadConditions));
+      unreadCount = unread?.count ?? 0;
+    }
+
     result.push({
       id: conv.id,
       bookingId: conv.bookingId,
-      bookingRef: booking?.refNumber ?? '',
+      scope: conv.bookingId ? 'booking' : 'direct_driver',
+      bookingRef: conv.bookingId ? booking?.refNumber ?? '' : 'Direct chat',
       channel: conv.channel as ConversationSummary['channel'],
       status: conv.status as ConversationSummary['status'],
       locked: conv.locked ?? false,
@@ -345,7 +302,7 @@ export async function listConversations(
         (lastMsg?.messageType === 'audio' ? 'Voice message' : lastMsg?.messageType === 'image' ? 'Photo' : null),
       lastMessageAt: lastMsg?.createdAt?.toISOString() ?? null,
       lastMessageSenderRole: (lastMsg?.senderRole as ChatRole) ?? null,
-      unreadCount: readState?.unreadCount ?? 0,
+      unreadCount,
       createdAt: conv.createdAt?.toISOString() ?? '',
     });
   }
@@ -359,18 +316,21 @@ export async function getConversationDetail(
   conversationId: string,
 ): Promise<ConversationDetail | null> {
   const [conv] = await db
-    .select()
+    // Explicit legacy columns keep booking-only reads compatible before migration.
+    .select({ id: bookingConversations.id, bookingId: bookingConversations.bookingId,
+      channel: bookingConversations.channel, status: bookingConversations.status,
+      locked: bookingConversations.locked, muted: bookingConversations.muted })
     .from(bookingConversations)
     .where(eq(bookingConversations.id, conversationId))
     .limit(1);
 
   if (!conv) return null;
 
-  const [booking] = await db
+  const [booking] = conv.bookingId ? await db
     .select({ refNumber: bookings.refNumber })
     .from(bookings)
     .where(eq(bookings.id, conv.bookingId))
-    .limit(1);
+    .limit(1) : [];
 
   const parts = await db
     .select({
@@ -397,7 +357,8 @@ export async function getConversationDetail(
   return {
     id: conv.id,
     bookingId: conv.bookingId,
-    bookingRef: booking?.refNumber ?? '',
+    scope: conv.bookingId ? 'booking' : 'direct_driver',
+    bookingRef: conv.bookingId ? booking?.refNumber ?? '' : 'Direct chat',
     channel: conv.channel as ConversationDetail['channel'],
     status: conv.status as ConversationDetail['status'],
     locked: conv.locked ?? false,
@@ -422,14 +383,15 @@ export async function getMessages(
   }
 
   if (cursor) {
-    conditions.push(sql`${bookingMessages.createdAt} < (SELECT created_at FROM booking_messages WHERE id = ${cursor})`);
+    conditions.push(sql`(${bookingMessages.createdAt}, ${bookingMessages.id}) <
+      (SELECT created_at, id FROM booking_messages WHERE id = ${cursor}::uuid AND conversation_id = ${conversationId}::uuid)`);
   }
 
   const rows = await db
     .select()
     .from(bookingMessages)
     .where(and(...conditions))
-    .orderBy(desc(bookingMessages.createdAt))
+    .orderBy(desc(bookingMessages.createdAt), desc(bookingMessages.id))
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;
@@ -449,123 +411,42 @@ export async function getMessages(
   };
 }
 
+/** Guest read state is scoped to the conversation; it never writes a user row. */
+export async function markGuestConversationRead(conversationId: string, messageId: string) {
+  const [message] = await db.select({ id: bookingMessages.id, createdAt: bookingMessages.createdAt })
+    .from(bookingMessages).where(and(eq(bookingMessages.id, messageId), eq(bookingMessages.conversationId, conversationId),
+      sql`${bookingMessages.messageType} != 'admin_note'`)).limit(1);
+  if (!message?.createdAt) return;
+  await db.insert(guestChatReadState).values({ conversationId, lastReadMessageId: message.id, lastReadAt: message.createdAt })
+    .onConflictDoUpdate({ target: guestChatReadState.conversationId,
+      set: { lastReadMessageId: message.id, lastReadAt: message.createdAt },
+      setWhere: sql`${guestChatReadState.lastReadAt} IS NULL OR
+        (${guestChatReadState.lastReadAt}, ${guestChatReadState.lastReadMessageId}) < (${message.createdAt.toISOString()}::timestamptz, ${message.id}::uuid)` });
+}
+
+export async function getGuestUnreadCount(conversationId: string) {
+  const [state] = await db.select().from(guestChatReadState).where(eq(guestChatReadState.conversationId, conversationId)).limit(1);
+  const conditions = [eq(bookingMessages.conversationId, conversationId), eq(bookingMessages.senderRole, 'admin'),
+    sql`${bookingMessages.messageType} != 'admin_note'`];
+  if (state?.lastReadAt && state.lastReadMessageId) conditions.push(sql`(${bookingMessages.createdAt}, ${bookingMessages.id}) >
+    (${state.lastReadAt.toISOString()}::timestamptz, ${state.lastReadMessageId}::uuid)`);
+  const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(bookingMessages).where(and(...conditions));
+  return result?.count ?? 0;
+}
+
 /* ─── Send a message ───────────────────────────────────────────── */
 
 export async function sendMessage(
   conversationId: string,
-  senderId: string,
+  senderId: string | null,
   senderRole: ChatRole,
   body: string | null,
   messageType: 'text' | 'image' | 'audio' | 'admin_note' = 'text',
   attachmentData?: { url: string; mimeType: string; fileSize: number; fileName?: string },
+  messageId?: string,
 ): Promise<MessageView> {
-  const [msg] = await db
-    .insert(bookingMessages)
-    .values({
-      conversationId,
-      senderId,
-      senderRole,
-      body,
-      messageType,
-      deliveryStatus: 'sent',
-    })
-    .returning();
-
-  // Create attachment if provided
-  let attachments: MessageView['attachments'] = [];
-  if (attachmentData) {
-    const [att] = await db
-      .insert(messageAttachments)
-      .values({
-        messageId: msg.id,
-        url: attachmentData.url,
-        mimeType: attachmentData.mimeType,
-        fileSize: attachmentData.fileSize,
-        fileName: attachmentData.fileName ?? null,
-      })
-      .returning();
-    attachments = [
-      {
-        id: att.id,
-        url: att.url,
-        mimeType: att.mimeType,
-        fileSize: att.fileSize,
-        fileName: att.fileName,
-        deleted: false,
-      },
-    ];
-  }
-
-  // Update conversation updatedAt
-  await db
-    .update(bookingConversations)
-    .set({ updatedAt: new Date() })
-    .where(eq(bookingConversations.id, conversationId));
-
-  // Increment unread count for all OTHER participants
-  const participants = await db
-    .select({ userId: conversationParticipants.userId })
-    .from(conversationParticipants)
-    .where(eq(conversationParticipants.conversationId, conversationId));
-
-  for (const p of participants) {
-    if (p.userId === senderId) continue;
-    // admin_note should not increment unread for non-admin
-    if (messageType === 'admin_note') {
-      // Only increment for other admins (we'll check role)
-      const [user] = await db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, p.userId))
-        .limit(1);
-      if (user?.role !== 'admin') continue;
-    }
-
-    const [existing] = await db
-      .select({ id: messageReadState.id, unreadCount: messageReadState.unreadCount })
-      .from(messageReadState)
-      .where(
-        and(
-          eq(messageReadState.conversationId, conversationId),
-          eq(messageReadState.userId, p.userId),
-        ),
-      )
-      .limit(1);
-
-    if (existing) {
-      await db
-        .update(messageReadState)
-        .set({ unreadCount: (existing.unreadCount ?? 0) + 1, updatedAt: new Date() })
-        .where(eq(messageReadState.id, existing.id));
-    } else {
-      await db.insert(messageReadState).values({
-        conversationId,
-        userId: p.userId,
-        unreadCount: 1,
-      });
-    }
-  }
-
-  const [sender] = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(eq(users.id, senderId))
-    .limit(1);
-
-  return {
-    id: msg.id,
-    senderId: msg.senderId,
-    senderName: sender?.name ?? 'Unknown',
-    senderRole: msg.senderRole as ChatRole,
-    body: msg.body,
-    messageType: msg.messageType as MessageView['messageType'],
-    deliveryStatus: 'sent',
-    attachments,
-    deleted: false,
-    createdAt: msg.createdAt?.toISOString() ?? '',
-  };
+  return sendBookingChatMessage({ conversationId, senderId, senderRole, body, messageType, attachment: attachmentData, messageId });
 }
-
 export async function getMessageById(
   conversationId: string,
   messageId: string,

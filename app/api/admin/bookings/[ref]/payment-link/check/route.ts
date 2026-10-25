@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { desc, eq } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
 import { requireAdminMobile } from '@/lib/auth';
-import { db, bookings, bookingStatusHistory, payments } from '@/lib/db';
+import { db, bookings, payments } from '@/lib/db';
 import { stripe } from '@/lib/stripe';
 import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { notifyDriverPaymentReceived } from '@/lib/notifications/driver-push';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { persistStripeWebhook } from '@/lib/payments/stripe-webhook-store';
+import {
+  checkoutAndIntentAgree,
+  stripePaymentIdentity,
+  validateStripePaymentMatch,
+  type StoredPaymentAttempt,
+} from '@/lib/payments/stripe-webhook';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -24,6 +33,7 @@ interface StripeCheckResult {
   checkoutUrl: string | null;
   expiresAt: Date | null;
   detail: string;
+  checkoutSession?: Stripe.Checkout.Session;
 }
 
 function payloadRecord(value: unknown): Record<string, unknown> | null {
@@ -63,6 +73,7 @@ async function retrieveStripeState(ref: string): Promise<StripeCheckResult | nul
     if (session.payment_status === 'paid' && intent?.status === 'succeeded') {
       return {
         state: 'paid',
+        checkoutSession: session,
         sessionId: session.id,
         paymentIntent: intent,
         amountPence: intent.amount_received || intent.amount,
@@ -76,6 +87,7 @@ async function retrieveStripeState(ref: string): Promise<StripeCheckResult | nul
     if (intent?.status === 'canceled') {
       return {
         state: 'failed',
+        checkoutSession: session,
         sessionId: session.id,
         paymentIntent: intent,
         amountPence: intent.amount,
@@ -89,6 +101,7 @@ async function retrieveStripeState(ref: string): Promise<StripeCheckResult | nul
     if (session.status === 'expired') {
       return {
         state: 'expired',
+        checkoutSession: session,
         sessionId: session.id,
         paymentIntent: intent,
         amountPence: session.amount_total,
@@ -102,6 +115,7 @@ async function retrieveStripeState(ref: string): Promise<StripeCheckResult | nul
     if (session.payment_status === 'paid' && !intent) {
       return {
         state: 'needs_checking',
+        checkoutSession: session,
         sessionId: session.id,
         paymentIntent: null,
         amountPence: session.amount_total,
@@ -114,6 +128,7 @@ async function retrieveStripeState(ref: string): Promise<StripeCheckResult | nul
 
     return {
       state: 'pending',
+      checkoutSession: session,
       sessionId: session.id,
       paymentIntent: intent,
       amountPence: session.amount_total,
@@ -169,20 +184,8 @@ function isDepositPayment(booking: typeof bookings.$inferSelect, result: StripeC
   const intentType = result.paymentIntent?.metadata?.type;
   return (
     intentType === 'deposit' ||
-    booking.paymentType === 'deposit' ||
     (result.paymentIntent?.id != null && result.paymentIntent.id === booking.stripeDepositPiId)
   );
-}
-
-function expectedAmountPence(
-  booking: typeof bookings.$inferSelect,
-  result: StripeCheckResult,
-  amountToCollectPence: number | null,
-): number | null {
-  if (isDepositPayment(booking, result)) {
-    return booking.depositAmountPence ?? null;
-  }
-  return amountToCollectPence;
 }
 
 async function paymentSummaryFor(booking: typeof bookings.$inferSelect) {
@@ -219,7 +222,7 @@ async function respondWithSummary(
   const summary = latestBooking ? await paymentSummaryFor(latestBooking) : await paymentSummaryFor(booking);
   return NextResponse.json({
     ok: true,
-    status: summary.state,
+    status: latestBooking?.status.startsWith('refunded') ? latestBooking.status : summary.state,
     state: summary.state,
     linkStatus: summary.linkStatus,
     amountToCollectPence: summary.amountToCollectPence,
@@ -231,9 +234,8 @@ async function respondWithSummary(
 }
 
 export async function PATCH(request: Request, { params }: Props) {
-  let session: Awaited<ReturnType<typeof requireAdminMobile>>;
   try {
-    session = await requireAdminMobile(request);
+    await requireAdminMobile(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -274,26 +276,59 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   const summaryBefore = await paymentSummaryFor(booking);
+  if (summaryBefore.state === 'paid' || booking.status.startsWith('refunded')) {
+    return respondWithSummary(booking, {
+      checked: true,
+      checkStatus: booking.status.startsWith('refunded') ? 'refunded' : 'paid',
+      message: 'The server has already recorded this payment.',
+    });
+  }
+  const attempts: StoredPaymentAttempt[] = paymentRows.map((payment) => ({
+    paymentIntentId: payment.stripePiId.startsWith('pi_')
+      ? payment.stripePiId : payloadString(payment.stripePayload, 'paymentIntentId'),
+    sessionId: payment.stripePiId.startsWith('cs_')
+      ? payment.stripePiId : payloadString(payment.stripePayload, 'sessionId'),
+    amountPence: Math.round(Number(payment.amount) * 100),
+    currency: payment.currency ?? '',
+  }));
+  const matchingPaymentFor = (result: StripeCheckResult) => paymentRows.find((payment) =>
+    Boolean(result.paymentIntent && payment.stripePiId === result.paymentIntent.id) ||
+    Boolean(result.sessionId && (payment.stripePiId === result.sessionId ||
+      payloadString(payment.stripePayload, 'sessionId') === result.sessionId)),
+  );
+  const wasRecorded = (result: StripeCheckResult) => matchingPaymentFor(result)?.status === 'succeeded';
   const results: StripeCheckResult[] = [];
   for (const candidate of candidates) {
     try {
       const result = await retrieveStripeState(candidate);
-      if (result) results.push(result);
+      if (!result) continue;
+      const identity = result.paymentIntent
+        ? stripePaymentIdentity(result.paymentIntent, result.sessionId)
+        : result.checkoutSession ? stripePaymentIdentity(result.checkoutSession) : null;
+      const sessionIdentity = result.checkoutSession ? stripePaymentIdentity(result.checkoutSession) : null;
+      if (!identity || (result.checkoutSession && (!sessionIdentity ||
+        (result.paymentIntent && !checkoutAndIntentAgree(sessionIdentity, identity))))) continue;
+      const match = validateStripePaymentMatch(identity, {
+        ...booking,
+        // An already recorded deposit is compared with its immutable attempt,
+        // rather than the now smaller outstanding balance.
+        outstandingPence: wasRecorded(result) ? undefined : summaryBefore.amountToCollectPence ?? undefined,
+      }, attempts);
+      if (!match.valid || (result.state === 'paid' &&
+        result.paymentIntent?.amount_received !== match.expectedAmountPence)) continue;
+      results.push(result);
     } catch (error) {
       console.error('[payment-link/check] Stripe lookup failed:', {
         ref: booking.refNumber,
         candidate,
-        error,
+        errorType: error instanceof Error ? error.name : 'UnknownError',
       });
     }
   }
 
   const result =
-    results.find((item) => item.state === 'paid') ??
-    results.find((item) => item.state === 'failed') ??
-    results.find((item) => item.state === 'expired') ??
-    results.find((item) => item.state === 'needs_checking') ??
-    results.find((item) => item.state === 'pending') ??
+    results.find((item) => item.state === 'paid' && !wasRecorded(item)) ??
+    results[0] ??
     null;
 
   if (!result) {
@@ -340,220 +375,41 @@ export async function PATCH(request: Request, { params }: Props) {
     });
   }
 
-  if (result.state === 'expired') {
-    await recordPaymentEvent({
-      bookingId: booking.id,
-      bookingRef: booking.refNumber,
-      eventType: 'link_expired',
-      paymentMethod,
-      linkStatus: 'expired',
-      amountPence,
-      currency,
-      stripeSessionId: result.sessionId,
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutUrl: result.checkoutUrl,
-      source: 'admin',
-      status: 'expired',
-      expiresAt: result.expiresAt,
-      metadata: { reason: 'manual_stripe_check_expired' },
-    });
-    return respondWithSummary(booking, {
-      checked: true,
-      checkStatus: 'expired',
-      message: result.detail,
-    });
-  }
-
-  if (result.state === 'failed') {
-    const matchingPayment = paymentRows.find((payment) =>
-      payment.stripePiId === paymentIntentId ||
-      payment.stripePiId === result.sessionId ||
-      payloadString(payment.stripePayload, 'sessionId') === result.sessionId,
-    );
-    if (matchingPayment) {
-      await db
-        .update(payments)
-        .set({
-          status: 'failed',
-          stripePayload: result.paymentIntent ?? { sessionId: result.sessionId, status: 'failed' },
-          updatedAt: new Date(),
-        })
-        .where(eq(payments.id, matchingPayment.id));
-    }
-    await recordPaymentEvent({
-      bookingId: booking.id,
-      bookingRef: booking.refNumber,
-      eventType: 'payment_failed',
-      paymentMethod,
-      linkStatus: 'failed',
-      amountPence,
-      currency,
-      stripeSessionId: result.sessionId,
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutUrl: result.checkoutUrl,
-      source: 'admin',
-      status: 'failed',
-      metadata: { reason: 'manual_stripe_check_failed', detail: result.detail },
-    });
-    if (booking.status === 'awaiting_payment') {
-      await db
-        .update(bookings)
-        .set({ status: 'payment_failed', updatedAt: new Date() })
-        .where(eq(bookings.id, booking.id));
-    }
-    return respondWithSummary(booking, {
-      checked: true,
-      checkStatus: 'failed',
-      message: result.detail,
-    });
-  }
-
-  const expected = expectedAmountPence(booking, result, summaryBefore.amountToCollectPence);
-  if (amountPence == null || expected == null || amountPence !== expected) {
-    await recordPaymentEvent({
-      bookingId: booking.id,
-      bookingRef: booking.refNumber,
-      eventType: 'payment_needs_checking',
-      paymentMethod,
-      amountPence,
-      currency,
-      stripeSessionId: result.sessionId,
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutUrl: result.checkoutUrl,
-      source: 'admin',
-      status: 'amount_mismatch',
-      metadata: {
-        reason: 'manual_stripe_check_amount_mismatch',
-        expectedAmountPence: expected,
-        actualAmountPence: amountPence,
-      },
-    });
-    return respondWithSummary(booking, {
-      checked: true,
-      checkStatus: 'needs_checking',
-      message: 'Stripe payment amount does not match the outstanding booking balance.',
-    });
-  }
-
-  const matchingPayment = paymentRows.find((payment) =>
-    payment.stripePiId === paymentIntentId ||
-    payment.stripePiId === result.sessionId ||
-    payloadString(payment.stripePayload, 'sessionId') === result.sessionId,
-  );
-
-  if (matchingPayment) {
-    await db
-      .update(payments)
-      .set({
-        status: 'succeeded',
-        stripePayload: result.paymentIntent as unknown as Record<string, unknown>,
-        updatedAt: new Date(),
-      })
-      .where(eq(payments.id, matchingPayment.id));
-  } else if (paymentIntentId) {
-    await db.insert(payments).values({
-      id: uuidv4(),
-      bookingId: booking.id,
-      stripePiId: paymentIntentId,
-      amount: (amountPence / 100).toString(),
-      currency,
-      status: 'succeeded',
-      stripePayload: result.paymentIntent as unknown as Record<string, unknown>,
-    });
-  }
-
-  if (isDepositPayment(booking, result)) {
-    const totalPence = summaryBefore.totalPence ?? Math.round(Number(booking.totalAmount) * 100);
-    const remainingBalancePence = Math.max(0, totalPence - amountPence);
-    await db
-      .update(bookings)
-      .set({
-        status: booking.status === 'awaiting_payment' ? 'deposit_paid' : booking.status,
-        paymentType: 'deposit',
-        depositAmountPence: amountPence,
-        depositPaidAt: booking.depositPaidAt ?? new Date(),
-        remainingBalancePence,
-        stripeDepositPiId: paymentIntentId ?? booking.stripeDepositPiId,
-        updatedAt: new Date(),
-      })
-      .where(eq(bookings.id, booking.id));
-    await recordPaymentEvent({
-      bookingId: booking.id,
-      bookingRef: booking.refNumber,
-      eventType: 'deposit_succeeded',
-      paymentMethod: 'deposit_link',
-      paidVia: 'payment_link',
-      linkStatus: 'paid',
-      amountPence,
-      currency,
-      stripeSessionId: result.sessionId,
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutUrl: result.checkoutUrl,
-      source: 'admin',
-      status: 'succeeded',
-      metadata: { reason: 'manual_stripe_check', remainingBalancePence },
-    });
-  } else {
-    await db
-      .update(bookings)
-      .set({
-        status: booking.status === 'awaiting_payment' || booking.status === 'payment_failed'
-          ? 'paid'
-          : booking.status,
-        paymentType: 'full',
-        stripePiId: paymentIntentId ?? booking.stripePiId,
-        updatedAt: new Date(),
-      })
-      .where(eq(bookings.id, booking.id));
-    await recordPaymentEvent({
-      bookingId: booking.id,
-      bookingRef: booking.refNumber,
-      eventType: 'payment_succeeded',
-      paymentMethod: 'card_link',
-      paidVia: 'payment_link',
-      linkStatus: 'paid',
-      amountPence,
-      currency,
-      stripeSessionId: result.sessionId,
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutUrl: result.checkoutUrl,
-      source: 'admin',
-      status: 'succeeded',
-      metadata: { reason: 'manual_stripe_check' },
-    });
-  }
-
-  await db.insert(bookingStatusHistory).values({
-    id: uuidv4(),
-    bookingId: booking.id,
-    fromStatus: booking.status,
-    toStatus: booking.status,
-    actorUserId: session.user.id,
-    actorRole: 'admin',
-    note: `Stripe payment checked manually: ${result.detail}`,
+  const identity = result.paymentIntent
+    ? stripePaymentIdentity(result.paymentIntent, result.sessionId)
+    : result.checkoutSession ? stripePaymentIdentity(result.checkoutSession) : null;
+  if (!identity) throw new Error('Validated Stripe payment has no identity');
+  const outcome = result.state === 'paid' ? 'succeeded' : result.state;
+  const saved = await persistStripeWebhook({
+    eventId: `reconcile:admin_check:${identity.paymentIntentId ?? identity.sessionId}:${outcome}`,
+    eventType: 'server_reconciliation.stripe_payment',
+    source: 'system',
+    createdAt: new Date(), outcome, payment: identity,
+    expiresAt: result.expiresAt,
   });
-
-  const commitResult = await commitReservationsForBooking({
-    bookingId: booking.id,
-    actor: 'admin',
-    note: `Manual Stripe payment check: ${paymentIntentId ?? result.sessionId ?? booking.refNumber}`,
-  });
-  if (!commitResult.success) {
-    console.error('[payment-link/check] stock commit failed:', commitResult.error);
+  if (saved.state === 'ignored' || saved.state === 'needs_checking') {
+    return respondWithSummary(booking, {
+      checked: true, checkStatus: 'needs_checking',
+      message: 'Payment requires operator review before this booking can be confirmed.',
+    });
   }
-
-  if (booking.driverId) {
-    void notifyDriverPaymentReceived(
-      booking.driverId,
-      booking.refNumber,
-      amountPence,
-      booking.id,
-    ).catch((error) => console.error('[payment-link/check] driver payment push failed:', error));
+  if (outcome === 'succeeded') {
+    // Both a new confirmation and a repeated check repair inventory safely.
+    // Payment, booking and ledger evidence were committed together above.
+    const stock = await commitReservationsForBooking({
+      bookingId: booking.id, actor: 'admin',
+      note: `Verified Stripe payment check: ${identity.paymentIntentId}`,
+    });
+    if (!stock.success) throw new Error('Inventory commitment requires retry');
+    if (saved.state === 'applied' && booking.driverId) {
+      void notifyDriverPaymentReceived(
+        booking.driverId, booking.refNumber, identity.amountPence, booking.id,
+      ).catch(() => console.error('[payment-link/check] driver payment notification failed'));
+    }
   }
-
   return respondWithSummary(booking, {
     checked: true,
-    checkStatus: 'paid',
-    message: 'Stripe payment confirmed and saved.',
+    checkStatus: result.state,
+    message: result.state === 'paid' ? 'Stripe payment confirmed and saved.' : result.detail,
   });
 }

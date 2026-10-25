@@ -6,6 +6,7 @@ import {
   type BookingCustomerInvoice,
   type StandaloneAdminInvoice,
 } from '@/lib/invoices/invoice-domain';
+import type { InvoicePriceBreakdownLine } from '@/lib/invoices/invoice-presentation';
 
 export type InvoicePdfData = StandaloneAdminInvoice;
 
@@ -33,6 +34,8 @@ interface InvoiceRenderData {
   serviceInclusions?: string[];
   paymentStatus?: string | null;
   paymentMethod?: string | null;
+  extraInformation?: string;
+  priceBreakdown?: InvoicePriceBreakdownLine[];
 }
 
 interface InvoiceFonts {
@@ -356,7 +359,7 @@ function drawPremiumHeader(page: PDFPage, data: InvoiceRenderData, fonts: Invoic
     color: COLORS.orange,
   });
 
-  page.drawText('Fast response. Clear payment. Final total only.', {
+  page.drawText(data.priceBreakdown?.length || data.extraInformation ? 'Fast response. Clear payment. Your service details.' : 'Fast response. Clear payment. Final total only.', {
     x: 42,
     y: y + 30,
     size: 10,
@@ -518,7 +521,7 @@ function drawBookingDetails(page: PDFPage, data: InvoiceRenderData, fonts: Invoi
   }
 
   const vehicle = vehicleText(data);
-  if (vehicle && rowY >= y + 18) {
+  if (vehicle && rowY >= y + 12) {
     page.drawText('Vehicle', { x: x + 18, y: rowY, size: 8.5, font: fonts.normal, color: COLORS.muted });
     page.drawText(fitText(vehicle, fonts.bold, 8.2, 112), {
       x: x + 122,
@@ -695,7 +698,7 @@ function drawTotalDue(page: PDFPage, data: InvoiceRenderData, fonts: InvoiceFont
     color: COLORS.white,
     opacity: 0.9,
   });
-  page.drawText('No pricing breakdown shown.', {
+  page.drawText(data.priceBreakdown?.length || data.extraInformation ? 'Details on following pages.' : 'No pricing breakdown shown.', {
     x: orangeX + 28,
     y: y + 28,
     size: 7.4,
@@ -874,6 +877,8 @@ function bookingCustomerInvoiceToRenderData(invoice: BookingCustomerInvoice): In
     serviceInclusions: safe.serviceInclusions,
     paymentStatus: safe.payment.status,
     paymentMethod: safe.payment.method,
+    extraInformation: safe.extraInformation,
+    priceBreakdown: safe.priceBreakdown,
   };
 }
 
@@ -974,8 +979,95 @@ function collectInvoicePdfText(data: InvoiceRenderData): string[] {
     'QUICK ACCESS',
     QUICK_ACCESS_SUBTITLE,
     `${data.companyName} | ${data.companyAddress} | ${data.companyPhone} | ${data.companyEmail}`,
+    ...(data.priceBreakdown?.length ? [
+      'PRICE BREAKDOWN',
+      ...data.priceBreakdown.flatMap((line) => [line.label, fmtPrice(line.amountPence / 100, data.currency)]),
+      'BOOKING TOTAL', fmtPrice(data.totalAmount, data.currency),
+    ] : []),
+    ...(data.extraInformation ? ['ADDITIONAL INFORMATION', data.extraInformation] : []),
   ];
   return rows.filter(Boolean);
+}
+
+/** Wrap every character, including long references, without clipping display details. */
+function fullTextLines(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let current = '';
+  for (const word of cleanText(text, '').split(' ').filter(Boolean)) {
+    if (font.widthOfTextAtSize(current ? `${current} ${word}` : word, size) <= maxWidth) {
+      current = current ? `${current} ${word}` : word;
+      continue;
+    }
+    if (current) lines.push(current);
+    current = '';
+    for (const character of word) {
+      if (current && font.widthOfTextAtSize(current + character, size) > maxWidth) {
+        lines.push(current);
+        current = '';
+      }
+      current += character;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function drawCustomerInvoiceDetails(doc: PDFDocument, data: InvoiceRenderData, fonts: InvoiceFonts): void {
+  if (!data.priceBreakdown?.length && !data.extraInformation) return;
+  const width = 595.28;
+  let page!: PDFPage;
+  let y = 0;
+  const nextPage = () => {
+    page = doc.addPage([width, 841.89]);
+    page.drawRectangle({ x: 0, y: 0, width, height: 841.89, color: COLORS.page });
+    page.drawRectangle({ x: 0, y: 746, width, height: 95.89, color: COLORS.graphite });
+    page.drawRectangle({ x: 0, y: 744, width, height: 3, color: COLORS.orange });
+    page.drawText('INVOICE DETAILS', { x: 40, y: 797, size: 22, font: fonts.bold, color: COLORS.white });
+    page.drawText(fitText(data.invoiceNumber, fonts.bold, 10, width - 80), { x: 40, y: 776, size: 10, font: fonts.bold, color: COLORS.orange });
+    page.drawText(fitText(`Booking: ${data.bookingReference ?? ''}`, fonts.normal, 9, width - 80), { x: 40, y: 760, size: 9, font: fonts.normal, color: COLORS.white });
+    drawFooter(page, data, fonts, width);
+    y = 713;
+  };
+  const heading = (text: string) => {
+    if (y < 146) nextPage();
+    drawSectionHeading(page, text, 40, y, fonts);
+    y -= 30;
+  };
+  nextPage();
+  if (data.priceBreakdown?.length) {
+    heading('PRICE BREAKDOWN');
+    for (const line of data.priceBreakdown) {
+      const lines = fullTextLines(line.label, fonts.normal, 10, width - 210);
+      const height = Math.max(40, lines.length * 15 + 20);
+      if (y - height < 100) {
+        nextPage();
+        heading('PRICE BREAKDOWN (CONTINUED)');
+      }
+      drawPanel(page!, { x: 40, y: y - height, width: width - 80, height, fill: COLORS.softPanel, border: COLORS.border });
+      lines.forEach((text, index) => page.drawText(text, { x: 54, y: y - 18 - index * 15, size: 10, font: fonts.normal, color: COLORS.ink }));
+      const amount = fmtPrice(line.amountPence / 100, data.currency);
+      page!.drawText(amount, { x: width - 54 - fonts.bold.widthOfTextAtSize(amount, 11), y: y - 19, size: 11, font: fonts.bold, color: COLORS.ink });
+      y -= height;
+    }
+    if (y < 157) nextPage();
+    const amount = fmtPrice(data.totalAmount, data.currency);
+    page!.drawText('BOOKING TOTAL', { x: 54, y: y - 25, size: 11, font: fonts.bold, color: COLORS.ink });
+    page!.drawText(amount, { x: width - 54 - fonts.bold.widthOfTextAtSize(amount, 13), y: y - 25, size: 13, font: fonts.bold, color: COLORS.orangeDeep });
+    y -= 62;
+  }
+  if (data.extraInformation) {
+    heading('ADDITIONAL INFORMATION');
+    for (const text of fullTextLines(data.extraInformation, fonts.normal, 10, width - 108)) {
+      if (y < 104) {
+        nextPage();
+        heading('ADDITIONAL INFORMATION (CONTINUED)');
+      }
+      page!.drawText(text, { x: 54, y, size: 10, font: fonts.normal, color: COLORS.ink });
+      y -= 16;
+    }
+  }
+  const pages = doc.getPages();
+  pages.forEach((invoicePage, index) => invoicePage.drawText(`Page ${index + 1} of ${pages.length}`, { x: 40, y: 60, size: 6, font: fonts.normal, color: COLORS.muted }));
 }
 
 async function renderInvoicePdf(data: InvoiceRenderData): Promise<Uint8Array> {
@@ -1005,6 +1097,8 @@ async function renderInvoicePdf(data: InvoiceRenderData): Promise<Uint8Array> {
   drawThankYou(page, data, fonts, 40, 138, width - 80);
   drawQuickAccess(page, fonts, quickAccessQr, 40, 66, width - 80);
   drawFooter(page, data, fonts, width);
+
+  drawCustomerInvoiceDetails(doc, data, fonts);
 
   return doc.save();
 }

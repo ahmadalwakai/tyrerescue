@@ -204,6 +204,79 @@ describe('driver navigation progress', () => {
     expect(parked.displayHeading).toBeLessThan(90);
   });
 
+  it('uses a calibrated stationary compass instead of forcing the arrow along the route', () => {
+    const parked = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 }, route: route(), routeRevision: 'compass',
+      routeIsCurrent: true, previous: null, gpsHeading: 90, compassHeading: 270,
+      speedMps: 0, accuracyMeters: 5, fixTimestampMs: 1_000, nowMs: 1_100,
+    });
+    expect(parked.routeHeading).toBeCloseTo(90, 0);
+    expect(parked.displayHeading).toBe(270);
+  });
+
+  it('keeps moving GPS course authoritative over compass and the opposing route bearing', () => {
+    const moving = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 }, route: route(), routeRevision: 'compass',
+      routeIsCurrent: true, previous: null, gpsHeading: 270, compassHeading: 0,
+      speedMps: 8, accuracyMeters: 5, fixTimestampMs: 1_000, nowMs: 1_100,
+    });
+    expect(moving.routeHeading).toBeCloseTo(90, 0);
+    expect(moving.displayHeading).toBe(270);
+  });
+
+  it('updates a stationary compass between GPS fixes without weakening or advancing navigation', () => {
+    const input = {
+      rawLocation: { lat: 55, lng: -3.9995 }, route: route(), routeRevision: 'compass',
+      routeIsCurrent: true, gpsHeading: 90, speedMps: 0, accuracyMeters: 5,
+      fixTimestampMs: 1_000, nowMs: 1_100,
+    };
+    const parked = buildNavigationProgress({ ...input, previous: null, compassHeading: 350 });
+    const rotated = buildNavigationProgress({ ...input, previous: parked, compassHeading: 10, nowMs: 1_600 });
+    expect(rotated.displayHeading).toBeCloseTo(358.4);
+    expect(rotated.locationWeak).toBe(false);
+    expect(rotated.trustedSamplesSinceWeak).toBe(parked.trustedSamplesSinceWeak);
+    expect(rotated.distanceAlongMeters).toBe(parked.distanceAlongMeters);
+    expect(rotated.displayLocation).toEqual(parked.displayLocation);
+    expect(rotated.fixTimestampMs).toBe(1_000);
+  });
+
+  it('does not reinterpret a clock tick as weak GPS or repeatedly filter the same speed sample', () => {
+    const input = {
+      rawLocation: { lat: 55, lng: -3.9995 }, route: route(), routeRevision: 'clock',
+      routeIsCurrent: true, gpsHeading: 90, speedMps: 8, accuracyMeters: 5,
+      fixTimestampMs: 1_000, nowMs: 1_100,
+    };
+    const accepted = buildNavigationProgress({ ...input, previous: null });
+    const tick = buildNavigationProgress({ ...input, previous: accepted, nowMs: 2_100, compassHeading: 270 });
+    expect(tick.locationWeak).toBe(false);
+    expect(tick.speedDisplayReliable).toBe(true);
+    expect(tick.speedMps).toBe(accepted.speedMps);
+    expect(tick.displayHeading).toBe(accepted.displayHeading);
+    expect(tick.remainingGeometry).toBe(accepted.remainingGeometry);
+    const stale = buildNavigationProgress({ ...input, previous: tick, nowMs: 14_100, compassHeading: 270 });
+    expect(stale.locationWeak).toBe(true);
+    expect(stale.isLocationStale).toBe(true);
+    expect(stale.displayHeading).toBe(accepted.displayHeading);
+  });
+
+  it.each([undefined, null, -1, NaN, Infinity])('ignores invalid stationary compass %s', (compassHeading) => {
+    const parked = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 }, route: route(), routeRevision: 'compass',
+      routeIsCurrent: true, previous: null, gpsHeading: 90, compassHeading,
+      speedMps: 0, accuracyMeters: 5, fixTimestampMs: 1_000, nowMs: 1_100,
+    });
+    expect(parked.displayHeading).toBeCloseTo(90, 0);
+  });
+
+  it('shows the calibrated compass before the road route has loaded', () => {
+    const parked = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 }, route: null, routeRevision: '',
+      routeIsCurrent: false, previous: null, gpsHeading: null, compassHeading: 0,
+      speedMps: 0, accuracyMeters: 5, fixTimestampMs: 1_000, nowMs: 1_100,
+    });
+    expect(parked.displayHeading).toBe(0);
+  });
+
   it('uses route progress for current maneuver and remaining ETA', () => {
     const beforeTurn = buildNavigationProgress({
       rawLocation: { lat: 55, lng: -3.9992 },

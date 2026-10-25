@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { adminPushTokens } from '@/lib/db/schema';
 import { isFcmConfigured, sendFcmDataMessageToToken, sendFcmTopicNotification } from './fcm';
 import { sendAdminExpoPush } from './expo-admin-push';
+import { activeAdminPushSession } from './admin-device-push';
 
 /**
  * FCM topic that all Assisted Chat app installs subscribe to on first open.
@@ -26,6 +27,11 @@ const URGENT_SOUND = 'urgent_booking';
 
 interface UrgentBookingPushArgs {
   bookingId: string;
+  refNumber?: string;
+  bookingType?: 'emergency' | 'scheduled';
+  scheduledAt?: string | null;
+  sourceApp?: string;
+  urgent?: boolean;
   customerPhone?: string;
   createdAt?: string;
   title?: string;
@@ -33,7 +39,7 @@ interface UrgentBookingPushArgs {
 }
 
 /**
- * Send an urgent booking push notification to all admin devices.
+ * Send a new booking push notification to registered admin devices.
  *
  * Delivery strategy (in priority order):
  *
@@ -46,9 +52,10 @@ interface UrgentBookingPushArgs {
  *    Falls back to the Expo Push Service using registered ExponentPushTokens.
  *    This path works in development and staging where FCM may not be set up.
  *
- * Idempotency:
- *    This function is fire-and-forget. Call sites (Stripe webhook) are already
- *    idempotent — duplicate Stripe events are filtered before this is reached.
+ * Scheduled customer bookings use normal Expo notifications. Urgent bookings
+ * retain the Android FCM alert path and always relay separately to iOS.
+ * Callers must await this promise (or return it from after()) and deduplicate
+ * creation before calling. An Expo ticket is acceptance, not device delivery.
  *
  * Never throws — all errors are logged only.
  */
@@ -64,6 +71,16 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
   };
   if (args.customerPhone) data.customerPhone = String(args.customerPhone);
   if (args.createdAt) data.createdAt = String(args.createdAt);
+  if (args.refNumber) data.refNumber = args.refNumber;
+  if (args.bookingType) data.bookingType = args.bookingType;
+  if (args.scheduledAt) data.scheduledAt = args.scheduledAt;
+  if (args.sourceApp) data.sourceApp = args.sourceApp;
+  data.urgency = args.urgent === false ? 'normal' : 'urgent';
+
+  if (args.urgent === false) {
+    await sendExpoFallback(title, body, data, undefined, false);
+    return;
+  }
 
   let directTokensFound = 0;
   let directSuccessCount = 0;
@@ -76,14 +93,14 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
       const rows = await db
         .select({ token: adminPushTokens.token, platform: adminPushTokens.platform })
         .from(adminPushTokens)
-        .where(eq(adminPushTokens.platform, 'android'));
+        .where(and(eq(adminPushTokens.platform, 'android'), activeAdminPushSession()));
 
       const directTokens = Array.from(
         new Set(
           rows
             .map((r) => r.token.trim())
             .filter((token) => token.length > 0)
-            .filter((token) => !token.startsWith('ExponentPushToken[')),
+            .filter((token) => !token.startsWith('ExponentPushToken[') && !token.startsWith('ExpoPushToken[')),
         ),
       );
 
@@ -202,31 +219,32 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
     // iOS admin app installs use Expo/APNs tokens, not the Android FCM
     // direct/topic path above. Always relay to iOS Expo tokens as well so
     // Assisted Chat iOS receives the same urgent booking alert.
-    await sendExpoFallback(title, body, args.bookingId, ['ios']);
+    await sendExpoFallback(title, body, data, ['ios']);
     return;
   }
 
   // FCM not configured — use Expo push relay as fallback
   console.log('[urgent-booking-push] FCM not configured, falling back to Expo push relay');
-  void sendExpoFallback(title, body, args.bookingId);
+  await sendExpoFallback(title, body, data);
 }
 
 async function sendExpoFallback(
   title: string,
   body: string,
-  bookingId: string,
+  data: Record<string, string>,
   platforms?: Array<'android' | 'ios'>,
+  urgent = true,
 ): Promise<void> {
   try {
     await sendAdminExpoPush({
       title,
       body,
-      data: { type: 'urgent_booking', bookingId },
-      sound: 'urgent_booking.mp3',
-      channelId: URGENT_CHANNEL_ID,
+      data,
+      sound: urgent ? 'urgent_booking.mp3' : 'default',
+      channelId: urgent ? URGENT_CHANNEL_ID : 'admin_bookings',
       platforms,
     });
-  } catch (err) {
-    console.error('[urgent-booking-push] Expo fallback failed:', err);
+  } catch {
+    console.error('[urgent-booking-push] Expo fallback failed');
   }
 }

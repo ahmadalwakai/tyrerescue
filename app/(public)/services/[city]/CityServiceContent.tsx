@@ -14,6 +14,7 @@ import { Footer } from '@/components/ui/Footer';
 import { colorTokens } from '@/lib/design-tokens';
 import type { City } from '@/lib/cities';
 import { trackCallClick } from '@/lib/analytics/gtag';
+import { SEO_RESPONSE_TIME_LABEL, SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 import {
   SERVICE_PRICING,
   PRICING_DISCLAIMER,
@@ -23,7 +24,7 @@ import {
 const c = colorTokens;
 
 const services = [
-  { title: 'Emergency Callout', desc: 'Driver to you within 45 minutes, 24/7.', price: SERVICE_PRICING.emergency.label },
+  { title: 'Emergency Callout', desc: `Response target: ${SEO_RESPONSE_TIME_LABEL}, 24/7.`, price: SERVICE_PRICING.emergency.label },
   { title: 'Tyre Fitting', desc: 'Quality tyres fitted at your location.', price: SERVICE_PRICING.fitting.label },
   { title: 'Puncture Repair', desc: 'Professional assessment and repair on-site.', price: SERVICE_PRICING.punctureRepair.label },
 ];
@@ -109,8 +110,8 @@ export function CityServiceContent({ city }: { city: City }) {
 
             <Flex mt={12} gap={{ base: 6, md: 0 }} wrap="wrap">
               <Box pr={{ base: 4, md: 8 }}>
-                <Text fontSize={{ base: '32px', md: '48px' }} color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>45 MIN</Text>
-                <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>Avg Response</Text>
+                <Text fontSize={{ base: '32px', md: '48px' }} color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>{SEO_RESPONSE_TIME_MINUTES} MIN</Text>
+                <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>Response Target</Text>
               </Box>
               <Box borderLeftWidth="1px" borderRightWidth="1px" borderColor={c.border} px={{ base: 4, md: 8 }}>
                 <Text fontSize={{ base: '32px', md: '48px' }} color={c.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>24/7</Text>

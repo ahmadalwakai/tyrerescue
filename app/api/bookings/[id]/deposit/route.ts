@@ -3,9 +3,10 @@ import { auth, requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { stripe } from '@/lib/stripe';
+import { createCheckoutSession, createPaymentIntent, getStripePaymentSource, StripePaymentConflict } from '@/lib/stripe';
 import { getAppOrigin } from '@/lib/config/site';
 import { recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { withStripePaymentLock } from '@/lib/payments/stripe-payment-lock';
 
 const MIN_STRIPE_CHECKOUT_AMOUNT_PENCE = 30;
 
@@ -44,7 +45,7 @@ export async function POST(
     const mode = body.mode === 'checkout' ? 'checkout' : 'elements';
 
     // Load the booking
-    const [booking] = await db
+    let [booking] = await db
       .select()
       .from(bookings)
       .where(eq(bookings.id, bookingId))
@@ -53,6 +54,10 @@ export async function POST(
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
+
+    return await withStripePaymentLock(booking.id, async () => {
+    [booking] = await db.select().from(bookings).where(eq(bookings.id, bookingId)).limit(1);
+    if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
     // Validate booking is in correct state for deposit payment
     if (booking.paymentType !== 'deposit') {
@@ -69,7 +74,7 @@ export async function POST(
       );
     }
 
-    if (booking.status !== 'awaiting_payment') {
+    if (!['awaiting_payment', 'payment_failed'].includes(booking.status)) {
       return NextResponse.json(
         { error: `Cannot collect deposit for booking in status: ${booking.status}` },
         { status: 400 }
@@ -95,49 +100,30 @@ export async function POST(
 
     if (mode === 'checkout') {
       const baseUrl = getAppOrigin();
-      const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
-        payment_method_types: ['card'],
-        customer_email: booking.customerEmail !== 'phone-booking@tyrerescue.uk'
-          ? booking.customerEmail
-          : undefined,
-        line_items: [
-          {
-            price_data: {
-              currency: 'gbp',
-              unit_amount: depositAmountPence,
-              product_data: {
-                name: `Tyre Rescue deposit — ${booking.refNumber}`,
-                description: `Deposit payment. Balance due on-site: £${(remainingBalancePence / 100).toFixed(2)}`,
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        metadata: {
+      const checkout = await createCheckoutSession(
+        depositAmountPence / 100,
+        {
           bookingId,
           refNumber: booking.refNumber,
+          customerEmail: booking.customerEmail,
+          source: getStripePaymentSource(request),
           type: 'deposit',
         },
-        payment_intent_data: {
-          metadata: {
-            bookingId,
-            refNumber: booking.refNumber,
-            type: 'deposit',
-            customerEmail: booking.customerEmail,
-          },
+        {
+          purpose: 'deposit',
+          existingStripeRef: booking.stripeDepositPiId,
+          description: `Deposit payment. Balance due on-site: £${(remainingBalancePence / 100).toFixed(2)}`,
+          successUrl: `${baseUrl}/admin/bookings/${booking.refNumber}?deposit=success`,
+          cancelUrl: `${baseUrl}/admin/bookings/${booking.refNumber}?deposit=cancelled`,
         },
-        success_url: `${baseUrl}/admin/bookings/${booking.refNumber}?deposit=success`,
-        cancel_url: `${baseUrl}/admin/bookings/${booking.refNumber}?deposit=cancelled`,
-      });
+      );
 
-      const paymentIntentId =
-        typeof session.payment_intent === 'string' ? session.payment_intent : null;
+      const paymentIntentId = checkout.paymentIntentId;
 
       await db
         .update(bookings)
         .set({
-          stripeDepositPiId: paymentIntentId,
+          stripeDepositPiId: paymentIntentId ?? checkout.sessionId,
           depositAmountPence,
           remainingBalancePence,
           updatedAt: new Date(),
@@ -152,18 +138,18 @@ export async function POST(
         linkStatus: 'sent',
         amountPence: depositAmountPence,
         currency: 'gbp',
-        stripeSessionId: session.id,
+        stripeSessionId: checkout.sessionId,
         stripePaymentIntentId: paymentIntentId,
-        stripeCheckoutUrl: session.url,
-        source: 'admin',
+        stripeCheckoutUrl: checkout.checkoutUrl,
+        source: getStripePaymentSource(request),
         status: 'pending',
-        expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
-        metadata: { kind: 'deposit_checkout', remainingBalancePence },
+        expiresAt: checkout.expiresAt,
+        metadata: { kind: 'deposit_checkout', type: 'deposit', remainingBalancePence },
       });
 
       return NextResponse.json({
-        checkoutUrl: session.url,
-        sessionId: session.id,
+        checkoutUrl: checkout.checkoutUrl,
+        sessionId: checkout.sessionId,
         paymentIntentId,
         depositAmountPence,
         remainingBalancePence,
@@ -172,33 +158,23 @@ export async function POST(
       });
     }
 
-    // Create PaymentIntent with idempotency key to prevent duplicates
-    const idempotencyKey = `deposit_${bookingId}`;
-    
-    const paymentIntent = await stripe.paymentIntents.create(
+    const paymentIntent = await createPaymentIntent(
+      depositAmountPence / 100,
       {
-        amount: depositAmountPence,
-        currency: 'gbp',
-        metadata: {
           bookingId,
           refNumber: booking.refNumber,
           type: 'deposit',
           customerEmail: booking.customerEmail,
-        },
-        automatic_payment_methods: {
-          enabled: true,
-        },
+          source: getStripePaymentSource(request),
       },
-      {
-        idempotencyKey,
-      }
+      { existingStripeRef: booking.stripeDepositPiId },
     );
 
     // Store the PaymentIntent ID on the booking
     await db
       .update(bookings)
       .set({
-        stripeDepositPiId: paymentIntent.id,
+        stripeDepositPiId: paymentIntent.paymentIntentId,
         depositAmountPence,
         remainingBalancePence,
         updatedAt: new Date(),
@@ -213,21 +189,25 @@ export async function POST(
       linkStatus: 'created',
       amountPence: depositAmountPence,
       currency: 'gbp',
-      stripePaymentIntentId: paymentIntent.id,
-      source: 'admin',
-      status: paymentIntent.status,
-      metadata: { kind: 'deposit_payment_intent', mode: 'elements', remainingBalancePence },
+      stripePaymentIntentId: paymentIntent.paymentIntentId,
+      source: getStripePaymentSource(request),
+      status: 'pending',
+      metadata: { kind: 'deposit_payment_intent', type: 'deposit', mode: 'elements', remainingBalancePence },
     });
 
     return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
+      clientSecret: paymentIntent.clientSecret,
+      paymentIntentId: paymentIntent.paymentIntentId,
       depositAmountPence,
       remainingBalancePence,
       depositAmount: depositAmountPence / 100,
       remainingBalance: remainingBalancePence / 100,
     });
+    });
   } catch (error) {
+    if (error instanceof StripePaymentConflict) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+    }
     console.error('[deposit] Error:', error);
     
     // Handle Stripe errors

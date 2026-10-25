@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { adminPushTokens } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { getMobileAdminUser, unauthorizedResponse } from '../_lib';
+import { registerDeviceBoundAdminPush } from '@/lib/notifications/admin-device-push';
+
+function isExpoPushToken(token: string): boolean {
+  return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[');
+}
 
 /**
  * POST /api/mobile/admin/native-alert-token
@@ -11,10 +16,10 @@ import { getMobileAdminUser, unauthorizedResponse } from '../_lib';
  *
  * Native FCM tokens are stored in the same admin_push_tokens table as Expo tokens,
  * distinguished by the token format:
- *   - Expo tokens  : start with "ExponentPushToken["
+ *   - Expo tokens  : start with "ExponentPushToken[" or "ExpoPushToken["
  *   - Native tokens: plain FCM registration token (no prefix)
  *
- * The expo-admin-push.ts sender filters for ExponentPushToken prefix so native
+ * The expo-admin-push.ts sender filters for both Expo token prefixes so native
  * tokens are never sent via the Expo relay. The FCM direct sender (fcm.ts) is
  * used for native tokens via lib/notifications/native-admin-push.ts.
  *
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Reject Expo push tokens — this endpoint is for native FCM tokens only.
-  if (token.startsWith('ExponentPushToken[')) {
+  if (isExpoPushToken(token.trim())) {
     return NextResponse.json(
       { ok: false, error: 'Use /api/mobile/admin/push-token for Expo tokens' },
       { status: 400 },
@@ -49,19 +54,24 @@ export async function POST(request: NextRequest) {
   const safePlatform = platform === 'ios' ? 'ios' : 'android';
 
   try {
-    // Remove any stale native tokens for this user (one device at a time).
-    // We scope the delete to non-Expo tokens so the Expo push token is kept.
+    const deviceRegistration = await registerDeviceBoundAdminPush(request, user.id, token.trim(), safePlatform);
+    if (deviceRegistration !== null) {
+      return deviceRegistration ? NextResponse.json({ ok: true, registered: true }) : unauthorizedResponse();
+    }
+
+    // Legacy clients replace only unlinked native registrations. Managed
+    // sessions and Expo registrations belong to independent installations.
     const existingRows = await db
-      .select({ id: adminPushTokens.id, token: adminPushTokens.token })
+      .select({ id: adminPushTokens.id, token: adminPushTokens.token, deviceSessionId: adminPushTokens.deviceSessionId })
       .from(adminPushTokens)
       .where(eq(adminPushTokens.userId, user.id));
 
-    const staleNativeIds = existingRows
-      .filter((r) => !r.token.startsWith('ExponentPushToken['))
-      .map((r) => r.id);
+    const staleNativeRows = existingRows
+      .filter((r) => !isExpoPushToken(r.token) && !r.deviceSessionId);
 
-    for (const id of staleNativeIds) {
-      await db.delete(adminPushTokens).where(eq(adminPushTokens.id, id));
+    for (const row of staleNativeRows) {
+      await db.delete(adminPushTokens).where(and(eq(adminPushTokens.id, row.id), eq(adminPushTokens.userId, user.id),
+        eq(adminPushTokens.token, row.token), isNull(adminPushTokens.deviceSessionId)));
     }
 
     // Insert the new native FCM token.
@@ -70,7 +80,8 @@ export async function POST(request: NextRequest) {
       .values({ userId: user.id, token: token.trim(), platform: safePlatform })
       .onConflictDoUpdate({
         target: adminPushTokens.token,
-        set: { userId: user.id, platform: safePlatform, updatedAt: new Date() },
+        set: { userId: user.id, platform: safePlatform, updatedAt: new Date(),
+          deviceSessionId: sql`CASE WHEN ${adminPushTokens.userId} = ${user.id} THEN ${adminPushTokens.deviceSessionId} ELSE NULL END` },
       });
 
     console.log(`[native-alert-token] Native token registered user=${user.id} tokenSuffix=${token.trim().slice(-8)}`);
@@ -86,27 +97,27 @@ export async function POST(request: NextRequest) {
 /**
  * DELETE /api/mobile/admin/native-alert-token
  *
- * Unregister all native FCM tokens for the authenticated admin user.
- * Does not affect Expo push tokens.
+ * Unregister unlinked legacy native FCM tokens for the authenticated admin.
+ * Managed sessions and Expo push tokens remain independent.
  */
 export async function DELETE(request: NextRequest) {
   const user = await getMobileAdminUser(request);
   if (!user) return unauthorizedResponse();
 
   const existingRows = await db
-    .select({ id: adminPushTokens.id, token: adminPushTokens.token })
+    .select({ id: adminPushTokens.id, token: adminPushTokens.token, deviceSessionId: adminPushTokens.deviceSessionId })
     .from(adminPushTokens)
     .where(eq(adminPushTokens.userId, user.id));
 
-  const nativeIds = existingRows
-    .filter((r) => !r.token.startsWith('ExponentPushToken['))
-    .map((r) => r.id);
+  const nativeRows = existingRows
+    .filter((r) => !isExpoPushToken(r.token) && !r.deviceSessionId);
 
-  for (const id of nativeIds) {
-    await db.delete(adminPushTokens).where(eq(adminPushTokens.id, id));
+  for (const row of nativeRows) {
+    await db.delete(adminPushTokens).where(and(eq(adminPushTokens.id, row.id), eq(adminPushTokens.userId, user.id),
+      eq(adminPushTokens.token, row.token), isNull(adminPushTokens.deviceSessionId)));
   }
 
-  console.log(`[native-alert-token] Native tokens unregistered user=${user.id} removed=${nativeIds.length}`);
+  console.log(`[native-alert-token] Native unregister processed user=${user.id} matched=${nativeRows.length}`);
 
   return NextResponse.json({ ok: true });
 }

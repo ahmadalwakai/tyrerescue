@@ -25,7 +25,8 @@ const updateInventoryProductSchema = z.object({
 });
 
 function parsePageParams(url: URL) {
-  const page = Math.max(1, Number.parseInt(url.searchParams.get('page') || '1', 10));
+  const rawPage = Number.parseInt(url.searchParams.get('page') || '1', 10);
+  const page = Math.max(1, Number.isFinite(rawPage) ? rawPage : 1);
   const rawPerPage = Number.parseInt(url.searchParams.get('perPage') || '50', 10);
   const perPage = Math.max(1, Math.min(100, Number.isFinite(rawPerPage) ? rawPerPage : 50));
   return { page, perPage, offset: (page - 1) * perPage };
@@ -46,6 +47,10 @@ export async function GET(
   const search = url.searchParams.get('search')?.trim() || '';
   const season = url.searchParams.get('season')?.trim() || 'all';
   const sort = url.searchParams.get('sort')?.trim() || 'size';
+  const tyreProductId = url.searchParams.get('tyreProductId');
+  if (tyreProductId !== null && !z.string().uuid().safeParse(tyreProductId).success) {
+    return stockJsonResponse(request, { error: 'Invalid tyreProductId filter' }, { status: 400 });
+  }
   if (season !== 'all' && !isValidSeason(season)) {
     return stockJsonResponse(request, { error: 'Invalid season filter' }, { status: 400 });
   }
@@ -60,6 +65,7 @@ export async function GET(
     : undefined;
   const where = and(
     eq(stockInventoryBalances.cityId, cityId),
+    ...(tyreProductId ? [eq(tyreProducts.id, tyreProductId)] : []),
     ...(searchFilter ? [searchFilter] : []),
     ...(season !== 'all' ? [eq(tyreProducts.season, normalizeSeason(season))] : []),
   );
@@ -67,49 +73,76 @@ export async function GET(
   const seasonOrder = sql`CASE ${tyreProducts.season} WHEN 'summer' THEN 1 WHEN 'winter' THEN 2 WHEN 'allseason' THEN 3 ELSE 4 END`;
   const orderBy =
     sort === 'stock'
-      ? [desc(stockInventoryBalances.currentStock), asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand)]
+      ? [desc(sql`greatest(0, coalesce(${stockInventoryBalances.currentStock}, 0)) - greatest(0, coalesce(${stockInventoryBalances.reservedStock}, 0))`), asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand)]
       : sort === 'season'
         ? [seasonOrder, asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand)]
         : sort === 'brand'
           ? [asc(tyreProducts.brand), asc(tyreProducts.pattern), asc(tyreProducts.sizeDisplay)]
           : [asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand), asc(tyreProducts.pattern)];
 
-  const rows = await db
-    .select({
-      balanceId: stockInventoryBalances.id,
-      cityId: stockInventoryBalances.cityId,
-      tyreProductId: stockInventoryBalances.tyreProductId,
-      currentStock: stockInventoryBalances.currentStock,
-      reservedStock: stockInventoryBalances.reservedStock,
-      orderedStock: stockInventoryBalances.orderedStock,
-      minStock: stockInventoryBalances.minStock,
-      targetStock: stockInventoryBalances.targetStock,
-      updatedAt: stockInventoryBalances.updatedAt,
-      brand: tyreProducts.brand,
-      pattern: tyreProducts.pattern,
-      sizeDisplay: tyreProducts.sizeDisplay,
-      season: tyreProducts.season,
-      priceNew: tyreProducts.priceNew,
-      availableNew: tyreProducts.availableNew,
-    })
-    .from(stockInventoryBalances)
-    .innerJoin(tyreProducts, eq(stockInventoryBalances.tyreProductId, tyreProducts.id))
-    .where(where)
-    .orderBy(...orderBy)
-    .limit(perPage)
-    .offset(offset);
+  // City totals ignore search, filters and pagination. Sanitize each balance
+  // before summing, just as computeCityStockSnapshot does.
+  const current = sql`greatest(0, coalesce(${stockInventoryBalances.currentStock}, 0))`;
+  const reserved = sql`greatest(0, coalesce(${stockInventoryBalances.reservedStock}, 0))`;
+  const ordered = sql`greatest(0, coalesce(${stockInventoryBalances.orderedStock}, 0))`;
+  const target = sql`greatest(0, coalesce(${stockInventoryBalances.targetStock}, 0))`;
+  const [rows, [countResult], [summaryResult]] = await Promise.all([
+    db
+      .select({
+        balanceId: stockInventoryBalances.id,
+        cityId: stockInventoryBalances.cityId,
+        tyreProductId: stockInventoryBalances.tyreProductId,
+        currentStock: stockInventoryBalances.currentStock,
+        reservedStock: stockInventoryBalances.reservedStock,
+        orderedStock: stockInventoryBalances.orderedStock,
+        minStock: stockInventoryBalances.minStock,
+        targetStock: stockInventoryBalances.targetStock,
+        updatedAt: stockInventoryBalances.updatedAt,
+        brand: tyreProducts.brand,
+        pattern: tyreProducts.pattern,
+        sizeDisplay: tyreProducts.sizeDisplay,
+        season: tyreProducts.season,
+        priceNew: tyreProducts.priceNew,
+        availableNew: tyreProducts.availableNew,
+      })
+      .from(stockInventoryBalances)
+      .innerJoin(tyreProducts, eq(stockInventoryBalances.tyreProductId, tyreProducts.id))
+      .where(where)
+      .orderBy(...orderBy)
+      .limit(perPage)
+      .offset(offset),
 
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(stockInventoryBalances)
-    .innerJoin(tyreProducts, eq(stockInventoryBalances.tyreProductId, tyreProducts.id))
-    .where(where);
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(stockInventoryBalances)
+      .innerJoin(tyreProducts, eq(stockInventoryBalances.tyreProductId, tyreProducts.id))
+      .where(where),
+
+    db
+      .select({
+        current: sql<number>`coalesce(sum(${current}), 0)`,
+        available: sql<number>`coalesce(sum(${current} - ${reserved}), 0)`,
+        reserved: sql<number>`coalesce(sum(${reserved}), 0)`,
+        toBuy: sql<number>`coalesce(sum(greatest(0, ${target} - ${current} - ${ordered})), 0)`,
+        totalProducts: sql<number>`count(*)::int`,
+      })
+      .from(stockInventoryBalances)
+      .innerJoin(tyreProducts, eq(stockInventoryBalances.tyreProductId, tyreProducts.id))
+      .where(eq(stockInventoryBalances.cityId, cityId)),
+  ]);
 
   return stockJsonResponse(request, {
     city: access.city,
     page,
     totalPages: Math.ceil(Number(countResult?.count || 0) / perPage),
     totalCount: Number(countResult?.count || 0),
+    summary: {
+      current: Number(summaryResult?.current || 0),
+      available: Number(summaryResult?.available || 0),
+      reserved: Number(summaryResult?.reserved || 0),
+      toBuy: Number(summaryResult?.toBuy || 0),
+      totalProducts: Number(summaryResult?.totalProducts || 0),
+    },
     items: rows.map((row) => {
       const snapshot = computeCityStockSnapshot(row);
       return {

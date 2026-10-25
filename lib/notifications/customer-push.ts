@@ -1,7 +1,7 @@
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { bookings, customerPushTokens } from '@/lib/db/schema';
+import { bookings, customerPushSubscriptions, customerPushTokens } from '@/lib/db/schema';
 
 const CUSTOMER_CHANNEL_ID = 'booking_updates';
 
@@ -98,14 +98,20 @@ async function getBookingForPush(bookingId: string): Promise<CustomerPushBooking
 
 async function getCustomerTokens(booking: CustomerPushBooking) {
   const filters = [
-    eq(customerPushTokens.bookingId, booking.id),
-    eq(customerPushTokens.lastRefNumber, booking.refNumber),
+    and(
+      eq(customerPushSubscriptions.bookingId, booking.id),
+      or(
+        sql`${customerPushSubscriptions.ownerUserId} = ${customerPushTokens.userId}`,
+        and(sql`${customerPushTokens.userId} IS NULL`, sql`${customerPushSubscriptions.ownerUserId} IS NULL`),
+      ),
+    ),
   ];
   if (booking.userId) filters.push(eq(customerPushTokens.userId, booking.userId));
 
   const rows = await db
     .select({ id: customerPushTokens.id, token: customerPushTokens.token })
     .from(customerPushTokens)
+    .leftJoin(customerPushSubscriptions, eq(customerPushSubscriptions.pushTokenId, customerPushTokens.id))
     .where(and(eq(customerPushTokens.isActive, true), or(...filters)));
 
   const seen = new Set<string>();
@@ -113,6 +119,17 @@ async function getCustomerTokens(booking: CustomerPushBooking) {
     if (!isExpoPushToken(row.token) || seen.has(row.token)) return false;
     seen.add(row.token);
     return true;
+  });
+}
+
+export async function notifyCustomerChatMessage(input: { bookingId: string; conversationId: string }): Promise<boolean> {
+  const booking = await getBookingForPush(input.bookingId).catch(() => null);
+  if (!booking) return false;
+  return notifyCustomerBookingStatus({ bookingId: input.bookingId, status: 'message',
+    title: 'Message from Tyre Rescue',
+    body: 'You have a new message about your booking.',
+    data: { type: 'customer_chat_message', bookingId: input.bookingId, conversationId: input.conversationId,
+      refNumber: booking.refNumber, url: `tyrerescue://chat?conversationId=${encodeURIComponent(input.conversationId)}` },
   });
 }
 
@@ -130,6 +147,7 @@ export async function notifyCustomerBookingStatus(input: {
   status: string;
   title?: string;
   body?: string;
+  data?: Record<string, unknown>;
 }): Promise<boolean> {
   try {
     const booking = await getBookingForPush(input.bookingId);
@@ -146,7 +164,7 @@ export async function notifyCustomerBookingStatus(input: {
       sound: 'default',
       channelId: CUSTOMER_CHANNEL_ID,
       priority: 'high',
-      data: {
+      data: input.data ?? {
         type: 'booking_update',
         ref: booking.refNumber,
         status: input.status,
@@ -156,6 +174,7 @@ export async function notifyCustomerBookingStatus(input: {
 
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
+      signal: AbortSignal.timeout(8_000),
       headers: {
         Accept: 'application/json',
         'Accept-Encoding': 'gzip, deflate',
@@ -165,7 +184,7 @@ export async function notifyCustomerBookingStatus(input: {
     });
 
     if (!response.ok) {
-      console.error('[customer-push] HTTP error:', response.status, await response.text());
+      console.error('[customer-push] HTTP error:', response.status);
       return false;
     }
 
@@ -173,7 +192,7 @@ export async function notifyCustomerBookingStatus(input: {
     const staleTokenIds: string[] = [];
     json.data?.forEach((ticket, index) => {
       if (ticket.status !== 'error') return;
-      console.error('[customer-push] push error:', JSON.stringify(ticket));
+      console.error('[customer-push] delivery failed:', ticket.details?.error === 'DeviceNotRegistered' ? 'DeviceNotRegistered' : 'provider_error');
       if (ticket.details?.error === 'DeviceNotRegistered') {
         const tokenRow = tokens[index];
         if (tokenRow) staleTokenIds.push(tokenRow.id);

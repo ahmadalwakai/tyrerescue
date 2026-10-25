@@ -20,6 +20,8 @@ import { services } from '@/lib/areas';
 import { cityContent } from '@/lib/data/cityContent';
 import { neighborhoodEnrichments } from '@/lib/data/neighborhoodEnrichment';
 import type { FaqItem } from '@/lib/content/serviceCityFaq';
+import { SEO_RESPONSE_TIME_LABEL, SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
+import { WORKSHOP_ADDRESS_LABEL } from '@/lib/config/business-contact';
 
 const c = colorTokens;
 
@@ -27,7 +29,7 @@ const serviceDescriptions: Record<string, (city: string) => string> = {
   'mobile-tyre-fitting': (city) =>
     `Our mobile tyre fitting service in ${city} brings the garage to you. Whether you are at home, at work, or stranded at the roadside, our certified fitters come to your exact location with everything needed to fit your new tyres on the spot.`,
   'emergency-tyre-fitting': (city) =>
-    `When you have a flat tyre emergency in ${city}, every minute counts. Our emergency response team is available 24 hours a day and typically arrives within 45 minutes. Do not wait for a recovery truck — call us and we come to you.`,
+    `When you have a flat tyre emergency in ${city}, every minute counts. Our emergency response team is available 24 hours a day and typically arrives in ${SEO_RESPONSE_TIME_LABEL}. Do not wait for a recovery truck — call us and we come to you.`,
   'tyre-repair': (city) =>
     `Not every flat tyre needs a replacement. Our mobile tyre repair service in ${city} can fix many types of tyre damage on the spot, saving you the cost of a new tyre. Our fitters assess the damage and advise you on the best course of action.`,
   'puncture-repair': (city) =>
@@ -210,7 +212,7 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
 
             <Flex mt={12} gap={{ base: 6, md: 0 }} wrap="wrap">
               <Box pr={{ base: 4, md: 8 }}>
-                <Text fontSize={{ base: '32px', md: '48px' }} color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>45 MIN</Text>
+                <Text fontSize={{ base: '32px', md: '48px' }} color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>{SEO_RESPONSE_TIME_MINUTES} MIN</Text>
                 <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>Avg Response</Text>
               </Box>
               <Box borderLeftWidth="1px" borderRightWidth="1px" borderColor={c.border} px={{ base: 4, md: 8 }}>
@@ -268,7 +270,6 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
                     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4} mb={8}>
                       {featuredAreas.slice(0, 6).map((area) => {
                         const enrichment = cityEnrichments[area.slug];
-                        const eta = Math.round(area.distanceFromCentre * 3.5 + 18);
                         return (
                           <ChakraLink
                             key={area.slug}
@@ -287,7 +288,7 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
                                 {area.name}
                               </Text>
                               <Text fontSize="12px" color={c.accent} mb={3} style={{ fontFamily: 'var(--font-body)' }}>
-                                {area.postcode} — ~{eta} min response
+                                {area.postcode} — {SEO_RESPONSE_TIME_MINUTES} min response
                               </Text>
                               <Text fontSize="13px" color={c.muted} lineHeight="1.6" lineClamp={2} style={{ fontFamily: 'var(--font-body)' }}>
                                 {enrichment.characterDescription}
@@ -443,7 +444,7 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
               Most mobile tyre websites in {city.name} are brokers. They take your booking, post the job on a WhatsApp group, and whoever responds goes to your car. You have no idea who is coming, what van they are in, or whether they carry the right insurance.
             </Text>
             <Text fontSize="15px" color={c.muted} lineHeight="1.8" maxW="640px" mb={8} style={{ fontFamily: 'var(--font-body)' }}>
-              Tyre Rescue is different. We have our own workshop at 3 Gateside Street, Parkhead, Glasgow G31 1PD. Every fitter who attends your vehicle is employed or directly contracted by us — trained, insured, and accountable. Your fitter arrives in a Tyre Rescue van carrying a full stock of sizes and professional fitting equipment.
+              Tyre Rescue is different. We have our own workshop at {WORKSHOP_ADDRESS_LABEL}. Every fitter who attends your vehicle is employed or directly contracted by us — trained, insured, and accountable. Your fitter arrives in a Tyre Rescue van carrying a full stock of sizes and professional fitting equipment.
             </Text>
             <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
               {[

@@ -15,6 +15,8 @@ import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
 import { buildBookingTimeline, deriveBookingInformation } from '@/lib/bookings/booking-audit';
+import { applyBookingEditAndSyncInvoices, synchronizeBookingInvoices } from '@/lib/invoices/booking-invoice-sync';
+import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
 import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
@@ -421,7 +423,9 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
     updates.updatedAt = new Date();
 
-    await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
+    await applyBookingEditAndSyncInvoices(booking.id, updates, {
+      actorUserId: session.user.id, expectedUpdatedAt: booking.updatedAt, reason: 'web_booking_edit',
+    });
 
     // Log the edit in status history as a note
     const editedFieldList = Object.keys(updates).filter((k) => k !== 'updatedAt');
@@ -508,6 +512,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
     return NextResponse.json({ success: true, updatedFields: editedFields });
   } catch (error) {
+    if (error instanceof InvoiceDomainError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('Admin booking update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -852,6 +857,13 @@ export async function PATCH(request: NextRequest, { params }: Props) {
           previousStatus: currentStatus,
         },
       });
+      try {
+        await synchronizeBookingInvoices(booking.id, { actorUserId: session.user.id, reason: 'admin_payment_confirmed' });
+      } catch (syncError) {
+        // Payment evidence is already committed. Read/PDF generation heals a
+        // failed sync; do not ask the administrator to repeat a payment action.
+        console.error('Invoice sync after confirmed admin payment failed:', syncError);
+      }
     }
 
     // Admin notification for status change

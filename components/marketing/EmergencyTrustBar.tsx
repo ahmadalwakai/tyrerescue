@@ -2,9 +2,10 @@
 
 import { Box, Container, Flex, Text } from '@chakra-ui/react';
 import { colorTokens } from '@/lib/design-tokens';
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 
 const trustItems = [
-  '45-minute emergency response',
+  `${SEO_RESPONSE_TIME_MINUTES}-minute emergency response`,
   '24/7 mobile tyre fitters',
   'Mainland Scotland coverage',
   'Callout from \u00a349',

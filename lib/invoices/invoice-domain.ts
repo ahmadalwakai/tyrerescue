@@ -2,6 +2,7 @@ import type { Invoice } from '@/lib/db';
 import type { PaymentSummary } from '@/lib/payments/payment-summary';
 import { isPaymentFullySettledForInvoice } from '@/lib/payments/payment-summary';
 import { displayStringsForBookingTyres } from '@/lib/bookings/tyre-line-display';
+import { readInvoicePresentation, type InvoicePriceBreakdownLine } from '@/lib/invoices/invoice-presentation';
 
 export class InvoiceDomainError extends Error {
   constructor(message: string, public readonly status = 400) {
@@ -41,6 +42,8 @@ export interface BookingCustomerInvoice {
     totalPence: number;
   };
   finalTotal: number;
+  extraInformation?: string;
+  priceBreakdown?: InvoicePriceBreakdownLine[];
 }
 
 export interface StandaloneAdminInvoiceLineItem {
@@ -146,6 +149,8 @@ const ALLOWED_BOOKING_CUSTOMER_INVOICE_KEYS = new Set([
   'tyreLines',
   'serviceInclusions',
   'finalTotal',
+  'extraInformation',
+  'priceBreakdown',
 ]);
 
 function normaliseKey(key: string): string {
@@ -297,6 +302,14 @@ function amountsMatch(aPence: number, bPence: number): boolean {
   return Math.abs(aPence - bPence) <= 1;
 }
 
+function customerPresentation(snapshot: unknown, totalPence: number): Pick<BookingCustomerInvoice, 'extraInformation' | 'priceBreakdown'> {
+  const { invoicePresentation, priceBreakdownStale } = readInvoicePresentation(snapshot, totalPence);
+  return {
+    ...(invoicePresentation.extraInformation ? { extraInformation: invoicePresentation.extraInformation } : {}),
+    ...(!priceBreakdownStale && invoicePresentation.priceBreakdown ? { priceBreakdown: invoicePresentation.priceBreakdown } : {}),
+  };
+}
+
 export function createBookingCustomerInvoice(value: unknown, source = 'unknown'): BookingCustomerInvoice {
   const record = readRecord(value, source);
   const topLevelUnexpected = Object.keys(record).filter((key) => !ALLOWED_BOOKING_CUSTOMER_INVOICE_KEYS.has(key));
@@ -308,6 +321,7 @@ export function createBookingCustomerInvoice(value: unknown, source = 'unknown')
   const customer = readRecord(record.customer, `${source}.customer`);
   const vehicle = readRecord(record.vehicle, `${source}.vehicle`);
   const payment = readRecord(record.payment, `${source}.payment`);
+  const finalTotal = requiredNumber(record.finalTotal, 'finalTotal', source);
 
   return {
     invoiceNumber: requiredString(record.invoiceNumber, 'invoiceNumber', source),
@@ -339,7 +353,12 @@ export function createBookingCustomerInvoice(value: unknown, source = 'unknown')
       paidPence: requiredInteger(payment.paidPence, 'payment.paidPence', source),
       totalPence: requiredInteger(payment.totalPence, 'payment.totalPence', source),
     },
-    finalTotal: requiredNumber(record.finalTotal, 'finalTotal', source),
+    finalTotal,
+    ...customerPresentation({ customerInvoice: {
+      version: 1,
+      extraInformation: record.extraInformation ?? null,
+      priceBreakdown: record.priceBreakdown ?? null,
+    } }, Math.round(finalTotal * 100)),
   };
 }
 
@@ -387,6 +406,7 @@ export function buildBookingCustomerInvoiceFromBooking(input: {
       totalPence: input.paymentSummary.totalPence ?? 0,
     },
     finalTotal: Number(input.booking.totalAmount),
+    ...customerPresentation(input.booking.priceSnapshot, toPence(input.booking.totalAmount)),
   }, input.source ?? 'booking');
 }
 
@@ -435,10 +455,10 @@ export function buildBookingCustomerInvoiceFromStoredInvoice(input: {
       email: input.invoice.companyEmail,
     },
     customer: {
-      name: input.invoice.customerName,
-      email: input.invoice.customerEmail,
-      phone: input.invoice.customerPhone,
-      address: input.invoice.customerAddress,
+      name: input.booking.customerName,
+      email: input.booking.customerEmail,
+      phone: input.booking.customerPhone,
+      address: input.booking.addressLine,
     },
     vehicle: {
       registration: input.booking.vehicleReg,
@@ -455,6 +475,7 @@ export function buildBookingCustomerInvoiceFromStoredInvoice(input: {
       totalPence: input.paymentSummary.totalPence ?? 0,
     },
     finalTotal: Number(input.booking.totalAmount),
+    ...customerPresentation(input.booking.priceSnapshot, toPence(input.booking.totalAmount)),
   }, input.source ?? 'stored-invoice');
 }
 

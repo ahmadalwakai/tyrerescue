@@ -253,6 +253,29 @@ describe('Assisted Chat Stripe checker regression', () => {
     expect(getStripeAutoCheckDelayMs(STRIPE_AUTO_CHECK_FIRST_MINUTE_MS)).toBe(STRIPE_AUTO_CHECK_SLOW_INTERVAL_MS);
   });
 
+  it('does not mistake a zero outstanding balance for confirmed payment', () => {
+    expect(derivePaymentLinkLiveStatus({ status: 'pending', amountToCollectPence: 0 })).toBe('awaiting');
+    expect(derivePaymentLinkLiveStatus({ status: 'failed', amountToCollectPence: 0 })).toBe('failed');
+    expect(derivePaymentLinkLiveStatus({
+      status: 'needs_checking', amountToCollectPence: 0,
+      paymentSummary: { state: 'needs_checking', amountToCollectPence: 0 },
+    })).toBe('checking');
+  });
+
+  it('lets a server-confirmed refund replace an earlier paid state', () => {
+    expect(shouldIgnoreStalePaymentLinkStatus('paid', 'refunded')).toBe(false);
+    expect(shouldIgnoreStalePaymentLinkStatus('paid', 'awaiting')).toBe(true);
+  });
+
+  it('retries expired links using the existing booking and original payment purpose', () => {
+    const source = paymentHookSource();
+    expect(source).toContain("previous?.kind === 'deposit'");
+    expect(source).toContain("{ mode: 'checkout' }");
+    const screen = assistedChatScreenSource();
+    expect(screen).toContain('label="Refresh payment link"');
+    expect(screen).toContain("['failed', 'cancelled', 'expired'].includes(liveStatus ?? '')");
+  });
+
   it('keeps paid and refunded Stripe states terminal and never downgrades them', () => {
     expect(isPaymentLinkTerminalStatus('paid')).toBe(true);
     expect(isPaymentLinkTerminalStatus('refunded')).toBe(true);

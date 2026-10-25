@@ -1,4 +1,5 @@
 import { SERVICE_PRICING } from '@/lib/pricing';
+import { SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 
 export type FaqItem = {
   readonly question: string;
@@ -9,7 +10,7 @@ export const EMERGENCY_PAGE_FAQS = [
   {
     question: 'How quickly can you reach me?',
     answer:
-      'Our emergency response promise is 45 minutes where dispatch, traffic, and tyre availability allow. We confirm your location, tyre size, and fitter availability before sending anyone.',
+      `Our emergency response target is ${SEO_RESPONSE_TIME_LABEL} where dispatch, traffic, and tyre availability allow. We confirm your location, tyre size, and fitter availability before sending anyone.`,
   },
   {
     question: 'Do you cover all of Scotland?',
@@ -47,6 +48,6 @@ export const EMERGENCY_PAGE_FAQS = [
   {
     question: 'Do you come to airport car parks?',
     answer:
-      'Yes. Glasgow Airport (PA3) and Edinburgh Airport (EH12) are among our most frequent callout locations. We cover all car parks including long-stay and multi-storey. Returning from a flight to find a flat tyre? We typically arrive at Glasgow Airport within 25–35 minutes.',
+      `Yes. Glasgow Airport (PA3) and Edinburgh Airport (EH12) are among our most frequent callout locations. We cover all car parks including long-stay and multi-storey. Returning from a flight to find a flat tyre? Our response target is ${SEO_RESPONSE_TIME_LABEL}.`,
   },
 ] as const satisfies readonly FaqItem[];

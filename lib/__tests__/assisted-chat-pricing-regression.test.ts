@@ -245,14 +245,14 @@ describe('assisted chat price copy and display regressions', () => {
       'assisted-chat-app/src/components/quote/EditQuotePriceModal.tsx',
     ]) {
       const source = readSource(file);
-      expect(source).toContain('const pricingDistanceMiles =');
+      expect(source).toMatch(/const pricingDistanceMiles =|quoteFromQuickBookPatch\(/);
       expect(source).not.toContain('distanceKm: distanceKm ? Number(distanceKm)');
       expect(source).not.toContain('distanceKm: booking.distanceKm ? Number(booking.distanceKm)');
     }
 
     const screenSource = readSource('assisted-chat-app/src/components/AssistedChatScreen.tsx');
     expect(screenSource).toContain('getQuotePricingDistanceMiles');
-    expect(screenSource).toContain('quotePricingDistanceMiles');
+    expect(screenSource).toContain('const distanceMiles = getQuotePricingDistanceMiles(draft.quote)');
     expect(screenSource).not.toContain('draft.quote.distanceKm * 0.621371');
 
     const summarySource = readSource('assisted-chat-app/src/components/PriceSummary.tsx');

@@ -8,6 +8,7 @@ import {
   type BookingCustomerInvoice,
 } from '@/lib/invoices/invoice-domain';
 import { displayStringsForBookingTyres } from '@/lib/bookings/tyre-line-display';
+import { getLinkedInvoiceContext } from '@/lib/invoices/booking-invoice-sync';
 
 async function loadBookingTyreLines(booking: typeof bookings.$inferSelect | undefined): Promise<string[]> {
   if (!booking) return [];
@@ -101,12 +102,16 @@ export async function buildStandaloneAdminInvoicePdfData(invoice: Invoice): Prom
 
 export async function buildBookingCustomerInvoicePdfData(
   invoice: Invoice,
-  options: { requireFullPayment?: boolean } = {},
+  options: { requireFullPayment?: boolean; onSynchronizedInvoice?: (invoice: Invoice) => void } = {},
 ): Promise<BookingCustomerInvoice | null> {
   if (!invoice.bookingId) return null;
 
-  const [booking] = await db.select().from(bookings).where(eq(bookings.id, invoice.bookingId)).limit(1);
-  if (!booking) return null;
+  // Refresh all linked fields from one locked booking source. A missing linked
+  // booking fails closed and must never fall back to standalone item rendering.
+  const context = await getLinkedInvoiceContext(invoice, { reason: 'booking_invoice_pdf' });
+  const booking = context.booking!;
+  invoice = context.invoice;
+  options.onSynchronizedInvoice?.(invoice);
 
   const paymentSummary = await getBookingPaymentSummary({
     id: booking.id,
@@ -121,7 +126,7 @@ export async function buildBookingCustomerInvoicePdfData(
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
     stripeDepositPiId: booking.stripeDepositPiId,
-  });
+  }, { audience: 'driver' });
   const tyreLines = await loadBookingTyreLines(booking);
 
   return buildBookingCustomerInvoiceFromStoredInvoice({

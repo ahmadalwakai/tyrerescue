@@ -60,34 +60,43 @@ describe('Assisted Chat native launch safety', () => {
     expect(source).toContain("require('./VirtualLandlineModal')");
   });
 
-  it('does not link expo-audio into the assisted chat binary', () => {
-    const appJson = fs.readFileSync(assistedChatAppJsonPath, 'utf8');
-    const packageJson = fs.readFileSync(assistedChatPackageJsonPath, 'utf8');
-    const screen = assistedChatScreenSource();
+  it('links SDK audio for explicit voice actions while keeping native audio out of launch and modal import paths', () => {
+    const config = JSON.parse(fs.readFileSync(assistedChatAppJsonPath, 'utf8')).expo;
+    const packageJson = JSON.parse(fs.readFileSync(assistedChatPackageJsonPath, 'utf8'));
+    const voice = fs.readFileSync(path.join(root, 'assisted-chat-app/src/lib/chat-voice.ts'), 'utf8');
+    const voiceHook = fs.readFileSync(path.join(root, 'assisted-chat-app/src/hooks/useChatVoiceRecorder.ts'), 'utf8');
 
-    expect(appJson).not.toContain('expo-audio');
-    expect(packageJson).not.toContain('expo-audio');
-    expect(screen).not.toContain('expo-audio');
+    expect(packageJson.dependencies['expo-audio']).toMatch(/^~55\./);
+    expect(config.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-audio')[1]).toMatchObject({
+      enableBackgroundPlayback: false, enableBackgroundRecording: false,
+    });
+    expect(voice).toContain("audioLoading = import('expo-audio')");
+    expect(voice).not.toMatch(/import\s+(?!type\b)[^;]+from ['"]expo-audio['"]/);
+    expect(voice).toContain('const permission = await audio.requestRecordingPermissionsAsync()');
+    expect(voice.indexOf('new audio.AudioModule.AudioRecorder')).toBeGreaterThan(voice.indexOf('if (!permission.granted)'));
+    expect(voiceHook).toContain("if (next === 'background')");
+    expect(voiceHook).toContain('void recorder.dispose()');
+    for (const name of ['AssistedChatScreen', 'ChatHubModal', 'DriverChatModal', 'VoiceMessageBubble']) {
+      const source = fs.readFileSync(path.join(root, `assisted-chat-app/src/components/${name}.tsx`), 'utf8');
+      expect(source).not.toMatch(/(?:from\s*|import\s*\(|require\s*\()['"]expo-audio['"]/);
+      expect(source).not.toMatch(/\buseAudio(?:Player|Recorder)\s*\(/);
+    }
   });
 
   it('persists a validated login session before committing protected auth state', () => {
     const source = fs.readFileSync(assistedChatSessionHookPath, 'utf8');
     const loginFlow = source.slice(
       source.indexOf('const login = useCallback'),
-      source.indexOf('// Wire 401'),
+      source.indexOf('// API failures never change'),
     );
 
     const validationIndex = loginFlow.indexOf('const data = validateLoginResponse(payload)');
-    const persistIndex = loginFlow.indexOf('await AsyncStorage.setItem(STORAGE_KEY, serializedSession)');
-    const tokenCommitIndex = loginFlow.indexOf('setAdminToken(data.token)');
-    const userCommitIndex = loginFlow.indexOf('setUser(data.user)');
-    const statusCommitIndex = loginFlow.indexOf("setStatus('logged-in')");
+    const persistIndex = loginFlow.indexOf('await writeStoredAdminSession(storedSession)');
+    const stateCommitIndex = loginFlow.indexOf("publish({ status: 'logged-in', session: storedSession");
 
     expect(validationIndex).toBeGreaterThan(-1);
     expect(persistIndex).toBeGreaterThan(validationIndex);
-    expect(tokenCommitIndex).toBeGreaterThan(persistIndex);
-    expect(userCommitIndex).toBeGreaterThan(persistIndex);
-    expect(statusCommitIndex).toBeGreaterThan(persistIndex);
+    expect(stateCommitIndex).toBeGreaterThan(persistIndex);
   });
 
   it('mounts the protected tree without navigation after auth state commit', () => {
@@ -97,7 +106,7 @@ describe('Assisted Chat native launch safety', () => {
       source.indexOf('const styles = StyleSheet.create'),
     );
 
-    expect(loggedInBranch).toContain('return <LoggedInAssistedChat user={session.user} onLogout={session.logout} />');
+    expect(loggedInBranch).toMatch(/<LoggedInAssistedChat\s+user=\{session\.user\}\s+onLogout=\{session\.logout\}/);
     expect(loggedInBranch).toContain("logStartupCheckpoint('protected.tree.mounted'");
     expect(loggedInBranch).toContain('return createElement(');
     expect(loggedInBranch).toContain('getAssistedChatScreen()');

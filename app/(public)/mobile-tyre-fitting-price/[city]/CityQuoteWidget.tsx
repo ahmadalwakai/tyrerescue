@@ -7,6 +7,7 @@ export function CityQuoteWidget({ cityName }: { cityName: string }) {
     <BookingWizard
       initialState={{ address: cityName }}
       resumeDraft={false}
+      headingLevel={2}
     />
   );
 }

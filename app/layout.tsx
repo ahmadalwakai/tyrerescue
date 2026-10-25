@@ -16,6 +16,7 @@ import { GA_MEASUREMENT_ID, ADS_CONVERSION_IDS } from '@/lib/analytics/gtag';
 import { GOOGLE_CONSENT_DEFAULT } from '@/lib/analytics/consent';
 import { getGoogleAdsWebsiteCallConfig } from '@/lib/analytics/website-calls';
 import Script from 'next/script';
+import { analyticsPrivacyBootstrap } from '@/lib/analytics/private-urls';
 import './globals.css';
 
 const inter = Inter({
@@ -134,7 +135,7 @@ export default async function RootLayout({
   const websiteCallConfig = isDukeStreet ? null : getGoogleAdsWebsiteCallConfig(brand.phoneDisplay);
   const gtagInitScript = [
     'window.dataLayer=window.dataLayer||[];',
-    'function gtag(){dataLayer.push(arguments)}',
+    analyticsPrivacyBootstrap(),
     'window.gtag=gtag;',
     `window.__TR_WEBSITE_CALL_CONFIG=${JSON.stringify(websiteCallConfig)};`,
     `gtag('consent','default',${JSON.stringify(GOOGLE_CONSENT_DEFAULT)});`,

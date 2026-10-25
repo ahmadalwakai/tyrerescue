@@ -1,3 +1,5 @@
+import { SEO_RESPONSE_TIME_LABEL, SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
+
 export interface BlogArticle {
   slug: string;
   title: string;
@@ -46,7 +48,7 @@ export const articles: BlogArticle[] = [
 
 Emergency tyre fitting is a mobile service where a certified fitter drives to your exact location — roadside, driveway, car park, or motorway hard shoulder — and replaces your damaged tyre on the spot. In Glasgow, Tyre Rescue provides this service 24 hours a day, 7 days a week, 365 days a year.
 
-**The short answer:** Call 0141 266 0690, tell us where you are, and a fitter reaches you in approximately 45 minutes with the right tyre for your vehicle.
+**The short answer:** Call 0141 266 0690, tell us where you are, and a fitter reaches you in approximately ${SEO_RESPONSE_TIME_LABEL} with the right tyre for your vehicle.
 
 ## How Much Does Emergency Tyre Fitting Cost in Glasgow?
 
@@ -64,11 +66,11 @@ These prices cover a single tyre replacement including professional fitting, saf
 
 Our average emergency response times across Glasgow:
 
-- **Glasgow City Centre** (G1–G4): 30 minutes
-- **West End / Partick / Kelvingrove** (G11–G13): 35 minutes
-- **Southside / Shawlands / Govan** (G41–G52): 35 minutes
-- **East End / Dennistoun / Parkhead** (G31–G34): 25 minutes (closest to our base)
-- **North / Maryhill / Springburn** (G20–G22): 40 minutes
+- **Glasgow City Centre** (G1–G4): ${SEO_RESPONSE_TIME_LABEL}
+- **West End / Partick / Kelvingrove** (G11–G13): ${SEO_RESPONSE_TIME_LABEL}
+- **Southside / Shawlands / Govan** (G41–G52): ${SEO_RESPONSE_TIME_LABEL}
+- **East End / Dennistoun / Parkhead** (G31–G34): ${SEO_RESPONSE_TIME_LABEL} (closest to our base)
+- **North / Maryhill / Springburn** (G20–G22): ${SEO_RESPONSE_TIME_LABEL}
 
 Response times may vary during peak hours (8–9am, 5–7pm) and severe weather.
 
@@ -106,7 +108,7 @@ Call immediately if:
 
 | Feature | Tyre Rescue Emergency | Typical Breakdown Cover |
 |---------|----------------------|------------------------|
-| Response time | 45 min average | 1–3 hours |
+| Response time | ${SEO_RESPONSE_TIME_MINUTES} min average | 1–3 hours |
 | Tyre carried | Yes, fitted on-site | Usually towed to garage |
 | 24/7 availability | Yes | Yes |
 | Cost | £49 callout + tyre | Annual membership + potential extras |
@@ -185,7 +187,7 @@ Call Tyre Rescue on **0141 266 0690**. We need:
 3. Which tyre is flat (front/rear, left/right)
 4. Your contact number
 
-We dispatch a fitter immediately — average arrival time is 45 minutes on Glasgow motorways.
+We dispatch a fitter immediately — average arrival time is ${SEO_RESPONSE_TIME_LABEL} on Glasgow motorways.
 
 ### Step 5: Wait Safely
 
@@ -231,7 +233,7 @@ On a quiet residential street? A tyre change is straightforward if you have a ja
 Yes, but you must be in an emergency refuge area. If you're stuck in a live lane, call 999 first, then call us once you're safe.
 
 ### How long will I wait on the hard shoulder?
-Our average response on Glasgow motorways is 45 minutes. We'll give you an accurate ETA when you call.`,
+Our average response on Glasgow motorways is ${SEO_RESPONSE_TIME_LABEL}. We'll give you an accurate ETA when you call.`,
   },
   {
     slug: 'mobile-tyre-fitting-vs-garage',
@@ -639,7 +641,7 @@ Trustpilot, Google Reviews, and word of mouth are your best guides. Look for rec
 ### Tyre Rescue
 - **Coverage:** All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Stirling, Perth, Falkirk, Paisley, Highlands, Islands and every postcode from G to ZE
 - **Hours:** 24/7, 365 days a year
-- **Response Time:** 45 minutes average (Central Belt), 90 minutes (Aberdeen/Inverness)
+- **Response Time:** ${SEO_RESPONSE_TIME_LABEL} average (Central Belt), ${SEO_RESPONSE_TIME_LABEL} (Aberdeen/Inverness)
 - **Starting Price:** Callout from £49 + tyre price (emergency)
 - **Google:** 4.8/5 stars (97 reviews)
 - **Key Features:** Live GPS tracking of your fitter, instant online booking, budget to premium tyre range
@@ -737,7 +739,7 @@ Black Circles is an online tyre marketplace — you buy the tyre at a competitiv
 | Mobile-First | ✅ | ❌ | ✅ | ❌ | ❌ |
 | Scotland-Wide | ✅ | Nationwide | Limited | UK partner garages | Scottish branches |
 | Emergency Callout | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Avg Response | 45 min | N/A | 24–72 hrs | Next day+ | Appointment |
+| Avg Response | ${SEO_RESPONSE_TIME_MINUTES} min | N/A | 24–72 hrs | Next day+ | Appointment |
 | GPS Tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Google | 4.8★ | 3.7★ | 4.5★ | 4.5★ | Varies |
 | From Price | £49 callout | £45 | £70 all-in | £25 fit only | In-branch |
@@ -773,7 +775,7 @@ With Tyre Rescue, booking takes under 2 minutes:
 Prices typically start at a £49 emergency callout fee plus the tyre price. The total cost depends on the tyre brand and size you choose. Budget tyres for standard cars start from around £55, so a typical emergency replacement is from around £104 (£49 callout + £55 tyre).
 
 ### How quickly can a mobile tyre fitter get to me?
-Tyre Rescue averages 45-minute response times in Glasgow and Edinburgh. Most appointment-based services require at least a few hours' notice or next-day booking.
+Tyre Rescue averages ${SEO_RESPONSE_TIME_MINUTES}-minute response times in Glasgow and Edinburgh. Most appointment-based services require at least a few hours' notice or next-day booking.
 
 ### Do mobile tyre fitters carry all tyre sizes?
 Most mobile fitters carry common sizes. For unusual sizes, you may need to give a few hours' notice. Tyre Rescue stocks the most popular sizes on vans and can source specialist tyres within a few hours.
@@ -788,7 +790,7 @@ Yes, if the puncture is in the repairable area of the tyre (the central tread). 
 
 For mobile tyre fitting in Scotland, the choice depends on your priorities. If you need 24/7 emergency service, fast response times, and the convenience of a mobile-first provider, Tyre Rescue is the standout option. For planned, in-store fitting during business hours, national chains like Kwik Fit or Halfords offer a familiar experience.
 
-**Need a tyre fitted now?** Call Tyre Rescue on **0141 266 0690** or book online at **tyrerescue.uk/book**. We're available 24/7 and cover all of Scotland — 45-minute response times in the Central Belt, 90 minutes to Aberdeen and Inverness.`,
+**Need a tyre fitted now?** Call Tyre Rescue on **0141 266 0690** or book online at **tyrerescue.uk/book**. We're available 24/7 and cover all of Scotland — ${SEO_RESPONSE_TIME_MINUTES}-minute response times in the Central Belt, ${SEO_RESPONSE_TIME_LABEL} to Aberdeen and Inverness.`,
   },
   {
     slug: 'tyre-fitting-costs-scotland-pricing-guide',
@@ -991,7 +993,7 @@ For an instant, transparent quote on mobile tyre fitting in Scotland, visit **ty
 
 Edinburgh is Scotland's capital and our second-busiest service city. Whether you have a flat tyre on Princes Street, a slow puncture in Leith, or a blowout on the A720 City Bypass, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
 
-**Quick answer:** Call 0141 266 0690. A fitter reaches most Edinburgh locations within 55 minutes. Fitting starts from £20 per tyre (plus tyre cost) and there's no hidden M8 surcharge.
+**Quick answer:** Call 0141 266 0690. A fitter reaches most Edinburgh locations within ${SEO_RESPONSE_TIME_LABEL}. Fitting starts from £20 per tyre (plus tyre cost) and there's no hidden M8 surcharge.
 
 ## Response Times Across Edinburgh
 
@@ -999,14 +1001,14 @@ Edinburgh's road network — the A720 ring road, the A8 corridor, and the Old To
 
 | Area | Postcode | Avg Response |
 |------|----------|-------------|
-| City Centre / Princes Street | EH1–EH2 | 55 min |
-| Leith / Portobello | EH6–EH7 | 55 min |
-| Morningside / Bruntsfield | EH10 | 60 min |
-| Corstorphine / Murrayfield | EH12 | 60 min |
-| Newington / Southside | EH9 | 55 min |
-| A720 City Bypass | EH10–EH17 | 50 min |
-| Musselburgh | EH21 | 60 min |
-| Dalkeith | EH22 | 65 min |
+| City Centre / Princes Street | EH1–EH2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Leith / Portobello | EH6–EH7 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Morningside / Bruntsfield | EH10 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Corstorphine / Murrayfield | EH12 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Newington / Southside | EH9 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| A720 City Bypass | EH10–EH17 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Musselburgh | EH21 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Dalkeith | EH22 | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 We dispatch from our Glasgow base via the M8, and our fitters know the Edinburgh road network well.
 
@@ -1202,7 +1204,7 @@ A TPMS warning can mean a slow puncture, low pressure, or a faulty sensor. Our f
     slug: 'mobile-tyre-fitting-hamilton-lanarkshire',
     title: 'Mobile Tyre Fitting in Hamilton & Lanarkshire: Fast Local Service',
     description:
-      'Mobile tyre fitting in Hamilton, Motherwell, East Kilbride and all ML postcodes. Emergency and scheduled service — 30 min average response. Call 0141 266 0690.',
+      `Mobile tyre fitting in Hamilton, Motherwell, East Kilbride and all ML postcodes. Emergency and scheduled service — ${SEO_RESPONSE_TIME_MINUTES} min average response. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2026-08-01',
     lastModified: '2026-08-15',
@@ -1224,38 +1226,38 @@ A TPMS warning can mean a slow puncture, low pressure, or a faulty sensor. Our f
 
 Lanarkshire is one of our busiest service areas outside Glasgow. With easy M74 and M8 access from our Parkhead depot, we cover Hamilton, Motherwell, East Kilbride, Wishaw, Bellshill, and all surrounding ML and G74 postcodes.
 
-**Quick answer:** Call 0141 266 0690. Most Lanarkshire locations are reached within 30 minutes. Prices are the same as Glasgow — no distance surcharge.
+**Quick answer:** Call 0141 266 0690. Most Lanarkshire locations are reached within ${SEO_RESPONSE_TIME_LABEL}. Prices are the same as Glasgow — no distance surcharge.
 
 ## Areas Covered in Lanarkshire
 
 ### Hamilton (ML3)
-Hamilton is 25 minutes from our base via the M74. We cover the town centre, Motherwell Road, Blantyre, Bothwell, Stonehouse and all ML3 postcodes. The M74/A725 junction near Hamilton is one of our most frequent emergency call-out locations.
+Hamilton is served via the M74 from our Glasgow operations. We cover the town centre, Motherwell Road, Blantyre, Bothwell, Stonehouse and all ML3 postcodes. The M74/A725 junction near Hamilton is one of our most frequent emergency call-out locations.
 
 ### Motherwell (ML1)
-Motherwell is 25 minutes via M74/M8. We cover the town centre, Wishaw (ML2), Bellshill (ML4), Uddingston, Viewpark and surrounding areas.
+Motherwell is served via the M74/M8. We cover the town centre, Wishaw (ML2), Bellshill (ML4), Uddingston, Viewpark and surrounding areas.
 
 ### East Kilbride (G74–G75)
-East Kilbride is 25 minutes via M77 and A725. We cover the town centre, Hairmyres, Calderwood, Westwood, Nerston, Jackton and Chapelton.
+East Kilbride is served via the M77 and A725. We cover the town centre, Hairmyres, Calderwood, Westwood, Nerston, Jackton and Chapelton.
 
 ### Other Lanarkshire Areas
-- **Carluke (ML8):** 35 minutes via M74
-- **Larkhall (ML9):** 35 minutes via M74/A72
-- **Rutherglen (G73):** 20 minutes via M74
-- **Cambuslang (G72):** 20 minutes via M74
+- **Carluke (ML8):** served via M74
+- **Larkhall (ML9):** served via M74/A72
+- **Rutherglen (G73):** served via M74
+- **Cambuslang (G72):** served via M74
 
 ## Response Times by Lanarkshire Area
 
 | Town | Distance from Base | Avg Response |
 |------|------------------|--------------|
-| Rutherglen | 4 miles | 20 min |
-| Cambuslang | 6 miles | 20 min |
-| Hamilton | 11 miles | 30 min |
-| Motherwell | 12 miles | 30 min |
-| Bellshill | 10 miles | 28 min |
-| East Kilbride | 10 miles | 28 min |
-| Wishaw | 15 miles | 35 min |
-| Carluke | 18 miles | 35 min |
-| Larkhall | 17 miles | 35 min |
+| Rutherglen | 4 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Cambuslang | 6 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Hamilton | 11 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Motherwell | 12 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Bellshill | 10 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| East Kilbride | 10 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Wishaw | 15 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Carluke | 18 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Larkhall | 17 miles | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Tyre Fitting Prices in Lanarkshire
 
@@ -1283,10 +1285,10 @@ No distance surcharge applies across Lanarkshire. Our prices are:
 ## Frequently Asked Questions
 
 ### How quickly can you reach Hamilton from Glasgow?
-Our average response time in Hamilton is 30 minutes. We dispatch the nearest available fitter from our Parkhead base via the M74.
+Our average response time in Hamilton is ${SEO_RESPONSE_TIME_LABEL}. We dispatch the nearest available fitter from our Parkhead base via the M74.
 
 ### Do you cover Lanarkshire villages?
-Yes — we cover Stonehouse, Quarter, Larkhall, Strathaven, Forth, Lanark and Carstairs on request. Response times for outlying areas are typically 40–50 minutes.
+Yes — we cover Stonehouse, Quarter, Larkhall, Strathaven, Forth, Lanark and Carstairs on request. Response times for outlying areas are typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ### Can you fit tyres at the Strathclyde Country Park?
 Yes — we regularly assist drivers at Strathclyde Park and the Hamilton Water Palace. Just give us your exact parking location.
@@ -1298,7 +1300,7 @@ Yes. We carry van tyres for Transit, Sprinter, Vivaro, Transporter, and other co
     slug: 'mobile-tyre-fitting-livingston-west-lothian',
     title: 'Mobile Tyre Fitting in Livingston & West Lothian: Same-Day Service',
     description:
-      'Mobile tyre fitting in Livingston, Bathgate, Broxburn and all EH54 postcodes. 45 min average response. Emergency and scheduled. Call 0141 266 0690.',
+      `Mobile tyre fitting in Livingston, Bathgate, Broxburn and all EH54 postcodes. ${SEO_RESPONSE_TIME_MINUTES} min average response. Emergency and scheduled. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2026-08-05',
     lastModified: '2026-08-15',
@@ -1318,7 +1320,7 @@ Yes. We carry van tyres for Transit, Sprinter, Vivaro, Transporter, and other co
     featured: false,
     content: `## Mobile Tyre Fitting in Livingston and West Lothian
 
-Livingston sits midway along the M8 between Glasgow and Edinburgh, making it one of the easiest Tyre Rescue dispatch points in central Scotland. We typically reach Livingston in 45 minutes from our Glasgow base — and the same fitters who cover Edinburgh can reach West Lothian from the east.
+Livingston sits midway along the M8 between Glasgow and Edinburgh, making it one of the easiest Tyre Rescue dispatch points in central Scotland. Our typical response target in Livingston is ${SEO_RESPONSE_TIME_LABEL}. Our Glasgow and Edinburgh operations also cover West Lothian.
 
 **Quick answer:** Call 0141 266 0690. We cover all of Livingston and West Lothian with no distance surcharge.
 
@@ -1328,16 +1330,16 @@ Livingston sits midway along the M8 between Glasgow and Edinburgh, making it one
 Full coverage of Livingston town centre, Almondvale, Deans, Craigshill, Howden, Knightsridge and Murieston.
 
 ### Bathgate (EH47–EH48)
-20 minutes from Livingston. We cover the town centre, Boghall and Whitburn.
+Covered alongside Livingston. We serve the town centre, Boghall and Whitburn.
 
 ### Broxburn (EH52)
-15 minutes from Livingston via the M8. We cover Broxburn, Uphall and East Calder.
+Served via the M8 corridor near Livingston. We cover Broxburn, Uphall and East Calder.
 
 ### Other West Lothian Areas
-- **Linlithgow (EH49):** 35 minutes from Glasgow via M9
-- **Armadale (EH48):** 50 minutes from Glasgow
-- **Fauldhouse (EH47):** 55 minutes from Glasgow
-- **Winchburgh (EH52):** 45 minutes from Glasgow
+- **Linlithgow (EH49):** covered from our Glasgow operations via M9
+- **Armadale (EH48):** covered from our Glasgow operations
+- **Fauldhouse (EH47):** covered from our Glasgow operations
+- **Winchburgh (EH52):** covered from our Glasgow operations
 
 ## Why Livingston Drivers Call Us
 
@@ -1375,7 +1377,7 @@ No additional charge for West Lothian — same pricing as Glasgow.
 ## Frequently Asked Questions
 
 ### Can you reach Linlithgow?
-Yes — Linlithgow is 35 minutes from our Glasgow depot via the M9. We cover the town and the surrounding villages including Bo'ness (reached via the M9/A904).
+Yes — Linlithgow is covered via the M9 from our Glasgow operations. We serve the town and the surrounding villages including Bo'ness (reached via the M9/A904).
 
 ### Do you service commercial vehicles in Livingston?
 Yes. Livingston's industrial estates mean van and commercial tyre callouts are common. We carry tyres for Transit, Sprinter, Vivaro, Transporter and other commercial vehicles.
@@ -1411,7 +1413,7 @@ We dispatch whichever fitter is closer and available. During busy periods, West 
 
 Aberdeen is Scotland's third-largest city and one of our major service hubs in the north-east. Whether you have a flat tyre on the A90, a slow puncture in Westhill, or a blowout on the A96 out of the city, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
 
-**Quick answer:** Call 0141 266 0690. A fitter reaches most Aberdeen city centre locations within 90 minutes. Fitting starts from £20 per tyre (plus tyre cost) with no Aberdeen surcharge.
+**Quick answer:** Call 0141 266 0690. A fitter reaches most Aberdeen city centre locations within ${SEO_RESPONSE_TIME_LABEL}. Fitting starts from £20 per tyre (plus tyre cost) with no Aberdeen surcharge.
 
 ## Response Times Across Aberdeen
 
@@ -1419,16 +1421,16 @@ Aberdeen's road network — the A90 dual carriageway, the Western Peripheral Rou
 
 | Area | Postcode | Avg Response |
 |------|----------|-------------|
-| City Centre / Union Street | AB10–AB11 | 90 min |
-| West End / Rubislaw | AB15 | 90 min |
-| Bridge of Don / Danestone | AB22–AB23 | 95 min |
-| Dyce / Airport area | AB21 | 95 min |
-| Westhill (Aberdeenshire) | AB32 | 100 min |
-| Stonehaven | AB39 | 110 min |
-| Inverurie | AB51 | 110 min |
-| Banchory | AB31 | 115 min |
-| Peterhead | AB42 | 130 min |
-| Fraserburgh | AB43 | 140 min |
+| City Centre / Union Street | AB10–AB11 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| West End / Rubislaw | AB15 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Bridge of Don / Danestone | AB22–AB23 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Dyce / Airport area | AB21 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Westhill (Aberdeenshire) | AB32 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Stonehaven | AB39 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Inverurie | AB51 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Banchory | AB31 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Peterhead | AB42 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Fraserburgh | AB43 | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 Response times may vary during the morning and evening rush hours on the A90 and AWPR.
 
@@ -1494,10 +1496,10 @@ Aberdeen's road conditions create specific tyre problems:
 ## Frequently Asked Questions
 
 ### How long does it take to get a tyre fitter to Aberdeen from Glasgow?
-Our fitters based in or near Aberdeen typically respond within 90 minutes for city centre locations. For outlying AB postcodes like Peterhead or Fraserburgh, response may be 2+ hours — we always give an accurate ETA when you call.
+Our fitters based in or near Aberdeen typically respond within ${SEO_RESPONSE_TIME_LABEL} for city centre locations. For outlying AB postcodes like Peterhead or Fraserburgh, response may be ${SEO_RESPONSE_TIME_LABEL} — we always give an accurate ETA when you call.
 
 ### Do you cover Royal Deeside?
-Yes — Banchory (AB31), Aboyne, Ballater and even Braemar are in our coverage area. Response times for rural Deeside locations are typically 2–2.5 hours. For locations beyond Braemar, we recommend advance scheduling.
+Yes — Banchory (AB31), Aboyne, Ballater and even Braemar are in our coverage area. Response times for rural Deeside locations are typically ${SEO_RESPONSE_TIME_LABEL}. For locations beyond Braemar, we recommend advance scheduling.
 
 ### Do you carry run-flat tyres for Aberdeen BMWs?
 Yes. Aberdeen has a high proportion of BMW and Land Rover vehicles (oil industry) — we carry common run-flat sizes and TPMS reset equipment on our vans.
@@ -1540,7 +1542,7 @@ Ready to book? Visit our [Aberdeen mobile tyre fitting](/mobile-tyre-fitting/abe
 
 Inverness is the capital of the Highlands and our northernmost major service hub. From the city itself to the Great Glen, the Black Isle, and the shores of Loch Ness, Tyre Rescue covers the Highlands with professional mobile tyre fitting — available 24 hours a day.
 
-**Quick answer:** Call 0141 266 0690. Inverness city centre locations typically reached within 90–120 minutes. For remote Highland locations, advance booking is recommended. No extra charge for IV postcodes.
+**Quick answer:** Call 0141 266 0690. Inverness city centre locations typically reached within ${SEO_RESPONSE_TIME_LABEL}. For remote Highland locations, advance booking is recommended. No extra charge for IV postcodes.
 
 ## Response Times Across Inverness and the Highlands
 
@@ -1548,18 +1550,18 @@ The Highlands have long distances and some single-track roads. We're honest abou
 
 | Area | Postcode | Avg Response |
 |------|----------|-------------|
-| Inverness City Centre | IV1–IV2 | 90 min |
-| Inverness Crown / Dalneigh | IV2–IV3 | 95 min |
-| Culloden / Balloch | IV2 | 95 min |
-| Beauly / Muir of Ord | IV4–IV6 | 105 min |
-| Dingwall | IV15 | 110 min |
-| Nairn | IV12 | 100 min |
-| Forres | IV36 | 105 min |
-| Aviemore / Cairngorms | PH22 | 110 min |
-| Drumnadrochit (Loch Ness) | IV63 | 115 min |
-| Fort Augustus | PH32 | 130 min |
-| Grantown-on-Spey | PH26 | 120 min |
-| Thurso | KW14 | 3+ hours |
+| Inverness City Centre | IV1–IV2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Inverness Crown / Dalneigh | IV2–IV3 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Culloden / Balloch | IV2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Beauly / Muir of Ord | IV4–IV6 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Dingwall | IV15 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Nairn | IV12 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Forres | IV36 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Aviemore / Cairngorms | PH22 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Drumnadrochit (Loch Ness) | IV63 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Fort Augustus | PH32 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Grantown-on-Spey | PH26 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Thurso | KW14 | ${SEO_RESPONSE_TIME_LABEL} |
 
 For very remote locations such as Thurso, Wick, Cape Wrath or the far north-west, we recommend booking in advance (minimum 24 hours notice).
 
@@ -1636,7 +1638,7 @@ We have dispatched fitters to NC500 emergencies on the A838 near Durness, the A8
 Call 0141 266 0690 immediately. Pull safely off the road, turn on hazard lights, and tell us your exact location as precisely as possible — postcode, road number, nearest village, or what3words address. We'll dispatch the nearest available fitter and give you a realistic ETA.
 
 ### Do you cover Aviemore and the Cairngorm National Park?
-Yes — Aviemore, Kingussie, Newtonmore, and the Cairngorm ski resort area are within our coverage. Response times from Inverness are typically 60–90 minutes.
+Yes — Aviemore, Kingussie, Newtonmore, and the Cairngorm ski resort area are within our coverage. Response times from Inverness are typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ### Can you fit winter tyres in Inverness?
 Yes. We stock winter tyres for common sizes. Winter tyre fitting appointments are recommended for September–October before winter conditions arrive.
@@ -1645,7 +1647,7 @@ Yes. We stock winter tyres for common sizes. Winter tyre fitting appointments ar
 The A82 is one of our most scenic and most hazardous routes. Pull off the road as far as possible, turn on hazard lights, and call 0141 266 0690. The A82 has limited stopping places in some sections — stay with your vehicle and await assistance.
 
 ### Do you cover the Black Isle and Cromarty?
-Yes — Muir of Ord, Fortrose, Rosemarkie, Cromarty, and the Cromarty ferry crossing area are in our coverage. Response time is approximately 105–115 minutes.
+Yes — Muir of Ord, Fortrose, Rosemarkie, Cromarty, and the Cromarty ferry crossing area are in our coverage. Response time is approximately ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Book Mobile Tyre Fitting in Inverness
 
@@ -1678,21 +1680,21 @@ Visit our [Inverness mobile tyre fitting](/mobile-tyre-fitting/inverness) page f
 
 Dundee is Scotland's fourth-largest city and a key centre for our east Scotland operations. From the Waterfront and city centre to Broughty Ferry, Monifieth, and the Angus commuter belt, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
 
-**Quick answer:** Call 0141 266 0690. Most Dundee city locations reached within 60–75 minutes. Fitting from £20 per tyre plus tyre cost, no DD postcode surcharge.
+**Quick answer:** Call 0141 266 0690. Most Dundee city locations reached within ${SEO_RESPONSE_TIME_LABEL}. Fitting from £20 per tyre plus tyre cost, no DD postcode surcharge.
 
 ## Response Times Across Dundee and Angus
 
 | Area | Postcode | Avg Response |
 |------|----------|-------------|
-| City Centre / Overgate | DD1 | 65 min |
-| West End / Ninewells | DD2 | 65 min |
-| Lochee / Menzieshill | DD2 | 70 min |
-| Stobswell / Craigie | DD3–DD4 | 65 min |
-| Broughty Ferry | DD5 | 70 min |
-| Monifieth | DD5 | 75 min |
-| Arbroath | DD11 | 85 min |
-| Forfar | DD8 | 90 min |
-| Kirriemuir | DD8 | 95 min |
+| City Centre / Overgate | DD1 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| West End / Ninewells | DD2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Lochee / Menzieshill | DD2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Stobswell / Craigie | DD3–DD4 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Broughty Ferry | DD5 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Monifieth | DD5 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Arbroath | DD11 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Forfar | DD8 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Kirriemuir | DD8 | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Areas We Cover in Dundee
 
@@ -1738,16 +1740,16 @@ No surcharge for Dundee or Angus postcodes.
 ## Frequently Asked Questions
 
 ### How quickly can you reach Dundee city centre?
-Our average response time for Dundee DD1 is 65 minutes from dispatch. We dispatch via the A90 from our Central Belt base, or from available fitters already working in the Tayside area.
+Our average response time for Dundee DD1 is ${SEO_RESPONSE_TIME_LABEL} from dispatch. We dispatch via the A90 from our Central Belt base, or from available fitters already working in the Tayside area.
 
 ### Do you cover Arbroath and Forfar?
-Yes — Arbroath (DD11) and Forfar (DD8) are in our coverage area. Response times are typically 85–95 minutes.
+Yes — Arbroath (DD11) and Forfar (DD8) are in our coverage area. Response times are typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ### Can you fit tyres at Ninewells Hospital car park?
 Yes — we regularly assist patients and hospital staff at Ninewells. The large hospital car parks provide ideal safe working conditions for mobile fitting.
 
 ### Do you cover Carnoustie and the Angus coast?
-Yes — Carnoustie, Monifieth and the Angus coastal towns as far as Arbroath are covered. Response from our nearest available fitter is typically 75–90 minutes.
+Yes — Carnoustie, Monifieth and the Angus coastal towns as far as Arbroath are covered. Response from our nearest available fitter is typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ### What about the V&A Dundee area?
 Yes — the Waterfront, Slessor Gardens and the V&A car parks are easily accessible. Parking arrangements in the Waterfront area can be complex; tell us your exact position when booking.
@@ -1782,22 +1784,22 @@ Visit our [Dundee mobile tyre fitting](/mobile-tyre-fitting/dundee) page for loc
     featured: false,
     content: `## Mobile Tyre Fitting Across Ayrshire
 
-Ayrshire is one of our busiest service areas south of Glasgow. With quick M77 access from our Parkhead depot, we cover Kilmarnock, Ayr, Irvine, Troon, Prestwick and all KA postcodes — typically within 40–55 minutes.
+Ayrshire is one of our busiest service areas south of Glasgow. With quick M77 access from our Parkhead depot, we cover Kilmarnock, Ayr, Irvine, Troon, Prestwick and all KA postcodes — typically within ${SEO_RESPONSE_TIME_LABEL}.
 
-**Quick answer:** Call 0141 266 0690. Most Ayrshire locations are reached within 40–55 minutes. Prices are the same as Glasgow — no distance surcharge.
+**Quick answer:** Call 0141 266 0690. Most Ayrshire locations are reached within ${SEO_RESPONSE_TIME_LABEL}. Prices are the same as Glasgow — no distance surcharge.
 
 ## Response Times Across Ayrshire
 
 | Town | Postcode | Avg Response |
 |------|----------|-------------|
-| Kilmarnock | KA1–KA3 | 40 min |
-| Irvine | KA11–KA12 | 45 min |
-| Troon | KA10 | 50 min |
-| Prestwick | KA9 | 50 min |
-| Ayr Town Centre | KA7–KA8 | 55 min |
-| Saltcoats / Ardrossan | KA21–KA22 | 50 min |
-| Largs | KA30 | 60 min |
-| Girvan | KA26 | 75 min |
+| Kilmarnock | KA1–KA3 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Irvine | KA11–KA12 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Troon | KA10 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Prestwick | KA9 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Ayr Town Centre | KA7–KA8 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Saltcoats / Ardrossan | KA21–KA22 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Largs | KA30 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Girvan | KA26 | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Areas Covered in Ayrshire
 
@@ -1842,20 +1844,20 @@ No surcharge for any Ayrshire postcode.
 
 Ayrshire is home to some of the world's finest golf courses, and we regularly assist visiting golfers and club members:
 
-- **Royal Troon** (KA10) — average response 50 minutes
-- **Turnberry / Trump Turnberry** (KA26) — average response 75 minutes
-- **Prestwick Golf Club** (KA9) — average response 50 minutes
-- **Western Gailes** (KA11) — average response 48 minutes
+- **Royal Troon** (KA10) — average response ${SEO_RESPONSE_TIME_LABEL}
+- **Turnberry / Trump Turnberry** (KA26) — average response ${SEO_RESPONSE_TIME_LABEL}
+- **Prestwick Golf Club** (KA9) — average response ${SEO_RESPONSE_TIME_LABEL}
+- **Western Gailes** (KA11) — average response ${SEO_RESPONSE_TIME_LABEL}
 
 If you're at a golf club with a flat tyre, we can usually meet you at the club car park while you continue your round.
 
 ## Frequently Asked Questions
 
 ### How quickly can you get to Ayr from Glasgow?
-Most Ayr locations are reached in 55 minutes via the M77 and A77. Our fastest Ayr response times are to Prestwick and Ayr town centre.
+Our typical response target in Ayr is ${SEO_RESPONSE_TIME_LABEL}. We serve the area via the M77 and A77. Our fastest Ayr response times are to Prestwick and Ayr town centre.
 
 ### Do you cover Girvan and south Ayrshire?
-Yes — Girvan (KA26) is in our coverage area at approximately 75 minutes. For Ballantrae and south of Girvan, response may be longer. Call us for a realistic ETA.
+Yes — Girvan (KA26) is in our coverage area, with a typical response of ${SEO_RESPONSE_TIME_LABEL}. We also cover Ballantrae and south of Girvan; call us to confirm availability and your exact ETA.
 
 ### Can you come to Ayr Racecourse?
 Yes — race day callouts at Ayr are among our regular Ayrshire jobs. The racecourse car parks are large and flat — ideal for mobile tyre fitting.
@@ -1864,7 +1866,7 @@ Yes — race day callouts at Ayr are among our regular Ayrshire jobs. The raceco
 Yes — Ardrossan Harbour and the surrounding KA22 postcode are covered. If you have a flat tyre before or after the Arran ferry, call us at 0141 266 0690.
 
 ### What about Largs and the Clyde Coast?
-Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats are in our coverage. Response times are typically 55–65 minutes from Glasgow.`,
+Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats are in our coverage. Our typical response target is ${SEO_RESPONSE_TIME_LABEL}.`,
   },
   {
     slug: 'mobile-tyre-fitting-perth-perthshire',
@@ -1893,24 +1895,24 @@ Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats
 
 Perth is the gateway to the Scottish Highlands, and Tyre Rescue serves the city and the wide county of Perthshire — from the M90 to Pitlochry, from Crieff to the outskirts of the Cairngorms. Whether you're on the A9 northbound, exploring Loch Lomond and The Trossachs, or driving through Strathtay, our mobile fitters reach you with professional tyres and equipment.
 
-**Quick answer:** Call 0141 266 0690. Perth city centre typically reached within 70 minutes. Pitlochry and mid-Perthshire within 100–120 minutes.
+**Quick answer:** Call 0141 266 0690. Perth city centre typically reached within ${SEO_RESPONSE_TIME_LABEL}. Pitlochry and mid-Perthshire within ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Response Times Across Perthshire
 
 | Area | Postcode | Avg Response |
 |------|----------|-------------|
-| Perth City Centre | PH1–PH2 | 70 min |
-| Scone / Bridgend | PH2 | 72 min |
-| Kinnoull / Cherrybank | PH2 | 72 min |
-| Crieff | PH7 | 85 min |
-| Auchterarder | PH3 | 80 min |
-| Dunkeld | PH8 | 90 min |
-| Pitlochry | PH16 | 105 min |
-| Aberfeldy | PH15 | 110 min |
-| Kenmore / Loch Tay | PH15 | 115 min |
-| Killin | FK21 | 95 min |
-| Blairgowrie | PH10 | 85 min |
-| Coupar Angus | PH13 | 80 min |
+| Perth City Centre | PH1–PH2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Scone / Bridgend | PH2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Kinnoull / Cherrybank | PH2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Crieff | PH7 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Auchterarder | PH3 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Dunkeld | PH8 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Pitlochry | PH16 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Aberfeldy | PH15 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Kenmore / Loch Tay | PH15 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Killin | FK21 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Blairgowrie | PH10 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Coupar Angus | PH13 | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Areas We Cover in Perthshire
 
@@ -1956,9 +1958,9 @@ No surcharge for Perth or central Perthshire postcodes. A travel supplement may 
 
 Perthshire is home to Gleneagles, one of the world's finest golf and resort destinations:
 
-- **Gleneagles Hotel and Golf Courses** (PH3) — average response 80 minutes
-- **Blairgowrie Golf Club** (PH10) — average response 85 minutes
-- **Dunkeld & Birnam Golf Club** (PH8) — average response 90 minutes
+- **Gleneagles Hotel and Golf Courses** (PH3) — average response ${SEO_RESPONSE_TIME_LABEL}
+- **Blairgowrie Golf Club** (PH10) — average response ${SEO_RESPONSE_TIME_LABEL}
+- **Dunkeld & Birnam Golf Club** (PH8) — average response ${SEO_RESPONSE_TIME_LABEL}
 
 ## How to Book in Perth
 
@@ -1969,13 +1971,13 @@ Perthshire is home to Gleneagles, one of the world's finest golf and resort dest
 ## Frequently Asked Questions
 
 ### How long does it take to reach Perth from Glasgow?
-Perth city centre is typically 70 minutes from our Glasgow depot via the M9/M90. In peak traffic (particularly on the M90 south of Perth), allow 90 minutes.
+Our typical response in Perth city centre is ${SEO_RESPONSE_TIME_LABEL}. Traffic on the M90 can affect the actual ETA, which we confirm when you call.
 
 ### Do you cover Gleneagles Hotel?
 Yes — Gleneagles and the surrounding PH3 area are in our regular coverage. We provide a professional, discreet service appropriate for the setting.
 
 ### Can you reach Pitlochry on the same day?
-Usually yes for Pitlochry (PH16) — response time is approximately 105 minutes. For locations beyond Pitlochry (Blair Atholl, Killiecrankie, Calvine), please allow additional time or book in advance.
+Usually yes for Pitlochry (PH16) — response time is approximately ${SEO_RESPONSE_TIME_LABEL}. For locations beyond Pitlochry (Blair Atholl, Killiecrankie, Calvine), call to confirm availability and your exact ETA, or book in advance.
 
 ### What about the route to Glenshee ski centre?
 The A93 Glenshee road is in our coverage area. In winter, please be aware that road conditions may affect our fitters' travel time and ability to work safely at altitude. We'll always give you a realistic assessment when you call.`,
@@ -1984,7 +1986,7 @@ The A93 Glenshee road is in our coverage area. In winter, please be aware that r
     slug: 'mobile-tyre-fitting-stirling-falkirk',
     title: 'Mobile Tyre Fitting in Stirling & Falkirk: Central Scotland Service',
     description:
-      'Mobile tyre fitting in Stirling, Falkirk, Alloa and across Central Scotland. Fast emergency response — 35 to 50 minutes. Call 0141 266 0690, available 24/7.',
+      `Mobile tyre fitting in Stirling, Falkirk, Alloa and across Central Scotland. Fast emergency response — ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690, available 24/7.`,
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -2007,23 +2009,23 @@ The A93 Glenshee road is in our coverage area. In winter, please be aware that r
 
 Stirling and Falkirk sit at the heart of Scotland's motorway network — the M9, M80, M876 and A9 all meet near Stirling, making it one of our fastest dispatch points in Central Scotland. Whether you're on the M80 near Bonnybridge, driving through Stirling's historic centre, or stuck on the Kincardine Bridge road, we reach you quickly.
 
-**Quick answer:** Call 0141 266 0690. Falkirk is typically 35 minutes from our base. Stirling city centre 40–45 minutes. Alloa 50 minutes. No surcharge for FK or Central Scotland postcodes.
+**Quick answer:** Call 0141 266 0690. Our typical response target in Falkirk, Stirling city centre and Alloa is ${SEO_RESPONSE_TIME_LABEL}. No surcharge for FK or Central Scotland postcodes.
 
 ## Response Times Across Central Scotland
 
 | Area | Postcode | Avg Response |
 |------|----------|-------------|
-| Falkirk Town Centre | FK1–FK2 | 35 min |
-| Grangemouth | FK3 | 35 min |
-| Bo'ness | FK4 | 40 min |
-| Stenhousemuir / Larbert | FK5 | 35 min |
-| Denny | FK6 | 38 min |
-| Stirling City Centre | FK7–FK8 | 42 min |
-| Bridge of Allan | FK9 | 45 min |
-| Alloa | FK10 | 50 min |
-| Tillicoultry / Clackmannan | FK13–FK14 | 52 min |
-| Callander | FK17 | 65 min |
-| Trossachs | FK17–FK21 | 75 min |
+| Falkirk Town Centre | FK1–FK2 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Grangemouth | FK3 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Bo'ness | FK4 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Stenhousemuir / Larbert | FK5 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Denny | FK6 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Stirling City Centre | FK7–FK8 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Bridge of Allan | FK9 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Alloa | FK10 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Tillicoultry / Clackmannan | FK13–FK14 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Callander | FK17 | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Trossachs | FK17–FK21 | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Areas Covered
 
@@ -2037,7 +2039,7 @@ Stirling castle area, St Ninians, Bannockburn, Cambusbarron, Bridge of Allan, Du
 Alloa, Tillicoultry, Dollar, Menstrie, Sauchie, Clackmannan, Tullibody.
 
 ### Trossachs and Loch Lomond Edge (FK17–FK21)
-Callander, Aberfoyle, Strathyre, Lochearnhead, Killin. These locations are in a beautiful but more remote area — response times are longer.
+Callander, Aberfoyle, Strathyre, Lochearnhead, Killin. These locations are in a beautiful but more remote area — call to confirm availability and your exact ETA.
 
 ## Tyre Fitting Prices
 
@@ -2070,7 +2072,7 @@ This area has Scotland's densest motorway network outside Glasgow. We cover emer
 ## Frequently Asked Questions
 
 ### How quickly can you reach Falkirk?
-Falkirk town centre is typically 35 minutes from our Glasgow base via the M80. Grangemouth is similar — 35 minutes.
+Our typical response target in Falkirk town centre and Grangemouth is ${SEO_RESPONSE_TIME_LABEL}. We serve these areas via the M80 from our Glasgow operations.
 
 ### Do you cover the Falkirk Wheel?
 Yes — the Falkirk Wheel and the Helix (with the Kelpies) are popular visitor destinations. Tyre incidents in the car parks and approach roads are covered. Tell us your exact parking location when calling.
@@ -2079,15 +2081,15 @@ Yes — the Falkirk Wheel and the Helix (with the Kelpies) are popular visitor d
 Yes — Stirling historic centre and the castle esplanade car parks are covered. The old town area has some narrow streets; our fitters know how to navigate to you efficiently.
 
 ### Do you cover Callander and the Trossachs?
-Yes — Callander (FK17) is in our coverage at approximately 65 minutes. For locations deeper in the Trossachs (Brig o'Turk, Glen Finglas), call us and we'll advise on realistic response times.
+Yes — Callander (FK17) is in our coverage at approximately ${SEO_RESPONSE_TIME_LABEL}. For locations deeper in the Trossachs (Brig o'Turk, Glen Finglas), call us and we'll advise on realistic response times.
 
 ### What about Dunblane?
-Dunblane (FK15) is 45 minutes from our base — we cover the town and surrounding areas. The A9 Dunblane junction is one of our most frequent Central Scotland emergency locations.`,
+Dunblane (FK15) and its surrounding areas are covered, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. The A9 Dunblane junction is one of our most frequent Central Scotland emergency locations.`,
   },
   {
     slug: '24-hour-emergency-tyre-fitting-scotland',
     title: '24-Hour Emergency Tyre Fitting in Scotland: What to Expect & How to Book',
-    description: 'Emergency tyre fitting available 24 hours a day across all of Scotland. Average 45-minute response in Glasgow and Edinburgh. Call 0141 266 0690 anytime — day or night.',
+    description: `Emergency tyre fitting available 24 hours a day across all of Scotland. Average ${SEO_RESPONSE_TIME_MINUTES}-minute response in Glasgow and Edinburgh. Call 0141 266 0690 anytime — day or night.`,
     category: 'emergency',
     publishDate: '2025-08-01',
     lastModified: '2025-08-01',
@@ -2112,21 +2114,21 @@ Many companies advertise "24-hour service" but rely on a callback system, an ans
 
 ## Response Times Across Scotland
 
-Response times vary by location. Here are realistic averages at different times of day:
+Our typical response is ${SEO_RESPONSE_TIME_LABEL}. We confirm your exact ETA based on your location and current fitter availability:
 
 | Location | Peak hours (7am–9am, 4pm–7pm) | Off-peak / night |
 |---|---|---|
-| Glasgow city centre | 40–55 min | 35–45 min |
-| Edinburgh city centre | 45–60 min | 40–50 min |
-| Dundee | 55–70 min | 50–65 min |
-| Perth | 60–75 min | 55–70 min |
-| Stirling | 40–55 min | 35–45 min |
-| Aberdeen | 85–110 min | 75–95 min |
-| Inverness | 90–120 min | 90–110 min |
-| Fort William | 100–130 min | 95–120 min |
-| Isle of Skye | 120–180 min | 120–180 min |
+| Glasgow city centre | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Edinburgh city centre | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Dundee | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Perth | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Stirling | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Aberdeen | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Inverness | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Fort William | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Isle of Skye | ${SEO_RESPONSE_TIME_MINUTES} min | ${SEO_RESPONSE_TIME_MINUTES} min |
 
-*Night-time response is often faster than peak hours because there is less traffic. A 3am callout in Glasgow often reaches you in 35–40 minutes.*
+*Night-time response is often faster than peak hours because there is less traffic. A 3am callout in Glasgow often reaches you in ${SEO_RESPONSE_TIME_LABEL}.*
 
 ## What Happens When You Call
 
@@ -2346,7 +2348,7 @@ We cover all of Scotland — [Glasgow](/mobile-tyre-fitting/glasgow), [Edinburgh
   {
     slug: 'mobile-tyre-fitting-paisley-renfrewshire',
     title: 'Mobile Tyre Fitting in Paisley & Renfrewshire: Same-Day Service, PA Postcodes',
-    description: 'Mobile tyre fitting in Paisley, Renfrew, Johnstone, Linwood and all Renfrewshire PA postcodes. Same-day fitting, 24/7 emergency callout. Typically 30 minutes from Glasgow base. Call 0141 266 0690.',
+    description: `Mobile tyre fitting in Paisley, Renfrew, Johnstone, Linwood and all Renfrewshire PA postcodes. Same-day fitting, 24/7 emergency callout. Typical response target: ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2025-08-15',
     lastModified: '2025-08-15',
@@ -2366,16 +2368,16 @@ We dispatch from our Glasgow base and reach most of Renfrewshire quickly:
 
 | Location | Average Response |
 |---|---|
-| Paisley town centre (PA1) | 25–35 minutes |
-| Renfrew (PA4) | 20–30 minutes |
-| Johnstone (PA5) | 30–40 minutes |
-| Linwood (PA3) | 25–35 minutes |
-| Erskine (PA8) | 30–40 minutes |
-| Glasgow Airport / PA3 | 25–35 minutes |
-| Bridge of Weir (PA11) | 40–50 minutes |
-| Bishopton (PA7) | 35–45 minutes |
+| Paisley town centre (PA1) | ${SEO_RESPONSE_TIME_LABEL} |
+| Renfrew (PA4) | ${SEO_RESPONSE_TIME_LABEL} |
+| Johnstone (PA5) | ${SEO_RESPONSE_TIME_LABEL} |
+| Linwood (PA3) | ${SEO_RESPONSE_TIME_LABEL} |
+| Erskine (PA8) | ${SEO_RESPONSE_TIME_LABEL} |
+| Glasgow Airport / PA3 | ${SEO_RESPONSE_TIME_LABEL} |
+| Bridge of Weir (PA11) | ${SEO_RESPONSE_TIME_LABEL} |
+| Bishopton (PA7) | ${SEO_RESPONSE_TIME_LABEL} |
 
-*Response times are approximate. Traffic on the M8/M77 can add 10–15 minutes during peak hours (7–9am, 4–7pm).*
+*Response times are approximate. Traffic on the M8/M77 can affect your actual ETA during peak hours (7–9am, 4–7pm).*
 
 ## Glasgow Airport Tyre Emergencies
 
@@ -2447,7 +2449,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'tyre-blowout-emergency-guide-scotland',
     title: 'Tyre Blowout: What to Do, How to Stay Safe & When to Call for Help',
-    description: 'What to do if a tyre blows out on a Scottish road or motorway. Step-by-step safety guide plus how to get emergency mobile tyre fitting across Scotland in under 90 minutes. Call 0141 266 0690.',
+    description: `What to do if a tyre blows out on a Scottish road or motorway. Step-by-step safety guide plus how to get emergency mobile tyre fitting across Scotland in ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
     category: 'safety',
     publishDate: '2025-08-20',
     lastModified: '2025-08-20',
@@ -2525,9 +2527,9 @@ Tyre Rescue can assess both the tyre and the rim at the roadside. In most cases,
 ## Emergency Tyre Fitting After a Blowout
 
 Call **0141 266 0690** — we operate 24/7 across all of Scotland:
-- Average 45-minute response in Glasgow and Edinburgh
-- Average 60–70 minutes in Dundee, Perth, and Stirling
-- Average 90 minutes in Aberdeen and Inverness
+- Average ${SEO_RESPONSE_TIME_MINUTES}-minute response in Glasgow and Edinburgh
+- Average ${SEO_RESPONSE_TIME_LABEL} in Dundee, Perth, and Stirling
+- Average ${SEO_RESPONSE_TIME_LABEL} in Aberdeen and Inverness
 - Coverage on all Scottish motorways and major A-roads
 
 We carry full roadside safety equipment, warning cones, and a comprehensive range of tyre sizes. No appointment needed — just call.
@@ -2557,7 +2559,7 @@ Yes — check tyre pressures monthly (including the spare), inspect for cracks o
   {
     slug: 'mobile-tyre-fitting-east-kilbride',
     title: 'Mobile Tyre Fitting in East Kilbride: Fast Response, G74 & G75 Coverage',
-    description: 'Mobile tyre fitting in East Kilbride, Nerston, Hairmyres and all G74/G75 postcodes. Fast dispatch from Glasgow — typically 35–45 minutes. 24/7 emergency callout. Call 0141 266 0690.',
+    description: `Mobile tyre fitting in East Kilbride, Nerston, Hairmyres and all G74/G75 postcodes. Glasgow-based operations — typical response target ${SEO_RESPONSE_TIME_LABEL}. 24/7 emergency callout. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2025-08-25',
     lastModified: '2025-08-25',
@@ -2575,13 +2577,13 @@ East Kilbride is Scotland's largest new town with a population of around 75,000 
 
 | Location | Average Response |
 |---|---|
-| East Kilbride town centre (G74 1) | 35–45 minutes |
-| Hairmyres / Kingsgate (G75 8) | 35–45 minutes |
-| Nerston / Stewartfield (G74 4) | 40–50 minutes |
-| Calderwood / St Leonards (G74 3) | 40–50 minutes |
-| Westwood (G75 9) | 40–50 minutes |
+| East Kilbride town centre (G74 1) | ${SEO_RESPONSE_TIME_LABEL} |
+| Hairmyres / Kingsgate (G75 8) | ${SEO_RESPONSE_TIME_LABEL} |
+| Nerston / Stewartfield (G74 4) | ${SEO_RESPONSE_TIME_LABEL} |
+| Calderwood / St Leonards (G74 3) | ${SEO_RESPONSE_TIME_LABEL} |
+| Westwood (G75 9) | ${SEO_RESPONSE_TIME_LABEL} |
 
-*East Kilbride bypasses (A726, A749) can add 10 minutes during peak hours (7–9am, 4–7pm).*
+*Traffic on East Kilbride bypasses (A726, A749) can affect your actual ETA during peak hours (7–9am, 4–7pm).*
 
 ## Areas We Cover
 
@@ -2606,10 +2608,10 @@ East Kilbride's road layout — a combination of ring roads, dual carriageways a
 ## Tyre Fitting for South Lanarkshire
 
 East Kilbride is our primary dispatch point for South Lanarkshire. From here we also cover:
-- **Strathaven** (ML10): +20 minutes
-- **Lesmahagow** (ML11): +30 minutes
-- **Biggar** (ML12): +45 minutes
-- **Lanark** (ML11): +40 minutes
+- **Strathaven** (ML10): ${SEO_RESPONSE_TIME_LABEL}
+- **Lesmahagow** (ML11): ${SEO_RESPONSE_TIME_LABEL}
+- **Biggar** (ML12): ${SEO_RESPONSE_TIME_LABEL}
+- **Lanark** (ML11): ${SEO_RESPONSE_TIME_LABEL}
 
 For [Hamilton and Lanarkshire](/blog/mobile-tyre-fitting-hamilton-lanarkshire) callouts, see our dedicated Hamilton coverage page.
 
@@ -2637,7 +2639,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-greenock-inverclyde',
     title: 'Mobile Tyre Fitting in Greenock & Inverclyde: PA15–PA19 Coverage',
-    description: 'Mobile tyre fitting in Greenock, Port Glasgow, Gourock, Inverkip and all Inverclyde PA15–PA19 postcodes. Fast dispatch, 24/7 emergency callout. Typically 40–55 minutes from Glasgow. Call 0141 266 0690.',
+    description: `Mobile tyre fitting in Greenock, Port Glasgow, Gourock, Inverkip and all Inverclyde PA15–PA19 postcodes. Fast dispatch, 24/7 emergency callout. Typical response target: ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2025-08-28',
     lastModified: '2025-08-28',
@@ -2647,7 +2649,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
     keywords: ['mobile tyre fitting greenock', 'tyre fitting inverclyde', 'emergency tyre greenock', 'mobile tyre port glasgow', 'puncture repair greenock', '24 hour tyre greenock', 'mobile tyre fitting gourock'],
     content: `# Mobile Tyre Fitting in Greenock & Inverclyde
 
-Tyre Rescue covers all of Inverclyde — Greenock, Port Glasgow, Gourock, Inverkip and Wemyss Bay. Dispatching from Glasgow via the A8/M8 and the A78 coastal road, we typically reach Greenock town centre in 40–50 minutes.
+Tyre Rescue covers all of Inverclyde — Greenock, Port Glasgow, Gourock, Inverkip and Wemyss Bay. Our coverage routes include the A8/M8 and the A78 coastal road from Glasgow. Our typical response target in Greenock town centre is ${SEO_RESPONSE_TIME_LABEL}.
 
 **Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
 
@@ -2655,12 +2657,12 @@ Tyre Rescue covers all of Inverclyde — Greenock, Port Glasgow, Gourock, Inverk
 
 | Location | Average Response |
 |---|---|
-| Greenock town centre (PA15/PA16) | 40–50 minutes |
-| Port Glasgow (PA14) | 35–45 minutes |
-| Gourock (PA19) | 50–60 minutes |
-| Inverkip (PA16) | 55–65 minutes |
-| Wemyss Bay (PA18) | 55–65 minutes |
-| Kilmacolm (PA13) | 40–50 minutes |
+| Greenock town centre (PA15/PA16) | ${SEO_RESPONSE_TIME_LABEL} |
+| Port Glasgow (PA14) | ${SEO_RESPONSE_TIME_LABEL} |
+| Gourock (PA19) | ${SEO_RESPONSE_TIME_LABEL} |
+| Inverkip (PA16) | ${SEO_RESPONSE_TIME_LABEL} |
+| Wemyss Bay (PA18) | ${SEO_RESPONSE_TIME_LABEL} |
+| Kilmacolm (PA13) | ${SEO_RESPONSE_TIME_LABEL} |
 
 ## Postcode Coverage
 
@@ -2693,13 +2695,13 @@ Standard tyre range for hatchbacks, saloons, SUVs and light vans. Popular sizes 
 ## Frequently Asked Questions
 
 ### Do you cover Wemyss Bay and the Rothesay ferry area?
-Yes — we reach Wemyss Bay (PA18) in approximately 55–65 minutes. We cover the ferry terminal car park and the surrounding roads. If you're catching the Rothesay ferry and have a tyre problem, call us as soon as possible.
+Yes — we reach Wemyss Bay (PA18) in approximately ${SEO_RESPONSE_TIME_LABEL}. We cover the ferry terminal car park and the surrounding roads. If you're catching the Rothesay ferry and have a tyre problem, call us as soon as possible.
 
 ### Can you come to James Watt Dock?
 Yes — the development and marina area are accessible and a regular callout location.
 
 ### Is Kilmacolm covered?
-Yes. Kilmacolm (PA13) is approximately 40–50 minutes. The A761 approach can add time in morning traffic.
+Yes. Kilmacolm (PA13) is approximately ${SEO_RESPONSE_TIME_LABEL}. The A761 approach can add time in morning traffic.
 
 ### Is there a surcharge for Inverclyde vs Glasgow?
 No surcharge. The standard £49 callout fee applies throughout Inverclyde.
@@ -2714,7 +2716,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-kirkcaldy-fife',
     title: 'Mobile Tyre Fitting in Kirkcaldy & Fife: KY Postcodes, Fast Response',
-    description: 'Mobile tyre fitting in Kirkcaldy, Glenrothes, Dunfermline, St Andrews and all Fife KY postcodes. Fast dispatch — typically 55–70 minutes. 24/7 emergency callout. Call 0141 266 0690.',
+    description: `Mobile tyre fitting in Kirkcaldy, Glenrothes, Dunfermline, St Andrews and all Fife KY postcodes. Fast dispatch — typically ${SEO_RESPONSE_TIME_LABEL}. 24/7 emergency callout. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -2732,14 +2734,14 @@ Tyre Rescue covers the whole of Fife — all KY postcodes from KY1 (Kirkcaldy) t
 
 | Location | Average Response |
 |---|---|
-| Kirkcaldy town centre (KY1) | 55–70 minutes |
-| Glenrothes (KY6–KY7) | 60–75 minutes |
-| Dunfermline (KY11–KY12) | 50–65 minutes |
-| St Andrews (KY16) | 75–90 minutes |
-| Cupar (KY15) | 70–85 minutes |
-| Burntisland (KY3) | 55–70 minutes |
-| Leven / Methil (KY8) | 65–80 minutes |
-| Anstruther / Pittenweem (KY10) | 80–95 minutes |
+| Kirkcaldy town centre (KY1) | ${SEO_RESPONSE_TIME_LABEL} |
+| Glenrothes (KY6–KY7) | ${SEO_RESPONSE_TIME_LABEL} |
+| Dunfermline (KY11–KY12) | ${SEO_RESPONSE_TIME_LABEL} |
+| St Andrews (KY16) | ${SEO_RESPONSE_TIME_LABEL} |
+| Cupar (KY15) | ${SEO_RESPONSE_TIME_LABEL} |
+| Burntisland (KY3) | ${SEO_RESPONSE_TIME_LABEL} |
+| Leven / Methil (KY8) | ${SEO_RESPONSE_TIME_LABEL} |
+| Anstruther / Pittenweem (KY10) | ${SEO_RESPONSE_TIME_LABEL} |
 
 ## Fife Postcode Coverage
 
@@ -2766,22 +2768,22 @@ Kirkcaldy is the Fife county town and our primary Fife dispatch. The A92 Kirkcal
 
 ## St Andrews Coverage
 
-St Andrews (KY16) is in our coverage at approximately 80–90 minutes. The historic town attracts significant tourist traffic and golf visitors, many in hire cars. We're a frequent callout for visitors who have driven from Edinburgh or Glasgow and encountered a puncture on Fife's rural roads.
+St Andrews (KY16) is covered, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. The historic town attracts significant tourist traffic and golf visitors, many in hire cars. We're a frequent callout for visitors who have driven from Edinburgh or Glasgow and encountered a puncture on Fife's rural roads.
 
 The A91 between St Andrews and Cupar, and the A917 coastal road through Crail and Anstruther, are common puncture locations due to the road surface condition and rural debris.
 
-## Dunfermline — Fastest Fife Response
+## Dunfermline — Local Fife Coverage
 
-Dunfermline (KY11/KY12) is our quickest Fife dispatch — accessible in 50–65 minutes via the M90/Queensferry Crossing from Glasgow, or 30–35 minutes from Edinburgh. Carnegie Shopping Centre, the town centre, and the Dunfermline Industrial Estate are regular callout locations.
+Dunfermline (KY11/KY12) is served via the M90/Queensferry Crossing from Glasgow and from our Edinburgh operations. We dispatch the nearest available fitter and confirm your exact ETA when you call. Carnegie Shopping Centre, the town centre, and the Dunfermline Industrial Estate are regular callout locations.
 
 ## The Kincardine Bridge Route
 
-The Kincardine Bridge (A876) connects Stirling to Fife and is an alternative to the Queensferry Crossing during congestion. We use this route for Central Fife callouts (Cowdenbeath, Lochgelly, Kelty area). If you're broken down between Kincardine and Glenrothes, call us — response times from this direction are typically 60–75 minutes.
+The Kincardine Bridge (A876) connects Stirling to Fife and is an alternative to the Queensferry Crossing during congestion. We use this route for Central Fife callouts (Cowdenbeath, Lochgelly, Kelty area). If you're broken down between Kincardine and Glenrothes, call us — response times from this direction are typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Frequently Asked Questions
 
 ### Do you cover the East Neuk of Fife?
-Yes — Anstruther (KY10), Pittenweem, St Monans, Crail and Elie are all covered. Response times are 80–95 minutes from Glasgow. Advance booking is recommended if you know you'll be in the East Neuk.
+Yes — Anstruther (KY10), Pittenweem, St Monans, Crail and Elie are all covered. Our typical response target is ${SEO_RESPONSE_TIME_LABEL}. Advance booking is recommended if you know you'll be in the East Neuk.
 
 ### Can you come to St Andrews Golf Course hotels?
 Yes — we cover all St Andrews hotels, B&Bs and the Old Course Hotel car park area. Golf visitors with hire car tyre problems are a regular callout.
@@ -2790,7 +2792,7 @@ Yes — we cover all St Andrews hotels, B&Bs and the Old Course Hotel car park a
 No. Fife is within our standard coverage. The £49 callout fee applies throughout the KY postcode area.
 
 ### Do you cover Kinross (KY13)?
-Yes. Kinross is at the junction of the M90 and sits between Glasgow and Perth. Response time is approximately 60–75 minutes.
+Yes. Kinross is at the junction of the M90 and sits between Glasgow and Perth. Response time is approximately ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Book Mobile Tyre Fitting in Kirkcaldy & Fife
 
@@ -2812,7 +2814,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
     keywords: ['mobile tyre fitting dumfries', 'tyre fitting galloway', 'emergency tyre dumfries', 'mobile tyre stranraer', 'puncture repair dumfries', 'mobile tyre DG postcodes', 'tyre fitting south scotland'],
     content: `# Mobile Tyre Fitting in Dumfries & Galloway
 
-Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG1 (Dumfries town) to DG16 (Gretna area). Dispatching from our Glasgow base via the A74(M), we reach Dumfries town in approximately 80 minutes. For more remote areas of the region — Stranraer, Newton Stewart, Kirkudbright — advance booking is strongly recommended.
+Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG1 (Dumfries town) to DG16 (Gretna area). Our coverage follows the A74(M) from Glasgow, with a typical response target of ${SEO_RESPONSE_TIME_LABEL} in Dumfries town. For more remote areas of the region — Stranraer, Newton Stewart, Kirkudbright — advance booking is strongly recommended.
 
 **Call 0141 266 0690** for emergency response or [book online](/book) for scheduled fitting.
 
@@ -2820,14 +2822,14 @@ Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG
 
 | Location | Average Response |
 |---|---|
-| Dumfries town centre (DG1) | 80–95 minutes |
-| Annan (DG12) | 75–90 minutes |
-| Lockerbie (DG11) | 70–85 minutes |
-| Gretna / Gretna Green (DG16) | 70–80 minutes |
-| Castle Douglas (DG7) | 90–110 minutes |
-| Kirkcudbright (DG6) | 95–115 minutes |
-| Newton Stewart (DG8) | 100–120 minutes |
-| Stranraer (DG9) | 110–130 minutes |
+| Dumfries town centre (DG1) | ${SEO_RESPONSE_TIME_LABEL} |
+| Annan (DG12) | ${SEO_RESPONSE_TIME_LABEL} |
+| Lockerbie (DG11) | ${SEO_RESPONSE_TIME_LABEL} |
+| Gretna / Gretna Green (DG16) | ${SEO_RESPONSE_TIME_LABEL} |
+| Castle Douglas (DG7) | ${SEO_RESPONSE_TIME_LABEL} |
+| Kirkcudbright (DG6) | ${SEO_RESPONSE_TIME_LABEL} |
+| Newton Stewart (DG8) | ${SEO_RESPONSE_TIME_LABEL} |
+| Stranraer (DG9) | ${SEO_RESPONSE_TIME_LABEL} |
 
 *For Stranraer and the Rhins of Galloway, advance booking is essential. Same-day emergency service may not always be possible in very remote areas.*
 
@@ -2853,20 +2855,20 @@ Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG
 
 The A74(M) / M74 is Scotland's main southbound motorway, running from Glasgow through Lockerbie to the English border at Gretna. It's one of Scotland's busiest freight routes and generates a significant number of tyre callouts, especially from HGVs and motorhomes.
 
-If you break down on the A74(M), use a motorway emergency phone or call 999 first if in immediate danger. Then call us on 0141 266 0690. Response from Glasgow to the Lockerbie area is typically 70–85 minutes.
+If you break down on the A74(M), use a motorway emergency phone or call 999 first if in immediate danger. Then call us on 0141 266 0690. Our typical response target in the Lockerbie area is ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Stranraer and the Cairnryan Ferry
 
-The P&O and Stena Line ferries from Cairnryan (DG9) to Belfast serve thousands of passengers each week. We cover the ferry terminal and Stranraer town, though response times here are 110–130 minutes. If you're heading for an early ferry, we recommend booking the night before to ensure your vehicle is road-ready.
+The P&O and Stena Line ferries from Cairnryan (DG9) to Belfast serve thousands of passengers each week. We cover the ferry terminal and Stranraer town, though response times here are ${SEO_RESPONSE_TIME_LABEL}. If you're heading for an early ferry, we recommend booking the night before to ensure your vehicle is road-ready.
 
 ## Gretna Green — A Special Location
 
-Gretna Green (DG16) is just over the Scottish border and one of Scotland's most visited tourist destinations. Located right on the A74(M)/M6 junction, response time is approximately 70–80 minutes. Hire car and motorhome callouts are particularly common here.
+Gretna Green (DG16) is just over the Scottish border and one of Scotland's most visited tourist destinations. Located right on the A74(M)/M6 junction, response time is approximately ${SEO_RESPONSE_TIME_LABEL}. Hire car and motorhome callouts are particularly common here.
 
 ## Frequently Asked Questions
 
 ### Can you come to Stranraer for a ferry connection?
-We can, but with a 110–130 minute response time. If you have a ferry booking, call us as soon as you discover the problem and we will do our best to get to you in time. If there's a risk of missing the ferry, we'll tell you honestly.
+We can, but with a ${SEO_RESPONSE_TIME_MINUTES}-minute response time. If you have a ferry booking, call us as soon as you discover the problem and we will do our best to get to you in time. If there's a risk of missing the ferry, we'll tell you honestly.
 
 ### Do you cover the A75 Euroroute?
 Yes. The A75 from Dumfries to Stranraer passes through Castle Douglas, Newton Stewart and Glenluce. This road — Scotland's main ferry route to Northern Ireland — is covered. Callouts on the A75 are common, particularly near Castle Douglas and Newton Stewart.
@@ -2896,7 +2898,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
 
 Fort William is the gateway to the Scottish Highlands — Ben Nevis, Glencoe, the Great Glen, and the start of the North Coast 500 tourist route. It's also one of Scotland's most important outdoor recreation centres, drawing hundreds of thousands of visitors each year in campervans, motorhomes, and hire cars on narrow Highland roads.
 
-Tyre Rescue covers Fort William and the full Lochaber area. Our response time to Fort William town centre is approximately 100–120 minutes from our Glasgow base.
+Tyre Rescue covers Fort William and the full Lochaber area. Our typical response target in Fort William town centre is ${SEO_RESPONSE_TIME_LABEL}.
 
 **Call 0141 266 0690** or [book in advance](/book) — advance booking is recommended for this area.
 
@@ -2904,14 +2906,14 @@ Tyre Rescue covers Fort William and the full Lochaber area. Our response time to
 
 | Location | Average Response |
 |---|---|
-| Fort William town centre (PH33 6) | 100–120 minutes |
-| Spean Bridge (PH34) | 110–130 minutes |
-| Roy Bridge / Tulloch (PH31) | 115–135 minutes |
-| Glencoe village (PH49) | 90–110 minutes |
-| Ballachulish (PH49) | 90–115 minutes |
-| Kinlochleven (PH50) | 105–125 minutes |
-| Mallaig (PH41) | 130–160 minutes |
-| Acharacle (PH36) | 120–150 minutes |
+| Fort William town centre (PH33 6) | ${SEO_RESPONSE_TIME_LABEL} |
+| Spean Bridge (PH34) | ${SEO_RESPONSE_TIME_LABEL} |
+| Roy Bridge / Tulloch (PH31) | ${SEO_RESPONSE_TIME_LABEL} |
+| Glencoe village (PH49) | ${SEO_RESPONSE_TIME_LABEL} |
+| Ballachulish (PH49) | ${SEO_RESPONSE_TIME_LABEL} |
+| Kinlochleven (PH50) | ${SEO_RESPONSE_TIME_LABEL} |
+| Mallaig (PH41) | ${SEO_RESPONSE_TIME_LABEL} |
+| Acharacle (PH36) | ${SEO_RESPONSE_TIME_LABEL} |
 
 *For Mallaig, Acharacle and the more remote parts of Ardnamurchan and Morvern, advance booking is essential and same-day emergency service may not always be achievable.*
 
@@ -2924,7 +2926,7 @@ The A82 from Glasgow to Inverness via Glencoe and Fort William is one of Scotlan
 - Glencoe Pass and the A82 Devil's Staircase section
 - Ballachulish Bridge → Fort William (A82)
 
-If you break down on the A82 in Glencoe, pull into one of the layby areas, switch on hazards, and call us. Response from Glasgow to Glencoe is approximately 90–110 minutes.
+If you break down on the A82 in Glencoe, pull into one of the layby areas, switch on hazards, and call us. Our typical response target in Glencoe is ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Ben Nevis Visitor Area
 
@@ -2938,18 +2940,18 @@ While the NC500 officially starts and ends in Inverness, many drivers begin thei
 
 The A830 from Fort William to Mallaig serves the Jacobite Steam Train route and the Skye and Outer Hebrides ferry connections at Mallaig. It's a single-track road for much of its length and a frequent location for tyre incidents with hire cars unaccustomed to passing places.
 
-We cover the A830 corridor. For Mallaig callouts, response time is 130–160 minutes — advance booking is strongly recommended.
+We cover the A830 corridor. For Mallaig callouts, response time is ${SEO_RESPONSE_TIME_LABEL} — advance booking is strongly recommended.
 
 ## Frequently Asked Questions
 
 ### Do you cover Glencoe Pass?
-Yes. We cover the full A82 through Glencoe including the National Trust for Scotland ranger station area. If broken down in Glencoe, use a safe layby and switch on hazards. Response is approximately 90–110 minutes from Glasgow.
+Yes. We cover the full A82 through Glencoe including the National Trust for Scotland ranger station area. If broken down in Glencoe, use a safe layby and switch on hazards. Our typical response target is ${SEO_RESPONSE_TIME_LABEL}.
 
 ### Can you come to the Ben Nevis car park?
-Yes. The Glen Nevis car parks and Ben Nevis visitor area are accessible for our vans. Response time is approximately 100–120 minutes.
+Yes. The Glen Nevis car parks and Ben Nevis visitor area are accessible for our vans. Response time is approximately ${SEO_RESPONSE_TIME_LABEL}.
 
 ### What about Ardnamurchan and Morvern?
-These very remote peninsulas are covered but with longer response times (140–180 minutes). Advance booking is strongly recommended. We'll always give you an honest assessment of what's achievable.
+These very remote peninsulas are covered, with a typical response of ${SEO_RESPONSE_TIME_LABEL}. Advance booking is strongly recommended. We'll always confirm availability and your exact ETA.
 
 ### Is there a surcharge for Fort William?
 Yes — for the Fort William area and beyond, there is a distance supplement of approximately £20–40 on top of the standard £49 callout fee. We confirm all costs before dispatching.
@@ -2964,7 +2966,7 @@ Or [book in advance](/book) for scheduled Highland fitting.
   {
     slug: 'mobile-tyre-fitting-east-lothian',
     title: 'Mobile Tyre Fitting in East Lothian: EH39–EH42 Postcodes, Fast Edinburgh Dispatch',
-    description: 'Mobile tyre fitting in Haddington, North Berwick, Dunbar, Musselburgh and all East Lothian EH postcodes. Fast 40–60 minute response from Edinburgh. 24/7 emergency callout. Call 0141 266 0690.',
+    description: `Mobile tyre fitting in Haddington, North Berwick, Dunbar, Musselburgh and all East Lothian EH postcodes. Fast ${SEO_RESPONSE_TIME_MINUTES}-minute response from Edinburgh. 24/7 emergency callout. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -2974,7 +2976,7 @@ Or [book in advance](/book) for scheduled Highland fitting.
     keywords: ['mobile tyre fitting east lothian', 'tyre fitting haddington', 'emergency tyre north berwick', 'mobile tyre dunbar', 'puncture repair east lothian', 'mobile tyre EH postcodes', 'tyre fitting musselburgh'],
     content: `# Mobile Tyre Fitting in East Lothian
 
-East Lothian is Edinburgh's eastern commuter belt — a mix of affluent coastal towns, golf resorts, retail parks and busy main roads. Tyre Rescue covers all of East Lothian dispatching from Edinburgh, typically reaching Haddington in 40–50 minutes and North Berwick in 50–65 minutes.
+East Lothian is Edinburgh's eastern commuter belt — a mix of affluent coastal towns, golf resorts, retail parks and busy main roads. Tyre Rescue covers all of East Lothian dispatching from Edinburgh, typically reaching Haddington in ${SEO_RESPONSE_TIME_LABEL} and North Berwick in ${SEO_RESPONSE_TIME_LABEL}.
 
 **Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
 
@@ -2982,14 +2984,14 @@ East Lothian is Edinburgh's eastern commuter belt — a mix of affluent coastal 
 
 | Location | Average Response |
 |---|---|
-| Musselburgh (EH21) | 35–45 minutes |
-| Tranent (EH33) | 40–50 minutes |
-| Prestonpans (EH32) | 40–50 minutes |
-| Haddington (EH41) | 45–55 minutes |
-| North Berwick (EH39) | 50–65 minutes |
-| Dunbar (EH42) | 55–70 minutes |
-| East Linton (EH40) | 50–60 minutes |
-| Gullane / Aberlady (EH31/EH32) | 50–65 minutes |
+| Musselburgh (EH21) | ${SEO_RESPONSE_TIME_LABEL} |
+| Tranent (EH33) | ${SEO_RESPONSE_TIME_LABEL} |
+| Prestonpans (EH32) | ${SEO_RESPONSE_TIME_LABEL} |
+| Haddington (EH41) | ${SEO_RESPONSE_TIME_LABEL} |
+| North Berwick (EH39) | ${SEO_RESPONSE_TIME_LABEL} |
+| Dunbar (EH42) | ${SEO_RESPONSE_TIME_LABEL} |
+| East Linton (EH40) | ${SEO_RESPONSE_TIME_LABEL} |
+| Gullane / Aberlady (EH31/EH32) | ${SEO_RESPONSE_TIME_LABEL} |
 
 ## Postcode Coverage
 
@@ -3018,18 +3020,18 @@ North Berwick is home to some of Scotland's finest golf courses — North Berwic
 
 ## Musselburgh — Eastern Edinburgh Gateway
 
-Musselburgh (EH21) is East Lothian's largest town and sits on Edinburgh's eastern boundary. The A1 flyover, the Newcraighall Retail Park, and Musselburgh Racecourse are common callout locations. Response from Edinburgh to Musselburgh is 35–45 minutes — among our fastest East Lothian responses.
+Musselburgh (EH21) is East Lothian's largest town and sits on Edinburgh's eastern boundary. The A1 flyover, the Newcraighall Retail Park, and Musselburgh Racecourse are common callout locations. Response from Edinburgh to Musselburgh is ${SEO_RESPONSE_TIME_LABEL} — among our fastest East Lothian responses.
 
 ## Frequently Asked Questions
 
 ### Do you cover Musselburgh from Edinburgh or from Glasgow?
-Primarily from Edinburgh — response is 35–45 minutes. From Glasgow it would be longer (75–90 minutes). We dispatch from the nearest available fitter.
+We dispatch the nearest available fitter from our Edinburgh and Glasgow operations, with a typical response of ${SEO_RESPONSE_TIME_LABEL}. We confirm your exact ETA when you call.
 
 ### Can you come to Dunbar for A1 motorway breakdowns?
-Yes. Dunbar (EH42) is typically 55–70 minutes. The A1 dual carriageway section near Dunbar is a common callout location.
+Yes. Dunbar (EH42) is typically ${SEO_RESPONSE_TIME_LABEL}. The A1 dual carriageway section near Dunbar is a common callout location.
 
 ### Do you cover Gifford and Humbie in the Lammermuirs?
-Yes — Gifford (EH41) and Humbie (EH36) are in our coverage area. Response is 60–75 minutes. Advance booking is recommended for very rural East Lothian locations.
+Yes — Gifford (EH41) and Humbie (EH36) are in our coverage area. Response is ${SEO_RESPONSE_TIME_LABEL}. Advance booking is recommended for very rural East Lothian locations.
 
 ### Is there a surcharge for East Lothian compared to Edinburgh?
 No. East Lothian is within our standard Edinburgh service area. The £49 callout fee applies throughout.
@@ -3044,7 +3046,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-elgin-moray',
     title: 'Mobile Tyre Fitting in Elgin & Moray: IV30 and AB Postcode Coverage',
-    description: 'Mobile tyre fitting in Elgin, Forres, Keith, Buckie and all Moray IV30-IV36 postcodes. Advance booking recommended. Emergency response 80–100 minutes from Aberdeen. Call 0141 266 0690.',
+    description: `Mobile tyre fitting in Elgin, Forres, Keith, Buckie and all Moray IV30-IV36 postcodes. Advance booking recommended. Emergency response ${SEO_RESPONSE_TIME_LABEL} from Aberdeen. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -3056,7 +3058,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
 
 Elgin is the principal town of Moray — an area of outstanding natural beauty and some of Scotland's finest whisky country. Tyre Rescue covers the Moray region including Elgin, Forres, Keith, Buckie, Lossiemouth and the full IV30–IV36 postcode area.
 
-Dispatch is from both our Aberdeen base (A96 route, ~80 minutes to Elgin) and our Inverness network (A96 westbound, ~55 minutes to Elgin). We always dispatch from whichever is faster for your location.
+Dispatch is from both our Aberdeen base via the A96 and our Inverness network via the A96 westbound. We send the nearest available fitter and confirm your exact ETA when you call.
 
 **Call 0141 266 0690** or [book in advance](/book) — advance booking is recommended for the Moray area.
 
@@ -3064,14 +3066,14 @@ Dispatch is from both our Aberdeen base (A96 route, ~80 minutes to Elgin) and ou
 
 | Location | Approx. Response (Aberdeen route) |
 |---|---|
-| Elgin town centre (IV30) | 80–100 minutes |
-| Forres (IV36) | 75–95 minutes |
-| Keith (AB55) | 70–90 minutes |
-| Buckie (AB56) | 80–100 minutes |
-| Lossiemouth (IV31) | 85–105 minutes |
-| Burghead / Hopeman (IV30) | 85–105 minutes |
-| Aberlour / Craigellachie (AB38) | 80–95 minutes |
-| Rothes (AB38) | 85–100 minutes |
+| Elgin town centre (IV30) | ${SEO_RESPONSE_TIME_LABEL} |
+| Forres (IV36) | ${SEO_RESPONSE_TIME_LABEL} |
+| Keith (AB55) | ${SEO_RESPONSE_TIME_LABEL} |
+| Buckie (AB56) | ${SEO_RESPONSE_TIME_LABEL} |
+| Lossiemouth (IV31) | ${SEO_RESPONSE_TIME_LABEL} |
+| Burghead / Hopeman (IV30) | ${SEO_RESPONSE_TIME_LABEL} |
+| Aberlour / Craigellachie (AB38) | ${SEO_RESPONSE_TIME_LABEL} |
+| Rothes (AB38) | ${SEO_RESPONSE_TIME_LABEL} |
 
 ## Postcode Coverage
 
@@ -3104,13 +3106,13 @@ RAF Lossiemouth (IV31) is one of Scotland's busiest military airbases. Civilian 
 Yes — we cover the Dufftown (AB55), Rothes (AB38) and Craigellachie areas. For very remote distillery access roads (single-track, no passing places), meet us at the nearest public road.
 
 ### Do you cover Burghead and Findhorn?
-Yes. Burghead (IV30) and Findhorn (IV36) are in our coverage. Findhorn Bay and the Findhorn Village area are covered — response approximately 90–105 minutes.
+Yes. Burghead (IV30) and Findhorn (IV36) are in our coverage. Findhorn Bay and the Findhorn Village area are covered — response approximately ${SEO_RESPONSE_TIME_LABEL}.
 
 ### Is there a surcharge for Moray?
 For Elgin and Forres, the standard £49 callout fee applies. For more remote Moray locations — Dufftown, Tomintoul — there may be a small distance supplement. We always confirm before dispatching.
 
 ### Do you cover Keith and the AB55 area?
-Yes. Keith sits between Aberdeen and Elgin and is accessible from both directions. Response time is approximately 70–90 minutes.
+Yes. Keith sits between Aberdeen and Elgin and is accessible from both directions. Response time is approximately ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Book Mobile Tyre Fitting in Elgin & Moray
 
@@ -3167,10 +3169,10 @@ More rural parts of North Lanarkshire are covered too. We serve these areas with
 North Lanarkshire sits at the junction of the M8 and M74 — two of Scotland's busiest motorways. A blowout or slow puncture on these routes is stressful. Tyre Rescue responds faster than a traditional garage because we come to you — no towing, no waiting room.
 
 ### Response Times in North Lanarkshire
-- **Motherwell/Wishaw**: typically 40–55 minutes
-- **Coatbridge/Airdrie**: typically 45–60 minutes
-- **Bellshill**: typically 35–50 minutes (close to M74 junction)
-- **Shotts/Carluke**: typically 60–75 minutes
+- **Motherwell/Wishaw**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Coatbridge/Airdrie**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Bellshill**: typically ${SEO_RESPONSE_TIME_LABEL} (close to M74 junction)
+- **Shotts/Carluke**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 All times are indicative and depend on traffic conditions on the M74, M8, and A723.
 
@@ -3270,9 +3272,9 @@ Dunfermline has several tyre garages — but mobile fitting offers:
 
 ## Response Times in West Fife
 
-- **Dunfermline town centre**: typically 45–60 minutes
-- **Rosyth / Inverkeithing**: typically 50–65 minutes
-- **Cowdenbeath / Lochgelly**: typically 60–75 minutes
+- **Dunfermline town centre**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Rosyth / Inverkeithing**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Cowdenbeath / Lochgelly**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 Times depend on traffic through the Forth crossing and on the M90.
 
@@ -3344,10 +3346,10 @@ The A78 runs from Greenock to Ayr along the Firth of Clyde coast. It's a busy co
 
 ## Response Times in North Ayrshire
 
-- **Irvine**: typically 40–55 minutes
-- **Kilwinning**: typically 45–60 minutes
-- **Saltcoats / Ardrossan**: typically 50–65 minutes
-- **Largs**: typically 60–75 minutes
+- **Irvine**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Kilwinning**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Saltcoats / Ardrossan**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Largs**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 Traffic on the A737 and A78 affects response times.
 
@@ -3417,18 +3419,18 @@ The mainland gateway to Skye via the Skye Bridge. Callouts near the bridge are c
 The ferry terminal for the Outer Hebrides. If you have a flat before catching the ferry to Harris or Uist, call us first.
 
 **Dunvegan (IV55)**
-The northwest of the island near Dunvegan Castle. We cover this area, though response times are longer.
+The northwest of the island near Dunvegan Castle. We cover this area; call to confirm availability and your exact ETA.
 
 **Sleat Peninsula (IV43–IV44)**
 The southern tip of Skye is covered. Home to Armadale and the Mallaig ferry terminal.
 
 ## Response Times on Skye
 
-Due to the island's geography, response times are longer than on the mainland:
-- **Portree**: typically 90–120 minutes from dispatch
-- **Broadford**: typically 75–100 minutes
-- **Kyle of Lochalsh**: typically 60–90 minutes
-- **Dunvegan / Uig**: typically 110–140 minutes
+Our typical response on Skye is ${SEO_RESPONSE_TIME_LABEL}; we confirm availability and your exact ETA when you call:
+- **Portree**: typically ${SEO_RESPONSE_TIME_LABEL} from dispatch
+- **Broadford**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Kyle of Lochalsh**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Dunvegan / Uig**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 We'll always give you an honest estimate when you call. Response times depend on traffic on the A87 and ferry availability.
 
@@ -3518,11 +3520,11 @@ Tyre damage from road debris and agricultural vehicles is common on these routes
 
 ## Response Times in the Scottish Borders
 
-- **Galashiels**: typically 60–80 minutes from Glasgow/Edinburgh dispatch
-- **Peebles**: typically 50–65 minutes
-- **Hawick**: typically 75–95 minutes
-- **Jedburgh / Kelso**: typically 80–100 minutes
-- **Duns / Eyemouth**: typically 90–110 minutes
+- **Galashiels**: typical response target ${SEO_RESPONSE_TIME_LABEL}; covered by our Glasgow and Edinburgh operations
+- **Peebles**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Hawick**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Jedburgh / Kelso**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Duns / Eyemouth**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 The A68 and A7 are generally clear roads, but winter conditions and agricultural vehicles can slow progress.
 
@@ -3586,7 +3588,7 @@ The administrative centre of Argyll. We cover the town and surrounding Mid Argyl
 These Kintyre gateway towns are within our coverage. Tarbert connects the A83 to the Kintyre Peninsula.
 
 **Campbeltown (PA28)**
-The southernmost major town in Argyll, at the tip of the Kintyre Peninsula. Response times are longer but we do cover Campbeltown.
+The southernmost major town in Argyll, at the tip of the Kintyre Peninsula. We cover Campbeltown; call to confirm availability and your exact ETA.
 
 **Dunoon & Cowal (PA23)**
 The Cowal Peninsula town, accessible via the Gourock–Dunoon ferry or the A815/A83 route. We cover Dunoon and surrounding Cowal communities.
@@ -3601,11 +3603,11 @@ We cover both routes and respond to roadside callouts along them.
 
 ## Response Times in Argyll
 
-- **Oban**: typically 90–120 minutes from Glasgow
-- **Inveraray**: typically 60–80 minutes
-- **Lochgilphead**: typically 90–110 minutes
-- **Campbeltown**: typically 150–180 minutes (very remote — please call ahead)
-- **Dunoon**: typically 70–90 minutes
+- **Oban**: typical response target ${SEO_RESPONSE_TIME_LABEL}; covered by our Glasgow operations
+- **Inveraray**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Lochgilphead**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Campbeltown**: typically ${SEO_RESPONSE_TIME_LABEL} (very remote — please call ahead)
+- **Dunoon**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 We always give an honest ETA when you call. For Campbeltown, we recommend calling as soon as a fault is noticed.
 
@@ -3678,9 +3680,9 @@ The M80 is the main link between Glasgow and Stirling, passing through Cumbernau
 
 ## Response Times
 
-- **Cumbernauld town centre**: typically 30–45 minutes
-- **Kilsyth**: typically 35–50 minutes
-- **Bonnybridge**: typically 45–60 minutes
+- **Cumbernauld town centre**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Kilsyth**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Bonnybridge**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 Cumbernauld's proximity to Glasgow makes it one of our faster response areas outside the city.
 
@@ -3767,10 +3769,10 @@ Thurso is the gateway for the NorthLink ferry to Orkney from Scrabster. If you'r
 
 ## Response Times in Caithness
 
-Due to the extreme distance from our dispatch centres:
-- **Wick / Thurso**: typically 150–180 minutes (driving from Inverness area)
-- **John o'Groats**: typically 160–200 minutes
-- **Dunbeath / Lybster**: typically 130–160 minutes
+Our typical response is ${SEO_RESPONSE_TIME_LABEL}; call to confirm availability and your exact ETA:
+- **Wick / Thurso**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **John o'Groats**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Dunbeath / Lybster**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 We're transparent about these times. For remote callouts, we recommend calling the moment you notice a fault rather than waiting.
 
@@ -3851,10 +3853,10 @@ Montrose has a significant offshore oil support sector. Workers and supply vehic
 
 ## Response Times in Angus
 
-- **Carnoustie / Arbroath**: typically 45–65 minutes from Dundee area
-- **Forfar**: typically 55–75 minutes
-- **Montrose**: typically 65–85 minutes
-- **Brechin**: typically 70–90 minutes
+- **Carnoustie / Arbroath**: typically ${SEO_RESPONSE_TIME_LABEL} from Dundee area
+- **Forfar**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Montrose**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Brechin**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 Traffic on the A90 and A92 affects all times.
 
@@ -3928,21 +3930,21 @@ The central island linked by causeways to North and South Uist. Home to an airpo
 Connected to Benbecula by causeway. We cover Lochboisdale and surrounding South Uist communities.
 
 **Barra (HS9)**
-The southernmost inhabited island. Reachable via the Oban ferry to Castlebay. Response times here are the longest in our network — please call as early as possible.
+The southernmost inhabited island. Reachable via the Oban ferry to Castlebay. Call to confirm availability and your exact ETA.
 
 ## Coordinating with CalMac Ferries
 
 If you need tyres brought to an island, we work with CalMac's freight booking system where required. For scheduled (non-emergency) tyre orders, we can pre-ship tyres to island destinations and arrange fitting with local partners.
 
-For emergency callouts on Lewis or Harris, we aim to have a fitter on the ferry or on-island within the same day where possible.
+For emergency callouts on Lewis or Harris, call to confirm fitter availability and your exact ETA.
 
 ## Response Times in the Western Isles
 
-Response times vary significantly depending on ferry availability:
-- **Stornoway (Lewis)**: typically same-day with morning call, next-day for late calls
-- **Harris**: add 1–2 hours to Stornoway times
-- **North Uist / Benbecula / South Uist**: typically 24 hours from booking
-- **Barra**: typically 24–48 hours from booking
+Our typical response is ${SEO_RESPONSE_TIME_LABEL}; call to confirm availability and your exact ETA:
+- **Stornoway (Lewis)**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Harris**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **North Uist / Benbecula / South Uist**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Barra**: typically ${SEO_RESPONSE_TIME_LABEL}
 
 We'll always give you an honest timeline when you call. Ferry schedules and weather can affect these times significantly.
 
@@ -4011,7 +4013,7 @@ The capital and our primary base on Shetland. We cover Lerwick town centre, the 
 Shetland's former capital on the west coast, connected to Lerwick by the A970. We cover Scalloway and the Whiteness and Weisdale valleys.
 
 **Brae & Voe (ZE2)**
-The north mainland communities accessible via the A970. We cover these areas, though response times are longer.
+The north mainland communities accessible via the A970. We cover these areas; call to confirm availability and your exact ETA.
 
 **Sumburgh & South Mainland (ZE3)**
 The southern tip of Shetland, including Sumburgh Airport and the Jarlshof archaeological site. We cover the south mainland.
@@ -4025,11 +4027,11 @@ Shetland is connected to Aberdeen and Orkney via the NorthLink ferry (Aberdeen�
 
 ## Response Times in Shetland
 
-Shetland callouts have the longest response times in our network:
-- **Lerwick town**: typically same-day with a morning call (via scheduled ferry or flight charter for genuine emergencies)
-- **South Mainland**: add 30–60 minutes to Lerwick times
-- **North Mainland**: add 60–90 minutes to Lerwick times
-- **Outer islands (Yell, Unst)**: 24–48 hours — please plan in advance
+Our typical response is ${SEO_RESPONSE_TIME_LABEL}; call to confirm availability and your exact ETA:
+- **Lerwick town**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **South Mainland**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **North Mainland**: typically ${SEO_RESPONSE_TIME_LABEL}
+- **Outer islands (Yell, Unst)**: typically ${SEO_RESPONSE_TIME_LABEL} — please contact us in advance to confirm availability
 
 We will always give you an honest assessment when you call. For genuine breakdowns, we explore all options including local partnerships.
 
@@ -4245,8 +4247,8 @@ Classic Defenders often use 235/85R16 (mud terrain) or 265/75R16 — less common
 
 Highland breakdown? Estate road flat? We cover all of Scotland — from the M8 to the NC500. Land Rover and Range Rover breakdowns on remote routes are a common callout for our team.
 
-- **Glasgow and Edinburgh**: 25–40 minutes
-- **Aberdeen and Inverness**: 90 minutes
+- **Glasgow and Edinburgh**: ${SEO_RESPONSE_TIME_LABEL}
+- **Aberdeen and Inverness**: ${SEO_RESPONSE_TIME_LABEL}
 - **Highland and remote routes**: Call immediately and we will confirm an accurate ETA
 
 Call **0141 266 0690** — 24 hours a day, all of Scotland.
@@ -4430,18 +4432,18 @@ Falkirk sits at the exact centre of Scotland's motorway network — the M9, M80,
 
 The M9 (Edinburgh–Stirling) and M80 (Glasgow–Stirling) both pass through the Falkirk area. We attend motorway breakdowns across the full Falkirk section of both routes.
 
-For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity, exit left, stand behind the barrier, then call **0141 266 0690**. Response to M9/M80 Falkirk sections is typically 35–55 minutes.
+For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity, exit left, stand behind the barrier, then call **0141 266 0690**. Response to M9/M80 Falkirk sections is typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Response Times
 
 | Location | Typical Response |
 |----------|-----------------|
-| Falkirk town centre (FK1) | 35–45 min |
-| Grangemouth (FK3) | 35–50 min |
-| Larbert, Stenhousemuir | 35–45 min |
-| Bo'ness (EH51) | 40–55 min |
-| Denny (FK6) | 40–50 min |
-| Polmont (FK2) | 40–50 min |
+| Falkirk town centre (FK1) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Grangemouth (FK3) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Larbert, Stenhousemuir | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Bo'ness (EH51) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Denny (FK6) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Polmont (FK2) | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 **Call 0141 266 0690** for immediate tyre fitting in Falkirk and Central Scotland, or [book online](/book).
 
@@ -4451,7 +4453,7 @@ For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity,
     slug: 'mobile-tyre-fitting-hamilton-south-lanarkshire',
     title: 'Mobile Tyre Fitting in Hamilton & South Lanarkshire | Tyre Rescue',
     description:
-      'Mobile tyre fitting across Hamilton, East Kilbride, Rutherglen and South Lanarkshire. Response from 25 minutes via M74. Call 0141 266 0690.',
+      `Mobile tyre fitting across Hamilton, East Kilbride, Rutherglen and South Lanarkshire. Coverage via M74, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2026-02-01',
     lastModified: '2026-02-01',
@@ -4494,12 +4496,12 @@ The M74 between Glasgow and Hamilton (Junction 5) is among the busiest sections 
 
 | Location | Typical Response |
 |----------|-----------------|
-| Hamilton town centre (ML3) | 25–35 min |
-| East Kilbride (G74–G75) | 25–40 min |
-| Rutherglen (G73) | 20–30 min |
-| Motherwell (ML1) | 30–40 min |
-| Wishaw (ML2) | 30–45 min |
-| Lanark (ML11) | 45–55 min |
+| Hamilton town centre (ML3) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| East Kilbride (G74–G75) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Rutherglen (G73) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Motherwell (ML1) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Wishaw (ML2) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Lanark (ML11) | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 **Call 0141 266 0690** for immediate emergency tyre fitting in Hamilton and South Lanarkshire. [Book online](/book) for scheduled appointments.
 
@@ -4509,7 +4511,7 @@ The M74 between Glasgow and Hamilton (Junction 5) is among the busiest sections 
     slug: 'mobile-tyre-fitting-kilmarnock-ayrshire',
     title: 'Mobile Tyre Fitting in Kilmarnock & Ayrshire | Tyre Rescue',
     description:
-      'Mobile tyre fitting across Kilmarnock, Ayr, Irvine, Troon and all of Ayrshire. Response from 40 minutes via M77. Emergency 24/7 cover. Call 0141 266 0690.',
+      `Mobile tyre fitting across Kilmarnock, Ayr, Irvine, Troon and all of Ayrshire. Coverage via M77, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. Emergency 24/7 cover. Call 0141 266 0690.`,
     category: 'fitting',
     publishDate: '2026-02-01',
     lastModified: '2026-02-01',
@@ -4540,16 +4542,16 @@ The M77 gives direct motorway access from Glasgow to the Ayrshire towns. Our typ
 
 | Location | Typical Response |
 |----------|-----------------|
-| Kilmarnock (KA1–KA3) | 40–55 min |
-| Ayr (KA7–KA8) | 45–60 min |
-| Troon (KA10) | 45–55 min |
-| Prestwick (KA9) | 45–55 min |
-| Irvine (KA11–KA12) | 40–55 min |
-| Stewarton (KA3) | 45–55 min |
-| Galston (KA4) | 50–60 min |
-| Maybole (KA19) | 55–65 min |
-| Girvan (KA26) | 65–80 min |
-| Largs (KA30) | 55–65 min |
+| Kilmarnock (KA1–KA3) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Ayr (KA7–KA8) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Troon (KA10) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Prestwick (KA9) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Irvine (KA11–KA12) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Stewarton (KA3) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Galston (KA4) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Maybole (KA19) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Girvan (KA26) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Largs (KA30) | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Ayrshire Road Coverage
 
@@ -5077,10 +5079,10 @@ For damage on trunk roads (A9, A82, M8, M74 etc.), the claim goes to Transport S
 If your tyre is damaged beyond use and you cannot drive, call **0141 266 0690**. Tyre Rescue attends pothole-related tyre emergencies across all of Scotland — from city streets to remote Highland roads. We carry replacement tyres and will assess whether the wheel itself needs attention before fitting.
 
 **Typical response times after a pothole emergency:**
-- Glasgow and Central Belt: 30–50 minutes
-- Edinburgh: 55–70 minutes
-- Dundee and Perth: 65–85 minutes
-- Aberdeen and Inverness: 90 minutes
+- Glasgow and Central Belt: ${SEO_RESPONSE_TIME_LABEL}
+- Edinburgh: ${SEO_RESPONSE_TIME_LABEL}
+- Dundee and Perth: ${SEO_RESPONSE_TIME_LABEL}
+- Aberdeen and Inverness: ${SEO_RESPONSE_TIME_LABEL}
 
 [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland)`,
   },
@@ -5276,7 +5278,7 @@ If your vehicle does not include a space-saver or full-size spare, you can purch
 
 - **Space-saver spare + correct jack and wrench**: Typically £80–£150. Requires checking that the space-saver is the correct bolt pattern for your vehicle.
 - **Full-size spare**: £150–£350 for tyre + matching steel wheel. Requires boot space for storage.
-- **Continue with run-flat/sealant and rely on mobile tyre fitting**: The correct choice for most Central Belt drivers where response times are 30–50 minutes.
+- **Continue with run-flat/sealant and rely on mobile tyre fitting**: The correct choice for most Central Belt drivers where response times are ${SEO_RESPONSE_TIME_LABEL}.
 
 For **Highland and remote Scottish drivers**, carrying a space-saver spare is strongly recommended if your vehicle does not include one. 50 miles from help is a very different situation from 5 miles.
 
@@ -5556,11 +5558,11 @@ For less common sizes, call **0141 266 0690** with your registration number. We 
 For tradespeople, delivery drivers, and anyone whose income depends on their van being on the road, waiting until the next day for a tyre is not an option. Tyre Rescue provides 24/7 emergency van tyre fitting across Scotland.
 
 **Typical response times:**
-- Glasgow and Central Belt: 30–50 minutes
-- Edinburgh: 55–70 minutes
-- Aberdeen: 90 minutes
-- Inverness: 90–120 minutes
-- Highlands and rural Scotland: 2–3 hours (call ahead)
+- Glasgow and Central Belt: ${SEO_RESPONSE_TIME_LABEL}
+- Edinburgh: ${SEO_RESPONSE_TIME_LABEL}
+- Aberdeen: ${SEO_RESPONSE_TIME_LABEL}
+- Inverness: ${SEO_RESPONSE_TIME_LABEL}
+- Highlands and rural Scotland: ${SEO_RESPONSE_TIME_LABEL} (call ahead)
 
 We come to your van — whether you are at a job site, a delivery stop, a motorway lay-by, or your home depot.
 
@@ -6674,7 +6676,7 @@ If you have a flat Ford tyre anywhere in Scotland:
 3. **Call 0141 266 0690** — we'll confirm your tyre size from your registration number and give you an ETA
 4. We carry Focus, Fiesta, Kuga, Puma, and Transit tyres on every van
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Ford?
 
@@ -6843,7 +6845,7 @@ If you have a flat tyre on your Volkswagen anywhere in Scotland:
 3. **Call 0141 266 0690** — we confirm tyre size from your VW registration and give you an ETA
 4. We carry Golf, Polo, Tiguan, ID.4, and Transporter tyres across all service areas
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Volkswagen?
 
@@ -6992,7 +6994,7 @@ If you have a flat tyre on your Vauxhall anywhere in Scotland:
 3. We'll confirm an ETA and price before dispatching
 4. We carry Corsa, Astra, Mokka, Grandland, and Vivaro tyres across all areas
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Vauxhall?
 
@@ -7138,7 +7140,7 @@ If you have a flat tyre on your Nissan anywhere in Scotland:
 3. **Call 0141 266 0690** — give your registration number; we will identify the tyre spec instantly
 4. **Nissan Leaf / Ariya owners**: No spare wheel in the car — mobile fitting is your only option
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Nissan?
 
@@ -7294,7 +7296,7 @@ If you have a flat tyre on your Toyota anywhere in Scotland:
 
 Call **0141 266 0690** — give us your registration number and we will identify your tyre specification and confirm an ETA.
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Toyota?
 
@@ -7464,7 +7466,7 @@ If you have a flat tyre on your Audi anywhere in Scotland:
 3. **RS models**: Performance tyres are not run-flats; stop safely and call us
 4. **Call 0141 266 0690** — give your registration number for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Audi?
 
@@ -7639,7 +7641,7 @@ If you have a flat tyre on your Mercedes anywhere in Scotland:
 4. **AMG staggered fitments**: Confirm whether you need front or rear when you call
 5. **Call 0141 266 0690** — give your registration number for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Mercedes?
 
@@ -7789,7 +7791,7 @@ If you have a flat tyre on your Kia anywhere in Scotland:
 2. **Sportage, Sorento, Ceed**: May have a space-saver spare — check your boot
 3. **Call 0141 266 0690** — give your registration number and we will identify your tyre specification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Kia?
 
@@ -7947,7 +7949,7 @@ If you have a flat tyre on your Hyundai anywhere in Scotland:
 3. **i30, i10, i20**: Likely has a space-saver spare — check before calling
 4. **Call 0141 266 0690** — give your registration for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Hyundai?
 
@@ -8079,7 +8081,7 @@ Tyre Rescue carries Peugeot-compatible TPMS reset tools. Reset is included at no
 2. **208, 2008, 3008, 308**: May have a space-saver spare or tyre inflation kit — check your boot
 3. **Call 0141 266 0690** — we identify your tyre specification from your registration number
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Peugeot tyre fitting at your location.
 
@@ -8227,7 +8229,7 @@ Tyre Rescue carries compatible TPMS reset tools for all Renault and Dacia models
 3. **Clio, Captur, Sandero**: Likely has a tyre inflation kit only — call us for a proper fitting
 4. **Call 0141 266 0690** — give your registration number for instant identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Renault or Dacia tyre fitting at your location.
 
@@ -8350,7 +8352,7 @@ Tyre Rescue carries Volvo-compatible TPMS reset tools. Reset is included at no a
 2. **XC60, XC90, V60, V90**: May have a space-saver spare or puncture kit — check your boot
 3. **Call 0141 266 0690** — give your registration number for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Volvo tyre fitting at your location.
 
@@ -8483,7 +8485,7 @@ Tyre Rescue carries Skoda-compatible (VW Group) TPMS reset tools. Reset is inclu
 2. **Octavia, Karoq, Kodiaq**: May have a space-saver spare — check your boot
 3. **Call 0141 266 0690** — give your registration number for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Skoda tyre fitting at your location.
 
@@ -8598,7 +8600,7 @@ Tyre Rescue carries MINI/BMW-compatible TPMS reset tools. Reset is included at n
 3. **JCW models**: Performance tyres are not run-flat — stop safely and call us
 4. **Call 0141 266 0690** — give your registration for instant identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile MINI tyre fitting at your location.
 
@@ -8715,7 +8717,7 @@ Tyre Rescue carries Honda-compatible TPMS reset tools. Reset is included at no a
 3. **CR-V**: Likely has a space-saver spare in the boot beneath the floor
 4. **Call 0141 266 0690** — give your registration for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Honda tyre fitting at your location.
 
@@ -8853,7 +8855,7 @@ Tyre Rescue carries VW Group-compatible TPMS reset tools for all SEAT and CUPRA 
 3. **SEAT Ibiza, Arona, Leon**: Check boot for space-saver spare
 4. **Call 0141 266 0690** — give your registration for instant identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile SEAT or CUPRA tyre fitting at your location.
 
@@ -8976,7 +8978,7 @@ This is shared with the Peugeot/Stellantis group procedure. Tyre Rescue carries 
 3. **Berlingo van**: Check if it has a spare under the floor panel
 4. **Call 0141 266 0690** — give your registration for instant identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Citroen tyre fitting at your location.
 
@@ -9108,7 +9110,7 @@ Tyre Rescue carries Mazda-compatible TPMS reset tools. Reset is included at no a
 3. **MX-5**: Typically has no spare due to the small boot — check for an inflation kit
 4. **Call 0141 266 0690** — give your registration for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Mazda tyre fitting at your location.
 
@@ -9239,7 +9241,7 @@ If you have a flat tyre on your Suzuki anywhere in Scotland:
 
 **Highlands note**: If you're in a remote Highland location with a flat Jimny, call us. We cover all of Scotland including rural areas. If you have a full-size spare, fit it safely off the road and then call us when you reach your destination for a replacement.
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Suzuki tyre fitting at your location.
 
@@ -9345,7 +9347,7 @@ Tyre Rescue carries Mitsubishi-compatible TPMS reset tools. Reset is included at
 3. **ASX, Eclipse Cross**: Check boot for a space-saver spare
 4. **Call 0141 266 0690** — give your registration for instant tyre identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Mitsubishi tyre fitting at your location.
 
@@ -9468,7 +9470,7 @@ This applies to: Outback, Forester, XV, Legacy, Impreza AWD, Levorg, and WRX (no
 2. **Check for a spare** — most Subaru models have a full-size or space-saver spare in the boot
 3. **Call 0141 266 0690** — explain it's a Subaru AWD and we will advise on matching before ordering
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Subaru tyre fitting at your location.
 
@@ -9887,7 +9889,7 @@ Tyre Rescue carries Stellantis-compatible TPMS reset tools. Reset is included at
 3. **Fiat 500, Panda**: Often have a space-saver spare or inflation kit
 4. **Call 0141 266 0690** — give your registration for instant identification
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Fiat or Alfa Romeo tyre fitting at your location.
 
@@ -10022,7 +10024,7 @@ Tyre Rescue carries Porsche-compatible TPMS reset tools. Reset is included at no
 3. **911, Boxster, Cayman**: Typically no spare — run-flat N-rated tyres on some models, otherwise call us
 4. **Call 0141 266 0690** — give your registration number; we identify Porsche tyre specifications immediately
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Porsche?
 
@@ -10159,7 +10161,7 @@ Tyre Rescue carries Lexus-compatible TPMS reset tools. Reset is included at no a
 3. **IS, LC**: Check boot for space-saver spare
 4. **Call 0141 266 0690** — give your registration number; we identify your Lexus tyre specification immediately
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 ## Why Use Tyre Rescue for Your Lexus?
 
@@ -10291,7 +10293,7 @@ Tyre Rescue carries JLR-compatible TPMS reset tools. Reset is included at no add
 3. **XE, XF, F-Type**: May have a run-flat (check for Jaguar run-flat marking on tyre sidewall) or a space-saver spare
 4. **Call 0141 266 0690** — give your registration number; we identify your Jaguar's tyre specification immediately
 
-Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
 Call **0141 266 0690** or [book online](/book) for mobile Jaguar tyre fitting at your location.
 
@@ -10363,7 +10365,7 @@ A fixed garage typically charges a fitting fee of £8–£15 per tyre. Our mobil
 - **Your time** — no drive to a garage, no wait, no drive back. If an hour of your time is worth £20+, mobile fitting already pays for itself.
 - **Vehicle downtime** — for a flat tyre, mobile fitting gets you back on the road without a tow truck (£150–£300 for roadside recovery in Scotland).
 - **Convenience** — fitting happens at your home, office, or roadside. No disruption to your day.
-- **Emergency premium** — we dispatch to your location within 25–100 minutes depending on where in Scotland you are.
+- **Emergency premium** — we dispatch to your location within ${SEO_RESPONSE_TIME_LABEL} depending on where in Scotland you are.
 
 ## Budget Tyre Brands in Scotland
 
@@ -10484,18 +10486,18 @@ Response time depends on your precise location and current fitter availability. 
 
 | Glasgow Area | Typical Response |
 |---|---|
-| City centre (G1–G5, G11–G14) | 20–35 min |
-| West End (G11, G12, G13) | 25–40 min |
-| Southside (G41, G42, G43, G44) | 25–40 min |
-| East End (G31, G32, G33, G40) | 25–40 min |
-| North Glasgow (G20, G21, G22) | 30–45 min |
-| Paisley / Renfrewshire (PA1–PA5) | 30–45 min |
-| Bearsden / Milngavie (G61, G62) | 35–50 min |
-| Newton Mearns (G77) | 30–45 min |
-| Rutherglen / Cambuslang (G73) | 30–45 min |
-| M8 motorway | 20–40 min (hard shoulder or junction layby) |
-| M77 motorway | 25–40 min |
-| M74 motorway | 25–40 min |
+| City centre (G1–G5, G11–G14) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| West End (G11, G12, G13) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Southside (G41, G42, G43, G44) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| East End (G31, G32, G33, G40) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| North Glasgow (G20, G21, G22) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Paisley / Renfrewshire (PA1–PA5) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Bearsden / Milngavie (G61, G62) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Newton Mearns (G77) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| Rutherglen / Cambuslang (G73) | ${SEO_RESPONSE_TIME_MINUTES} min |
+| M8 motorway | ${SEO_RESPONSE_TIME_MINUTES} min (hard shoulder or junction layby) |
+| M77 motorway | ${SEO_RESPONSE_TIME_MINUTES} min |
+| M74 motorway | ${SEO_RESPONSE_TIME_MINUTES} min |
 
 ## Glasgow Postcodes We Cover
 
@@ -11179,12 +11181,12 @@ Arrival time depends on your location and current fitter availability:
 
 | Location | Typical same-day response |
 |---|---|
-| Glasgow city / M8 corridor | Often within 60–90 minutes |
-| Edinburgh city | Often within 90–120 minutes |
-| Aberdeen city | Typically 2–3 hours or same-day appointment |
-| Dundee / Perth | Typically 2–3 hours same-day |
-| Inverness and Highland areas | Same-day where possible, next-morning for remote areas |
-| Islands (Skye, Mull, Islay) | Ferry logistics — typically next-day |
+| Glasgow city / M8 corridor | Typically ${SEO_RESPONSE_TIME_LABEL} |
+| Edinburgh city | Typically ${SEO_RESPONSE_TIME_LABEL} |
+| Aberdeen city | Typically ${SEO_RESPONSE_TIME_LABEL}, or a scheduled same-day appointment |
+| Dundee / Perth | Typically ${SEO_RESPONSE_TIME_LABEL} |
+| Inverness and Highland areas | Typically ${SEO_RESPONSE_TIME_LABEL}; confirm availability when calling |
+| Islands (Skye, Mull, Islay) | Typically ${SEO_RESPONSE_TIME_LABEL}; confirm availability when calling |
 
 These are estimates. Call us and we will confirm the actual availability for your specific location.
 
@@ -15498,7 +15500,7 @@ If you are not sure whether your car has run-flat tyres, assume it does not — 
 
 **Option 1: If you have a spare tyre** — use it. A full-size spare can be fitted at the roadside. A space-saver spare is for temporary use only — maximum 50 mph, up to 50 miles. Replace with a proper tyre as soon as possible.
 
-**Option 2: Call for mobile tyre fitting** — Tyre Rescue attends locations across all of Scotland. Response times in cities: 25–45 minutes. If you are on a safe verge, in a car park, or in a layby — calling for fitting is the right choice. You will have a fully functional tyre fitted at your location in under an hour.
+**Option 2: Call for mobile tyre fitting** — Tyre Rescue attends locations across all of Scotland. Response times in cities: ${SEO_RESPONSE_TIME_LABEL}. If you are on a safe verge, in a car park, or in a layby — calling for fitting is the right choice. You will have a fully functional tyre fitted at your location in under an hour.
 
 **Option 3: Use an inflation kit** (if you have one and the puncture is in the tread area, not the sidewall) — inflate enough to reach a safe location. Maximum 50 mph after inflation. Get to a tyre centre or call Tyre Rescue as soon as possible.
 
@@ -15566,7 +15568,7 @@ Mobile tyre fitting can seem mysterious if you have never used the service befor
 - Whether you want a specific brand or just the best available at your budget
 - For emergency callouts: your exact location as a postcode + landmark description
 
-**Response time**: emergency callouts (stranded) typically 30–60 minutes to most Scottish cities. Scheduled appointments can be booked same-day or in advance for a convenient time.
+**Response time**: emergency callouts (stranded) typically ${SEO_RESPONSE_TIME_LABEL} to most Scottish cities. Scheduled appointments can be booked same-day or in advance for a convenient time.
 
 ## Step 2: Technician Arrives
 
@@ -16323,13 +16325,13 @@ If your vehicle has only an inflation kit (no spare): understand its limitations
 | Tain / Dornoch | Local garages | 40 miles north |
 | Golspie / Brora | Limited garages | 60 miles north |
 | Wick / Thurso | Halfords/local garages | 120 miles north |
-| Tongue / Durness | No tyre centres | Remote — allow 1–2 hours for response |
+| Tongue / Durness | No tyre centres | Remote — call to confirm availability and ETA |
 | Ullapool | Local garages | 57 miles from Inverness |
 | Lochinver area | Very limited | Remote |
 | Applecross / Torridon | No tyre centres | Remote — full recovery may be needed |
 | Kyle of Lochalsh | Local garage | 80 miles from Inverness |
 
-**Tyre Rescue NC500 coverage**: we cover all of Scotland, including the NC500 route. Response times for remote areas (Tongue, Durness, Lochinver, Bealach na Bà) are significant — plan for 90–150 minutes minimum. Call **0141 266 0690** and we will dispatch the nearest available technician.
+**Tyre Rescue NC500 coverage**: we cover all of Scotland, including the NC500 route. Response times for remote areas (Tongue, Durness, Lochinver, Bealach na Bà) are significant — plan for ${SEO_RESPONSE_TIME_LABEL} minimum. Call **0141 266 0690** and we will dispatch the nearest available technician.
 
 **Practical tip**: if you are on the NC500 with a tyre problem in a remote area, call us and then continue driving slowly to the nearest settlement (5–15 mph on a damaged tyre will cause less damage than a 2-hour wait in place). Most tyre damage that cannot be repaired will not worsen significantly at very low speed.
 
@@ -16841,7 +16843,7 @@ In most Scottish situations, calling Tyre Rescue for mobile tyre fitting is fast
 | Maximum 50 mph after use | Full-speed capability immediately |
 | May make repair impossible | Clean repair possible |
 | Requires tyre centre visit afterward | Complete solution on-site |
-| Response time: 0 minutes | Response time: 25–55 minutes |
+| Response time: 0 minutes | Response time: ${SEO_RESPONSE_TIME_LABEL} |
 
 If the tyre is still inflated or can be driven slowly to a safe stopping point, using sealant to move the car before calling us is reasonable. If the tyre is completely flat or if you are on a motorway or A-road, call immediately — do not attempt sealant on a live road.
 
@@ -17609,7 +17611,7 @@ Running the correct rear pressure is particularly important when the Grenadier i
 
 ## Mobile Fitting for Grenadier in Remote Scotland
 
-The Grenadier is often used in remote areas — Highland estates, forestry access roads, Scottish islands. Tyre Rescue can attend remote locations across Scotland, but response times increase significantly for areas north of Inverness, and the Western and Northern Isles require specific planning.
+The Grenadier is often used in remote areas — Highland estates, forestry access roads, Scottish islands. Tyre Rescue can attend remote locations across Scotland; call to confirm fitter availability and your exact ETA north of Inverness and in the Western and Northern Isles.
 
 For remote Highland callouts, call us on **0141 266 0690** and give us your grid reference or postcode. We will give you an honest ETA and confirm whether same-day fitting is possible from our nearest technician.
 
@@ -18316,7 +18318,7 @@ A vehicle involved in a collision where a defective tyre is found may also affec
 
 ## Getting a Replacement Tyre in Scotland
 
-If you are stranded with sidewall damage, Tyre Rescue can attend your location across all of Scotland — usually within 30–55 minutes in cities, longer in rural areas.
+If you are stranded with sidewall damage, Tyre Rescue can attend your location across all of Scotland — typically in ${SEO_RESPONSE_TIME_LABEL}. Call to confirm availability and your exact ETA.
 
 - **Stranded on the roadside**: switch on hazard lights, move away from the vehicle if it is on a live road, and call **0141 266 0690**.
 - **Stranded in a car park or at home**: call or [book online](/book) and we will come to you at a scheduled time.
@@ -18571,10 +18573,10 @@ To enquire about a fleet account, call **0141 266 0690** and ask to speak to our
 
 When a fleet vehicle has a flat tyre and needs to return to service quickly, our response times are:
 
-- Greater Glasgow: 25–40 minutes
-- Central Belt (Edinburgh, Falkirk, Stirling): 50–70 minutes
-- Dundee, Perth, Kirkcaldy: 65–85 minutes
-- Aberdeen, Inverness: approximately 90–100 minutes
+- Greater Glasgow: ${SEO_RESPONSE_TIME_LABEL}
+- Central Belt (Edinburgh, Falkirk, Stirling): ${SEO_RESPONSE_TIME_LABEL}
+- Dundee, Perth, Kirkcaldy: ${SEO_RESPONSE_TIME_LABEL}
+- Aberdeen, Inverness: approximately ${SEO_RESPONSE_TIME_LABEL}
 - Rural Highland locations: honest ETA given based on exact postcode
 
 Fleet account customers are prioritised in dispatch — if your driver calls and quotes the account reference, they get faster access to the nearest available fitter.

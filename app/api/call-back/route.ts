@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { callMeBack } from '@/lib/db/schema';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
 import { z } from 'zod';
 import {
   checkRateLimit,
@@ -17,6 +18,16 @@ import {
 
 const ROUTE_KEY = 'callback';
 const ROUTE_PATH = '/api/call-back';
+const CALLBACK_ALERT_TIMEOUT_MS = 10_000;
+
+async function settleCallbackAlerts(alerts: Promise<unknown>[]) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([Promise.allSettled(alerts), new Promise<void>((resolve) => {
+      timer = setTimeout(() => { console.warn('[callback] Admin alert dispatch timed out'); resolve(); }, CALLBACK_ALERT_TIMEOUT_MS);
+    })]);
+  } finally { if (timer !== undefined) clearTimeout(timer); }
+}
 
 const schema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -75,8 +86,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create callback request' }, { status: 500 });
   }
 
-  // Admin notification (fire-and-forget)
-  createAdminNotification({
+  // Complete best-effort dispatch before the serverless request ends. The
+  // iOS relay bounds its network wait; this outer bound also covers token
+  // lookup/internal dispatch. Delivery failure cannot undo
+  // the callback request already stored above.
+  await settleCallbackAlerts([createAdminNotification({
     type: 'callback.created',
     title: 'Callback Request',
     body: `${name} — ${phone}${notes ? ` — ${notes.slice(0, 60)}` : ''}`,
@@ -93,7 +107,14 @@ export async function POST(request: Request) {
       updateType: 'created',
       adminPath: '/admin/callbacks',
     },
-  }).catch(console.error);
+  }), sendAdminExpoPush({
+    title: 'Callback request',
+    body: 'A customer has requested a call from Tyre Rescue.',
+    platforms: ['ios'],
+    channelId: 'booking_updates',
+    ttl: 600,
+    data: { type: 'callback_request', callbackId: created.id },
+  })]);
 
   return NextResponse.json({ success: true }, { status: 201 });
 }

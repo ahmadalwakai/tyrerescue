@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { initTracker, trackEvent } from '@/lib/analytics-tracker';
+import { analyticsUrl } from '@/lib/analytics/private-urls';
 
 const SESSION_KEY = 'tr_visitor_sid';
 
@@ -37,7 +38,8 @@ function detectBrowser(): string {
 export function VisitorTracker() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef(0);
+  useEffect(() => { startTimeRef.current = Date.now(); }, []);
   const lastClickRef = useRef<Map<string, number>>(new Map());
   const trackedRef = useRef(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>(undefined);
@@ -55,7 +57,7 @@ export function VisitorTracker() {
       // Capture the raw browser referrer once per session.
       if (referrerRef.current === null) {
         const rawReferrer = document.referrer.trim();
-        referrerRef.current = rawReferrer.length > 0 ? rawReferrer : null;
+        referrerRef.current = rawReferrer.length > 0 ? analyticsUrl(rawReferrer) : null;
       }
 
       try {
@@ -64,7 +66,7 @@ export function VisitorTracker() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId,
-            path: window.location.pathname,
+            path: analyticsUrl(window.location.pathname),
             title: document.title,
             device: detectDevice(),
             browser: detectBrowser(),
@@ -159,7 +161,7 @@ export function VisitorTracker() {
       );
       navigator.sendBeacon(
         '/api/visitors/track',
-        new Blob([JSON.stringify({ sessionId, exiting: true, path: window.location.pathname })], { type: 'application/json' })
+        new Blob([JSON.stringify({ sessionId, exiting: true, path: analyticsUrl(window.location.pathname) })], { type: 'application/json' })
       );
     };
     window.addEventListener('beforeunload', handleExit);

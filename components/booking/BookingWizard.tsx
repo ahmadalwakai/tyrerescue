@@ -455,6 +455,7 @@ export interface BookingWizardProps {
   initialState?: Partial<WizardState>;
   resumeDraft?: boolean;
   sourceApp?: string;
+  headingLevel?: 1 | 2;
 }
 
 export function BookingWizard({
@@ -462,6 +463,7 @@ export function BookingWizard({
   initialState,
   resumeDraft = true,
   sourceApp,
+  headingLevel = 1,
 }: BookingWizardProps) {
   const router = useRouter();
   const brand = getBrandBySourceApp(sourceApp);
@@ -611,6 +613,7 @@ export function BookingWizard({
       case 'service-type':
         return (
           <StepServiceType
+            headingLevel={headingLevel}
             state={state}
             updateState={updateState}
             goToNext={goToNext}

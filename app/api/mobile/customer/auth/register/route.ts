@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 import {
   buildCustomerSessionPayload,
-  linkUnclaimedBookingsForEmail,
   sendCustomerVerification,
   type CustomerMobileUser,
 } from '@/app/api/mobile/customer/_lib';
@@ -86,11 +85,11 @@ export async function POST(request: Request) {
         name: users.name,
         phone: users.phone,
         role: users.role,
+        emailVerified: users.emailVerified,
       });
 
     const user: CustomerMobileUser = newUser;
     await sendCustomerVerification(user);
-    await linkUnclaimedBookingsForEmail(user.id, user.email);
 
     return NextResponse.json({
       success: true,

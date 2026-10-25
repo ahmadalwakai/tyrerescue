@@ -11,6 +11,7 @@ import {
   buildStandaloneAdminInvoicePdfData,
 } from '@/lib/invoice-pdf-data';
 import { InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { recordLinkedInvoiceSent } from '@/lib/invoices/booking-invoice-sync';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -19,15 +20,21 @@ export async function POST(_request: Request, props: Props) {
     const session = await requireAdmin();
     const { id } = await props.params;
 
-    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
+    let [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
     if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     if (invoice.deletedAt) return NextResponse.json({ error: 'Invoice is deleted' }, { status: 400 });
-    if (invoice.status === 'cancelled') return NextResponse.json({ error: 'Cannot send a cancelled invoice' }, { status: 400 });
+    if (invoice.status === 'cancelled' || (invoice.bookingId && (invoice.status === 'archived' || invoice.archivedAt))) return NextResponse.json({ error: 'Cannot send a cancelled or archived invoice' }, { status: 400 });
 
-    const bookingInvoice = await buildBookingCustomerInvoicePdfData(invoice, { requireFullPayment: false });
+    const bookingInvoice = await buildBookingCustomerInvoicePdfData(invoice, {
+      requireFullPayment: false, onSynchronizedInvoice: (current) => { invoice = current; },
+    });
     const pdfBytes = bookingInvoice
       ? await generateBookingCustomerInvoicePdf(bookingInvoice)
       : await generateStandaloneAdminInvoicePdf(await buildStandaloneAdminInvoicePdfData(invoice));
+
+    if (invoice.bookingId && (invoice.deletedAt || invoice.archivedAt || invoice.status === 'cancelled' || invoice.status === 'archived')) {
+      return NextResponse.json({ error: 'Invoice is no longer available for sending.' }, { status: 409 });
+    }
 
     // Build email
     const siteUrl = getOutboundUrl();
@@ -55,12 +62,10 @@ export async function POST(_request: Request, props: Props) {
     });
 
     // Update status + sentAt
-    const newStatus = invoice.status === 'draft' || invoice.status === 'issued' ? 'sent' : invoice.status;
-    await db.update(invoices).set({
-      status: newStatus,
-      sentAt: new Date(),
-      updatedBy: session.user.id,
-      updatedAt: new Date(),
+    const sentInvoice = invoice.bookingId ? await recordLinkedInvoiceSent(invoice, session.user.id) : null;
+    const newStatus = sentInvoice?.status ?? (invoice.status === 'draft' || invoice.status === 'issued' ? 'sent' : invoice.status);
+    if (!sentInvoice) await db.update(invoices).set({
+      status: newStatus, sentAt: new Date(), updatedBy: session.user.id, updatedAt: new Date(),
     }).where(eq(invoices.id, id));
 
     await db.insert(auditLogs).values({

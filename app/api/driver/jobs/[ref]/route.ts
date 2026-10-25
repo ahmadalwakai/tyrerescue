@@ -81,7 +81,7 @@ export async function GET(
       depositPaidAt: booking.depositPaidAt,
       stripePiId: booking.stripePiId,
       stripeDepositPiId: booking.stripeDepositPiId,
-    });
+    }, { audience: 'driver' });
     const tyreRows = tyres.map((t) => ({
       brand: t.brand,
       pattern: t.pattern,

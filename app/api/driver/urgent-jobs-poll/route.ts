@@ -91,7 +91,7 @@ export async function GET(request: Request) {
       depositPaidAt: row.depositPaidAt,
       stripePiId: row.stripePiId,
       stripeDepositPiId: row.stripeDepositPiId,
-    });
+    }, { audience: 'driver' });
 
     const job: PollJob = {
       bookingRef: row.refNumber,

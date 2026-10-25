@@ -6,12 +6,11 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import {
   bookings,
-  bookingStatusHistory,
   payments,
   tyreProducts,
   bookingTyres,
 } from '@/lib/db/schema';
-import { and, desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getPaymentIntent } from '@/lib/stripe';
 import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
@@ -19,7 +18,6 @@ import {
   paymentReceipt,
   adminNewBooking,
 } from '@/lib/email/templates';
-import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendVoodooSms } from '@/lib/voodoo-sms';
 import { buildBookingConfirmationSmsMessage } from '@/lib/quick-book-message-templates';
@@ -36,6 +34,9 @@ import {
   buildBookingConversionPayload,
   type BookingConversionPaymentRecord,
 } from '@/lib/analytics/booking-conversion';
+import { stripePaymentIdentity, validateStripePaymentMatch } from '@/lib/payments/stripe-webhook';
+import { persistStripeWebhook } from '@/lib/payments/stripe-webhook-store';
+import { buildCustomerBookingTrackingUrl, setCustomerBookingAccessCookie, signCustomerBookingAccessToken } from '@/lib/customer-booking-access';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,11 +50,10 @@ const confirmSchema = z.object({
 /**
  * POST /api/bookings/confirm
  *
- * Client-side payment confirmation. Called by the success page after Stripe
- * redirects back. Verifies the PaymentIntent directly with Stripe and
- * transitions the booking from awaiting_payment → paid.
- *
- * The webhook is a safety net; this route is the primary confirmation path.
+ * Server verification fallback after a Stripe redirect. The browser provides
+ * an identifier; only Stripe plus the server's stored payment attempt can
+ * establish that the booking has been paid. Webhooks also confirm payments
+ * when the customer closes the browser before returning.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -79,23 +79,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // Idempotency: if already paid (or further), return current status
-    if (booking.status !== 'awaiting_payment') {
-      return NextResponse.json({
-        status: booking.status,
-        invoiceDownloadToken: await signCustomerInvoiceToken({
-          bookingId: booking.id,
-          refNumber: booking.refNumber,
-          email: booking.customerEmail,
-        }),
-        conversion: buildBookingConversionPayload({
-          refNumber: booking.refNumber,
-          customerEmail: booking.customerEmail,
-          payment: await loadSucceededPaymentForBooking(booking.id),
-        }),
-      });
-    }
-
     // 2. Verify payment with Stripe
     const pi = await getPaymentIntent(paymentIntentId);
 
@@ -106,28 +89,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure this PaymentIntent actually belongs to this booking
-    if (pi.metadata?.bookingId !== booking.id) {
-      return NextResponse.json({ error: 'Payment mismatch' }, { status: 400 });
-    }
-
-    const expectedAmountPence = Math.round(Number(booking.totalAmount) * 100);
-    if (pi.amount !== expectedAmountPence) {
-      console.error('[confirm] PAYMENT_AMOUNT_MISMATCH', {
-        refNumber: booking.refNumber,
-        paymentIntentId,
-        expectedAmountPence,
-        actualAmountPence: pi.amount,
-      });
-      return NextResponse.json(
-        {
-          error: 'Payment amount mismatch',
-          code: 'PAYMENT_AMOUNT_MISMATCH',
-        },
-        { status: 400 },
-      );
-    }
-
     // 3. Idempotency: check if payment record already exists
     const [existingPayment] = await db
       .select()
@@ -135,76 +96,44 @@ export async function POST(request: NextRequest) {
       .where(eq(payments.stripePiId, paymentIntentId))
       .limit(1);
 
-    if (existingPayment && existingPayment.status === 'succeeded') {
-      // Payment already recorded (by webhook) — make sure booking status is up-to-date
-      if (booking.status === 'awaiting_payment') {
-        await db
-          .update(bookings)
-          .set({ status: 'paid', paymentType: 'full', updatedAt: new Date() })
-          .where(eq(bookings.id, booking.id));
-      }
-      return NextResponse.json({
-        status: 'paid',
-        invoiceDownloadToken: await signCustomerInvoiceToken({
-          bookingId: booking.id,
-          refNumber: booking.refNumber,
-          email: booking.customerEmail,
-        }),
-        conversion: buildBookingConversionPayload({
-          refNumber: booking.refNumber,
-          customerEmail: booking.customerEmail,
-          payment: existingPayment,
-        }),
-      });
+    const identity = stripePaymentIdentity(pi);
+    const match = identity?.purpose === 'full' && pi.id === paymentIntentId
+      ? validateStripePaymentMatch(identity, booking,
+        existingPayment?.bookingId === booking.id ? [{
+          paymentIntentId: existingPayment.stripePiId,
+          sessionId: null,
+          amountPence: Math.round(Number(existingPayment.amount) * 100),
+          currency: existingPayment.currency ?? '',
+        }] : [])
+      : { valid: false as const, reason: 'payment_identity_mismatch' };
+    if (!match.valid || pi.amount_received !== match.expectedAmountPence ||
+      (existingPayment && existingPayment.bookingId !== booking.id)) {
+      return NextResponse.json({ error: 'Payment mismatch', code: 'PAYMENT_MISMATCH' }, { status: 400 });
+    }
+    const closedStatuses = ['cancelled', 'cancelled_refund_pending', 'refunded', 'refunded_partial'];
+    if (closedStatuses.includes(booking.status)) {
+      return NextResponse.json({ error: 'Booking requires operator review', paymentConfirmed: false }, { status: 409 });
     }
 
-    // 4. Record payment
+    // The same locked transaction as webhooks saves the receipt, payment and
+    // booking together. A process crash can never leave half a confirmation.
+    if (!identity) throw new Error('Validated payment has no identity');
+    const saved = await persistStripeWebhook({
+      eventId: `reconcile:confirm:${pi.id}:succeeded`,
+      eventType: 'server_reconciliation.payment_intent.succeeded',
+      source: 'system',
+      createdAt: new Date(), outcome: 'succeeded', payment: identity,
+    });
+    if (saved.state === 'ignored' || saved.state === 'needs_checking') {
+      return NextResponse.json({ error: 'Payment requires operator review', paymentConfirmed: false }, { status: 409 });
+    }
+
     const recordedPayment: BookingConversionPaymentRecord = {
       amount: (pi.amount / 100).toString(),
       currency: pi.currency,
       status: 'succeeded',
       stripePiId: paymentIntentId,
     };
-
-    if (existingPayment) {
-      await db
-        .update(payments)
-        .set({
-          amount: (pi.amount / 100).toString(),
-          currency: pi.currency,
-          status: 'succeeded',
-          stripePayload: pi as unknown as Record<string, unknown>,
-          updatedAt: new Date(),
-        })
-        .where(eq(payments.id, existingPayment.id));
-    } else {
-      await db.insert(payments).values({
-        id: uuidv4(),
-        bookingId: booking.id,
-        stripePiId: paymentIntentId,
-        amount: (pi.amount / 100).toString(),
-        currency: pi.currency,
-        status: 'succeeded',
-        stripePayload: pi as unknown as Record<string, unknown>,
-      });
-    }
-
-    // 5. Update booking status
-    await db
-      .update(bookings)
-      .set({ status: 'paid', paymentType: 'full', updatedAt: new Date() })
-      .where(eq(bookings.id, booking.id));
-
-    // 6. Record status history
-    await db.insert(bookingStatusHistory).values({
-      id: uuidv4(),
-      bookingId: booking.id,
-      fromStatus: 'awaiting_payment',
-      toStatus: 'paid',
-      actorUserId: null,
-      actorRole: 'system',
-      note: `Payment confirmed via client-side verification (${paymentIntentId})`,
-    });
 
     // 7. Atomically deduct physical stock and consume reservations.
     //    This is idempotent: if the webhook already committed the same
@@ -223,6 +152,22 @@ export async function POST(request: NextRequest) {
       // Do not fail the request — the booking is paid; alert via logs and
       // let admin reconcile. Returning an error here would prompt the user
       // to retry payment, which would be wrong.
+    }
+
+    const confirmedStatus = ['awaiting_payment', 'payment_failed', 'draft'].includes(booking.status)
+      ? 'paid' : booking.status;
+    if (saved.state === 'duplicate') {
+      const bookingAccessToken = await signCustomerBookingAccessToken({ bookingId: booking.id, refNumber: booking.refNumber });
+      return setCustomerBookingAccessCookie(NextResponse.json({
+        status: confirmedStatus, paymentConfirmed: true,
+        bookingAccessToken,
+        invoiceDownloadToken: await signCustomerInvoiceToken({
+          bookingId: booking.id, refNumber: booking.refNumber, email: booking.customerEmail,
+        }),
+        conversion: buildBookingConversionPayload({
+          refNumber: booking.refNumber, customerEmail: booking.customerEmail, payment: recordedPayment,
+        }),
+      }), booking.refNumber, bookingAccessToken);
     }
 
     // 8. Resolve all booking tyres for downstream email rendering.
@@ -268,7 +213,7 @@ export async function POST(request: NextRequest) {
             message: buildBookingConfirmationSmsMessage({
               customerName: booking.customerName,
               refNumber: booking.refNumber,
-              trackingUrl: `${siteUrl}/tracking/${booking.refNumber}`,
+              trackingUrl: await buildCustomerBookingTrackingUrl(siteUrl, booking),
             }),
           });
         } catch (err) {
@@ -304,8 +249,11 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({
-      status: 'paid',
+    const bookingAccessToken = await signCustomerBookingAccessToken({ bookingId: booking.id, refNumber: booking.refNumber });
+    return setCustomerBookingAccessCookie(NextResponse.json({
+      status: confirmedStatus,
+      paymentConfirmed: true,
+      bookingAccessToken,
       invoiceDownloadToken: await signCustomerInvoiceToken({
         bookingId: booking.id,
         refNumber: booking.refNumber,
@@ -316,9 +264,11 @@ export async function POST(request: NextRequest) {
         customerEmail: booking.customerEmail,
         payment: recordedPayment,
       }),
-    });
+    }), booking.refNumber, bookingAccessToken);
   } catch (error) {
-    console.error('Confirm route error:', error);
+    console.error('Confirm route failed:', {
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },
@@ -336,24 +286,6 @@ interface BookingTyreEmailDisplay {
   tyreDisplayLines: string[];
   totalQuantity: number;
   receiptDescription: string;
-}
-
-async function loadSucceededPaymentForBooking(
-  bookingId: string,
-): Promise<BookingConversionPaymentRecord | null> {
-  const [payment] = await db
-    .select({
-      amount: payments.amount,
-      currency: payments.currency,
-      status: payments.status,
-      stripePiId: payments.stripePiId,
-    })
-    .from(payments)
-    .where(and(eq(payments.bookingId, bookingId), eq(payments.status, 'succeeded')))
-    .orderBy(desc(payments.createdAt))
-    .limit(1);
-
-  return payment ?? null;
 }
 
 async function loadBookingTyreDisplay(booking: typeof bookings.$inferSelect): Promise<BookingTyreEmailDisplay> {
@@ -399,7 +331,7 @@ async function sendConfirmationEmails(
   // Customer-facing email link: must always be the production URL.
   const customerSiteUrl = getOutboundUrl(booking.sourceApp);
   const adminSiteUrl = getOutboundUrl();
-  const trackingUrl = `${customerSiteUrl}/tracking/${booking.refNumber}`;
+  const trackingUrl = await buildCustomerBookingTrackingUrl(customerSiteUrl, booking);
 
   const priceSnapshot = booking.priceSnapshot as {
     subtotal: number;

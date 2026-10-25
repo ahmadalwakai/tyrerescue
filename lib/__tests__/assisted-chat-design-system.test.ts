@@ -49,7 +49,7 @@ describe('Assisted Chat premium design system', () => {
     expect(narrowShell).toContain('maxWidth: 430');
     expect(narrowShell).not.toContain('minWidth:');
     expect(screen).toContain('ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH');
-    expect(screen).toContain('function HeroPanel');
+    expect(screen).toContain('<PremiumAppHeader');
     expect(screen).toContain('function PrimaryActionDeck');
     expect(screen).not.toContain('function UrgentMonitorPanel');
     expect(screen).not.toContain('function TrustStrip');

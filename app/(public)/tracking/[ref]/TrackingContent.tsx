@@ -28,6 +28,7 @@ interface StatusHistoryItem {
 }
 
 interface TrackingData {
+  bookingAccessToken?: string;
   sourceApp: string;
   sourceLabel: string;
   status: string;
@@ -251,7 +252,11 @@ export function TrackingContent({
     }
 
     try {
-      const res = await fetch(`/api/tracking/${refNumber}`, { cache: 'no-store' });
+      const accessToken = new URL(window.location.href).searchParams.get('accessToken');
+      const res = await fetch(`/api/tracking/${encodeURIComponent(refNumber)}`, {
+        cache: 'no-store',
+        headers: accessToken ? { 'X-Booking-Access': accessToken } : undefined,
+      });
       
       if (!res.ok) {
         const errorData = await res.json();
@@ -491,14 +496,15 @@ export function TrackingContent({
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
-    window.location.href = `${IOS_APP_SCHEME}://track?ref=${encodeURIComponent(refNumber)}`;
+    const appAccessToken = new URL(window.location.href).searchParams.get('accessToken') || data?.bookingAccessToken;
+    window.location.href = `${IOS_APP_SCHEME}://track?ref=${encodeURIComponent(refNumber)}${appAccessToken ? `&accessToken=${encodeURIComponent(appAccessToken)}` : ''}`;
     appFallbackTimerRef.current = setTimeout(() => {
       document.removeEventListener('visibilitychange', handleVisibility);
       if (!opened && !document.hidden) {
         window.location.href = IOS_APP_URL;
       }
     }, 1_250);
-  }, [handleDismissIosAppPrompt, refNumber]);
+  }, [data?.bookingAccessToken, handleDismissIosAppPrompt, refNumber]);
 
   const handleDownloadIosApp = useCallback(() => {
     handleDismissIosAppPrompt();

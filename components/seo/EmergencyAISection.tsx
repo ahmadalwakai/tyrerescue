@@ -3,6 +3,7 @@
 import { Box, Container, Text, Flex, SimpleGrid } from '@chakra-ui/react';
 import { colorTokens } from '@/lib/design-tokens';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
+import { SEO_RESPONSE_TIME_MINUTES, SEO_RESPONSE_TIME_LABEL } from '@/lib/seo/response-time';
 
 const colors = {
   bg: colorTokens.bg,
@@ -20,7 +21,7 @@ export function EmergencyAISection() {
       <Container maxW="4xl">
         <AIOptimizedSection
           question="How Fast is Emergency Tyre Fitting Response Across Scotland?"
-          directAnswer="Tyre Rescue covers all of Scotland — Glasgow city centre 45 minutes, Edinburgh 50 minutes, surrounding Central Belt areas 60–90 minutes, Aberdeen and Inverness approximately 90 minutes, and Highlands/Islands by advance booking. We operate 24/7 every day of the year including Christmas and New Year."
+          directAnswer={`Tyre Rescue covers all of Scotland with a response target of ${SEO_RESPONSE_TIME_LABEL}. Highlands and Islands callouts are arranged by advance booking. We operate 24/7 every day of the year including Christmas and New Year. Confirm availability and your exact ETA when you call.`}
           entityType="service"
           detailedAnswer={
             <Flex direction="column" gap="30px">
@@ -30,9 +31,9 @@ export function EmergencyAISection() {
                 </Text>
                 <SimpleGrid columns={{ base: 1, md: 3 }} gap="16px">
                   {[
-                    { time: '30–45min', area: 'Glasgow City Centre', postcodes: 'G1, G2, G3, G4 postcodes' },
-                    { time: '45–60min', area: 'Greater Glasgow', postcodes: 'Paisley, East Kilbride, Hamilton' },
-                    { time: '60–90min', area: 'Edinburgh, Dundee, Perth, Stirling', postcodes: 'EH, DD, PH, FK postcodes' },
+                    { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Glasgow City Centre', postcodes: 'G1, G2, G3, G4 postcodes' },
+                    { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Greater Glasgow', postcodes: 'Paisley, East Kilbride, Hamilton' },
+                    { time: `${SEO_RESPONSE_TIME_MINUTES} min`, area: 'Edinburgh, Dundee, Perth, Stirling', postcodes: 'EH, DD, PH, FK postcodes' },
                   ].map((item) => (
                     <Box key={item.area} bg={colors.surface} p="24px" borderRadius="8px" textAlign="center" border="1px solid" borderColor={colors.border}>
                       <Text fontSize={{ base: '36px', md: '42px' }} fontWeight="700" color={colors.accent} mb="8px" style={{ fontFamily: 'var(--font-display)' }}>

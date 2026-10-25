@@ -1,4 +1,5 @@
 /** Slide data for the homepage hero image showcase. */
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 
 export interface HomeSlide {
   id: string;
@@ -35,7 +36,7 @@ export const homeSlides: HomeSlide[] = [
     src: '/images/home/slide-2.webp',
     alt: 'Emergency roadside tyre change being performed on a dark motorway hard shoulder',
     eyebrow: 'EMERGENCY CALLOUT',
-    title: '45 Min Response',
+    title: `${SEO_RESPONSE_TIME_MINUTES} Min Response`,
     caption: 'Stranded? We\'ll be there fast.',
     objectPosition: 'center center',
   },

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { buildCustomerBookingTrackingUrl } from '@/lib/customer-booking-access';
 import { getAppOrigin, getOutboundUrl } from '@/lib/config/site';
 import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -26,7 +27,7 @@ import type { PricingContext } from '@/lib/pricing-engine';
 import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendUrgentBookingTopicPush } from '@/lib/notifications/urgent-booking-push';
-import { createCheckoutSession } from '@/lib/stripe';
+import { createCheckoutSession, getStripePaymentSource, retireBookingStripePayment, StripePaymentConflict } from '@/lib/stripe';
 import { resolveDistance } from '@/lib/mapbox';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 import { GARAGE_ADDRESS } from '@/lib/garage';
@@ -38,6 +39,8 @@ import { sendBookingEmailOnce } from '@/lib/email/resend';
 import { bookingConfirmed } from '@/lib/email/templates';
 import type { CustomerEmailMode } from '@/app/api/admin/quick-book/route';
 import { recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { withStripePaymentLock } from '@/lib/payments/stripe-payment-lock';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 
 const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
@@ -95,6 +98,69 @@ async function generateInvoiceNumber(): Promise<string> {
   return `${prefix}${String(next).padStart(4, '0')}`;
 }
 
+/**
+ * A finalize can commit successfully even if the phone loses its response.
+ * Recover the authoritative booking without repricing, stock writes, Stripe
+ * calls, or sending the customer another confirmation.
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const headers = { 'Cache-Control': 'no-store' };
+  try {
+    await requireAdminMobile(request);
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers });
+  }
+  const { id } = await params;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return NextResponse.json({ error: 'Invalid quick booking id' }, { status: 400, headers });
+  }
+  const [quickBooking] = await db.select({ bookingId: quickBookings.bookingId })
+    .from(quickBookings).where(eq(quickBookings.id, id)).limit(1);
+  if (!quickBooking) {
+    return NextResponse.json({ error: 'Quick booking not found', code: 'QUICK_BOOKING_NOT_FOUND' }, { status: 404, headers });
+  }
+  if (!quickBooking.bookingId) return NextResponse.json({ finalized: false }, { headers });
+
+  const [booking] = await db.select().from(bookings)
+    .where(eq(bookings.id, quickBooking.bookingId)).limit(1);
+  if (!booking) {
+    return NextResponse.json({ error: 'The finalized booking could not be recovered. Open Bookings before retrying.', code: 'FINALIZED_BOOKING_NOT_FOUND' }, { status: 409, headers });
+  }
+  const total = Number(booking.totalAmount);
+  const subtotal = Number(booking.subtotal);
+  const vatAmount = Number(booking.vatAmount);
+  const snapshot = booking.priceSnapshot && typeof booking.priceSnapshot === 'object' && !Array.isArray(booking.priceSnapshot)
+    ? booking.priceSnapshot as Record<string, unknown> : {};
+  if (![total, subtotal, vatAmount].every(Number.isFinite) || !['cash', 'deposit', 'full', 'stripe'].includes(booking.paymentType ?? '')) {
+    return NextResponse.json({ error: 'The finalized booking needs review in Bookings.', code: 'FINALIZED_BOOKING_NEEDS_REVIEW' }, { status: 409, headers });
+  }
+  return NextResponse.json({
+    finalized: true,
+    canCollectPayment: ['awaiting_payment', 'payment_failed'].includes(booking.status) && !booking.depositPaidAt,
+    response: {
+      bookingId: booking.id,
+      refNumber: booking.refNumber,
+      paymentMethod: booking.paymentType === 'full' ? 'stripe' : booking.paymentType,
+      // A read never recreates or claims a Stripe session is still payable.
+      // The existing checkout endpoints safely reuse or refresh it on retry.
+      paymentUrl: null,
+      stripeClientSecret: null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      breakdown: {
+        ...snapshot,
+        subtotal,
+        vatAmount,
+        total,
+        lineItems: Array.isArray(snapshot.lineItems) ? snapshot.lineItems : [],
+      },
+    },
+  }, { headers });
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -106,6 +172,9 @@ export async function POST(
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  return withStripePaymentLock(`quick-book:${id}`, async (lockClient) => {
+  const executor = drizzle(lockClient);
 
   // Parse body — paymentMethod defaults to 'stripe'
   let paymentMethod: 'stripe' | 'cash' | 'deposit' = 'stripe';
@@ -497,6 +566,7 @@ export async function POST(
           bookingId,
           refNumber,
           customerEmail: dbCustomerEmail,
+          source: getStripePaymentSource(request),
         },
         {
           successUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=success`,
@@ -530,7 +600,7 @@ export async function POST(
     }
   }
 
-  type BookingWriteExecutor = Pick<typeof db, 'insert' | 'update'>;
+  type BookingWriteExecutor = Pick<typeof executor, 'insert' | 'update'>;
 
   const persistFinalizeWrites = async (executor: BookingWriteExecutor) => {
     await executor.insert(bookings).values({
@@ -676,7 +746,7 @@ export async function POST(
   };
 
   try {
-    await db.transaction(async (tx) => {
+    await executor.transaction(async (tx) => {
       await persistFinalizeWrites(tx);
     });
   } catch (error) {
@@ -690,35 +760,8 @@ export async function POST(
       );
     }
 
-    const isUnsupportedTransaction =
-      error instanceof Error && error.message.includes('No transactions support');
-
-    if (!isUnsupportedTransaction) {
-      console.error('[quick-book:finalize] failed', error);
-      return NextResponse.json(
-        {
-          error: 'Failed to finalize quick booking.',
-          code: 'FINALIZE_FAILED',
-          detail: process.env.NODE_ENV === 'production' ? undefined : getErrorMessage(error),
-        },
-        { status: 500 },
-      );
-    }
-
-    console.warn('[quick-book:finalize] transaction unsupported, falling back to non-transactional writes');
-    try {
-      await persistFinalizeWrites(db);
-    } catch (fallbackError) {
-      console.error('[quick-book:finalize] fallback write failed', fallbackError);
-      return NextResponse.json(
-        {
-          error: 'Failed to finalize quick booking.',
-          code: 'FINALIZE_FAILED',
-          detail: process.env.NODE_ENV === 'production' ? undefined : getErrorMessage(fallbackError),
-        },
-        { status: 500 },
-      );
-    }
+    console.error('[quick-book:finalize] failed', error);
+    return NextResponse.json({ error: 'Failed to finalize quick booking.', code: 'FINALIZE_FAILED' }, { status: 500 });
   }
 
   // Cash quick bookings are confirmed for dispatch, but not paid yet.
@@ -758,7 +801,7 @@ export async function POST(
   // هذا fire-and-forget — لا يُعيق استجابة الـ API في حالة الفشل
   if (customerEmailMode === 'send_customer_confirmation' && confirmedCustomerEmail) {
     const siteUrl = getOutboundUrl();
-    const trackingUrl = `${siteUrl}/tracking/${refNumber}`;
+    const trackingUrl = await buildCustomerBookingTrackingUrl(siteUrl, { id: bookingId, refNumber });
     void (async () => {
       try {
         const email = bookingConfirmed({
@@ -856,6 +899,7 @@ export async function POST(
       adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
     },
   });
+  });
 }
 
 /**
@@ -888,12 +932,15 @@ export async function DELETE(
     return NextResponse.json({ ok: true, alreadyReset: true });
   }
 
-  const [booking] = await db
+  let [booking] = await db
     .select()
     .from(bookings)
     .where(eq(bookings.id, qb.bookingId))
     .limit(1);
 
+  return withStripePaymentLock(qb.bookingId, async (lockClient) => {
+  const executor = drizzle(lockClient);
+  [booking] = await db.select().from(bookings).where(eq(bookings.id, qb.bookingId!)).limit(1);
   if (booking) {
     if (booking.status !== 'awaiting_payment' && booking.status !== 'pending') {
       return NextResponse.json(
@@ -907,9 +954,19 @@ export async function DELETE(
         { status: 409 }
       );
     }
+    const metadata = { bookingId: booking.id, refNumber: booking.refNumber, customerEmail: booking.customerEmail };
+    try {
+      await retireBookingStripePayment(booking.stripePiId, Number(booking.totalAmount), metadata);
+      await retireBookingStripePayment(booking.stripeDepositPiId, (booking.depositAmountPence ?? 0) / 100, { ...metadata, type: 'deposit' });
+    } catch (error) {
+      if (error instanceof StripePaymentConflict) {
+        return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+      }
+      throw error;
+    }
   }
 
-  type BookingWriteExecutor = Pick<typeof db, 'delete' | 'update'>;
+  type BookingWriteExecutor = Pick<typeof executor, 'delete' | 'update'>;
 
   const performRollback = async (executor: BookingWriteExecutor) => {
     if (!qb.bookingId) return;
@@ -928,19 +985,14 @@ export async function DELETE(
   };
 
   try {
-    await db.transaction(async (tx) => {
+    await executor.transaction(async (tx) => {
       await performRollback(tx);
     });
   } catch (error) {
-    const isUnsupportedTransaction =
-      error instanceof Error && error.message.includes('No transactions support');
-    if (!isUnsupportedTransaction) {
-      console.error('[quick-book:cancel-finalize] failed', error);
-      return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 });
-    }
-    console.warn('[quick-book:cancel-finalize] transaction unsupported, falling back');
-    await performRollback(db);
+    console.error('[quick-book:cancel-finalize] failed', error);
+    return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
+  });
 }

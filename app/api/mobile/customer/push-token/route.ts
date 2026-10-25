@@ -1,107 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { getCustomerMobileUser, unauthorizedResponse } from '../_lib';
+import { authorizeCustomerBooking } from '@/lib/customer-booking-access';
 import { db } from '@/lib/db';
-import { bookings, customerPushTokens } from '@/lib/db/schema';
+import { bookings } from '@/lib/db/schema';
 
+const tokenSchema = z.string().max(255).regex(/^(?:ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/);
 const pushTokenSchema = z.object({
-  token: z.string().min(10).max(255),
+  token: tokenSchema,
   platform: z.enum(['ios', 'android']).default('ios'),
   refNumber: z.string().trim().min(3).max(30).optional(),
-  email: z.string().trim().email().max(255).optional(),
 });
-
-function isExpoPushToken(token: string) {
-  return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[');
-}
 
 export async function POST(request: NextRequest) {
   const parsed = pushTokenSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid push token payload' }, { status: 400 });
-  }
-
-  const { token, platform, refNumber, email } = parsed.data;
-  if (!isExpoPushToken(token)) {
-    return NextResponse.json({ error: 'Expo push token is required' }, { status: 400 });
-  }
-
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid push token payload' }, { status: 400 });
+  const { token, platform, refNumber } = parsed.data;
   const user = await getCustomerMobileUser(request);
-  let bookingLink: { id: string; userId: string | null; refNumber: string; customerEmail: string } | null = null;
-
+  let bookingLink: { id: string; userId: string | null; refNumber: string } | null = null;
   if (refNumber) {
-    const [booking] = await db
-      .select({
-        id: bookings.id,
-        userId: bookings.userId,
-        refNumber: bookings.refNumber,
-        customerEmail: bookings.customerEmail,
-      })
-      .from(bookings)
-      .where(eq(sql`upper(${bookings.refNumber})`, refNumber.toUpperCase()))
-      .limit(1);
-
-    if (!booking) {
-      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    const [booking] = await db.select({ id: bookings.id, userId: bookings.userId, refNumber: bookings.refNumber })
+      .from(bookings).where(eq(sql`upper(${bookings.refNumber})`, refNumber.toUpperCase())).limit(1);
+    if (!booking || !(await authorizeCustomerBooking(request, booking))) {
+      return NextResponse.json({ error: 'Booking access is required' }, { status: 403 });
     }
-
-    const normalizedEmail = email?.toLowerCase();
-    if (!user && !normalizedEmail) {
-      return NextResponse.json({ error: 'Booking email is required' }, { status: 400 });
-    }
-    if (!user && normalizedEmail && booking.customerEmail.toLowerCase() !== normalizedEmail) {
-      return NextResponse.json({ error: 'Booking email does not match' }, { status: 403 });
-    }
-    if (user && booking.userId && booking.userId !== user.id) {
-      return NextResponse.json({ error: 'Booking belongs to another customer' }, { status: 403 });
-    }
-
     bookingLink = booking;
   }
-
-  if (!user && !bookingLink) {
-    return unauthorizedResponse();
-  }
-
-  await db
-    .insert(customerPushTokens)
-    .values({
-      userId: user?.id ?? bookingLink?.userId ?? null,
-      bookingId: bookingLink?.id ?? null,
-      token,
-      platform,
-      lastRefNumber: bookingLink?.refNumber ?? refNumber?.toUpperCase() ?? null,
-      isActive: true,
-    })
-    .onConflictDoUpdate({
-      target: customerPushTokens.token,
-      set: {
-        userId: user?.id ?? bookingLink?.userId ?? null,
-        bookingId: bookingLink?.id ?? null,
-        platform,
-        lastRefNumber: bookingLink?.refNumber ?? refNumber?.toUpperCase() ?? null,
-        isActive: true,
-        updatedAt: new Date(),
-      },
-    });
-
-  console.log(
-    `[customer-push-token] registered platform=${platform} user=${user?.id ?? 'guest'} ref=${bookingLink?.refNumber ?? refNumber ?? 'none'} tokenSuffix=${token.slice(-8)}`,
-  );
-
+  if (!user && !bookingLink) return unauthorizedResponse();
+  // One PostgreSQL statement is atomic and works with the Neon HTTP driver.
+  await db.execute(sql`
+    WITH device AS (
+      INSERT INTO customer_push_tokens (user_id, token, platform, is_active)
+      VALUES (${user?.id ?? null}::uuid, ${token}, ${platform}, true)
+      ON CONFLICT (token) DO UPDATE SET user_id = EXCLUDED.user_id, booking_id = NULL,
+        last_ref_number = NULL, platform = EXCLUDED.platform, is_active = true, updated_at = NOW()
+      RETURNING id
+    )
+    INSERT INTO customer_push_subscriptions (push_token_id, booking_id, owner_user_id)
+    SELECT device.id, ${bookingLink?.id ?? null}::uuid, ${user?.id ?? null}::uuid FROM device
+    WHERE ${bookingLink?.id ?? null}::uuid IS NOT NULL
+    ON CONFLICT (push_token_id, booking_id) DO UPDATE SET owner_user_id = EXCLUDED.owner_user_id
+  `);
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(request: NextRequest) {
   const user = await getCustomerMobileUser(request);
   if (!user) return unauthorizedResponse();
-
-  await db
-    .update(customerPushTokens)
-    .set({ isActive: false, updatedAt: new Date() })
-    .where(and(eq(customerPushTokens.userId, user.id), eq(customerPushTokens.isActive, true)));
-
+  const parsed = z.object({ token: tokenSchema }).safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: 'The current device token is required' }, { status: 400 });
+  await db.execute(sql`
+    WITH target AS (
+      SELECT id FROM customer_push_tokens WHERE user_id = ${user.id}::uuid AND token = ${parsed.data.token} FOR UPDATE
+    ), removed AS (
+      DELETE FROM customer_push_subscriptions WHERE push_token_id IN (SELECT id FROM target)
+    )
+    UPDATE customer_push_tokens SET user_id = NULL, booking_id = NULL, last_ref_number = NULL,
+      is_active = false, updated_at = NOW() WHERE id IN (SELECT id FROM target)
+  `);
   return NextResponse.json({ ok: true });
 }

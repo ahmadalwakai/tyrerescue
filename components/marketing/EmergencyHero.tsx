@@ -4,9 +4,9 @@ import { Box, Container, Flex, Link as ChakraLink, SimpleGrid, Text } from '@cha
 import { CallNowButton } from '@/components/conversion/CallNowButton';
 import { trackEmergencyBookingClick, trackEmergencyTrackingClick } from '@/lib/analytics/conversions';
 import { colorTokens } from '@/lib/design-tokens';
+import { SEO_RESPONSE_TIME_MINUTES } from '@/lib/seo/response-time';
 import {
   EMERGENCY_PHONE_DISPLAY,
-  emergencyCampaign,
   type ServiceArea,
 } from '@/lib/ads/emergencyCampaign';
 
@@ -69,12 +69,12 @@ export function EmergencyHero({
   const body =
     copy ??
     (area
-      ? `Flat tyre near ${area.landmark}? Tyre Rescue sends a 24/7 mobile tyre fitter to ${area.areaName} with a ${area.responseMinutes}-minute emergency response, subject to live dispatch and tyre availability.`
-      : 'Flat tyre, puncture, or roadside tyre failure? Tyre Rescue sends a mobile tyre fitter to your location 24/7, with a 45-minute emergency response across all of Scotland.');
+      ? `Flat tyre near ${area.landmark}? Tyre Rescue sends a 24/7 mobile tyre fitter to ${area.areaName} with a ${SEO_RESPONSE_TIME_MINUTES}-minute emergency response, subject to live dispatch and tyre availability.`
+      : `Flat tyre, puncture, or roadside tyre failure? Tyre Rescue sends a mobile tyre fitter to your location 24/7, with a ${SEO_RESPONSE_TIME_MINUTES}-minute emergency response across all of Scotland.`);
 
   const stats = [
     {
-      value: `${emergencyCampaign.responsePromiseMinutes} min`,
+      value: `${SEO_RESPONSE_TIME_MINUTES} min`,
       label: 'Emergency response',
     },
     { value: '24/7', label: 'Day and night' },

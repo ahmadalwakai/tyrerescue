@@ -64,6 +64,7 @@ export async function POST(request: Request) {
       name: userRow.name,
       phone: userRow.phone,
       role: userRow.role,
+      emailVerified: userRow.emailVerified,
     };
 
     await linkUnclaimedBookingsForEmail(user.id, user.email);
