@@ -63,3 +63,17 @@ next-env.d.ts
 build.log
 .vercel
 build-output.log
+
+# local tooling output: browser profiles, dev-server logs, build exit markers
+.tmp*/
+.tmp-*
+tmp-*/
+.codex-server-logs/
+.playwright-mcp/
+*.log
+*.exit
+**/.tmp-metro-temp*/
+*.ipa
+
+# chat attachments saved by the local upload fallback (customer data)
+public/uploads/
