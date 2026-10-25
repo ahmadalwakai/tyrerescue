@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { AppState } from 'react-native';
 import { api, getAdminToken, getApiBaseUrl } from '@/lib/api';
 import { getAdminSessionRevision } from './useAdminSession';
@@ -14,10 +15,9 @@ export function useAdminDevices(visible: boolean, onCurrentDeviceRemoved: () => 
   const baseUrl = getApiBaseUrl();
   const sessionRevision = getAdminSessionRevision();
   const scope = useMemo(() => ({ token, baseUrl, sessionRevision }), [token, baseUrl, sessionRevision]);
-  const activeScope = useRef(scope);
-  activeScope.current = scope;
+  const activeScope = useLatestRef(scope);
   const mounted = useRef(false);
-  const visibleRef = useRef(visible); visibleRef.current = visible;
+  const visibleRef = useLatestRef(visible);
   const busyRef = useRef(false);
   const loadingRef = useRef(false);
   const controllers = useRef(new Set<AbortController>());

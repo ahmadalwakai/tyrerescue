@@ -26,6 +26,8 @@ import { CopyAddressButton } from './CopyAddressButton';
 
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
 const ROUTE_MAP_MESSAGE_SOURCE = 'tyrerescue-location-route-map';
+/** Address search starts at this many characters (shorter queries are too vague). */
+const MIN_ADDRESS_QUERY_LENGTH = 3;
 
 interface MapPoint {
   lat: number;
@@ -432,6 +434,8 @@ export function LocationSection({
   const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const searchSequenceRef = useRef(0);
   const [routeInfo, setRouteInfo] = useState<RouteInfo>({
     encodedPolyline: null,
     drivingKm: null,
@@ -448,18 +452,32 @@ export function LocationSection({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback(async (query: string) => {
-    if (query.trim().length < 3) {
+    const sequence = ++searchSequenceRef.current;
+    setSearchFailed(false);
+    if (query.trim().length < MIN_ADDRESS_QUERY_LENGTH) {
       setSuggestions([]);
+      setSearching(false);
       return;
     }
     setSearching(true);
     try {
-      setSuggestions(await searchMapboxAddress(query));
+      const results = await searchMapboxAddress(query);
+      // A slower response for earlier text must not replace newer results.
+      if (sequence !== searchSequenceRef.current) return;
+      setSuggestions(results);
     } catch {
+      if (sequence !== searchSequenceRef.current) return;
       setSuggestions([]);
+      setSearchFailed(true);
     } finally {
-      setSearching(false);
+      if (sequence === searchSequenceRef.current) setSearching(false);
     }
+  }, []);
+
+  // Never run a pending debounced search after the section is gone.
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    searchSequenceRef.current += 1;
   }, []);
 
   const setMethod = (method: AssistedChatLocationMethod) => {
@@ -515,6 +533,10 @@ export function LocationSection({
     const [lng, lat] = feature.center;
     const postcode = extractPostcode(feature);
     setAddressInput(feature.place_name);
+    searchSequenceRef.current += 1;
+    if (timer.current) clearTimeout(timer.current);
+    setSearching(false);
+    setSearchFailed(false);
     setSuggestions([]);
     setShowSuggestions(false);
     update({
@@ -681,7 +703,7 @@ export function LocationSection({
     [mapToken, routeMapState],
   );
 
-  const [pollClock, setPollClock] = useState(Date.now());
+  const [pollClock, setPollClock] = useState(() => Date.now());
   useEffect(() => {
     if (!locationShare.isPolling || !locationShare.lastPollAt) return;
     const interval = setInterval(() => setPollClock(Date.now()), 1000);
@@ -743,6 +765,9 @@ export function LocationSection({
               }
               setMethod(method);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={method === 'address' ? 'Type address' : 'Ask customer to share location'}
+            accessibilityState={{ selected: draft.location.method === method }}
             style={({ pressed }) => [
               styles.modeButton,
               draft.location.method === method && styles.modeButtonActive,
@@ -777,12 +802,22 @@ export function LocationSection({
               placeholder="Eg. 123 High Street, Glasgow or G1 2AB"
               placeholderTextColor={colors.subtle}
               autoCorrect={false}
+              autoComplete="street-address"
+              returnKeyType="search"
+              onSubmitEditing={() => setShowSuggestions(true)}
+              accessibilityLabel="Customer address or postcode"
+              accessibilityHint="Type at least 3 characters, then choose a matching address from the list."
               style={styles.input}
             />
             {addressInput ? (
               <Pressable
                 onPress={() => {
                   setAddressInput('');
+                  searchSequenceRef.current += 1;
+                  if (timer.current) clearTimeout(timer.current);
+                  setSearching(false);
+                  setSearchFailed(false);
+                  setSuggestions([]);
                   update({
                     location: {
                       ...draft.location,
@@ -814,11 +849,45 @@ export function LocationSection({
             <View style={styles.suggestionsBox}>
               <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 240 }}>
                 {suggestions.map((suggestion) => (
-                  <Pressable key={suggestion.id} onPress={() => selectAddress(suggestion)} style={styles.suggestionItem}>
+                  <Pressable
+                    key={suggestion.id}
+                    onPress={() => selectAddress(suggestion)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use address ${suggestion.place_name}`}
+                    style={({ pressed }) => [styles.suggestionItem, pressed && styles.suggestionItemPressed]}
+                  >
                     <Text style={styles.suggestionText}>{suggestion.place_name}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
+            </View>
+          ) : null}
+          {showSuggestions && !hasCoords && addressInput.trim().length >= MIN_ADDRESS_QUERY_LENGTH && suggestions.length === 0 ? (
+            <View style={styles.searchFeedback} accessibilityLiveRegion="polite">
+              {searching ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.muted} />
+                  <Text style={styles.searchFeedbackText}>Searching addresses…</Text>
+                </>
+              ) : searchFailed ? (
+                <>
+                  <AppIcon name="exclamation-circle" size={14} color={colors.danger} />
+                  <Text style={[styles.searchFeedbackText, styles.searchFeedbackError]}>Address search failed. Check the connection and try again.</Text>
+                  <Pressable
+                    onPress={() => { void search(addressInput); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry address search"
+                    style={({ pressed }) => [styles.searchRetryButton, pressed && styles.quickOptionPressed]}
+                  >
+                    <Text style={styles.searchRetryText}>Retry</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <AppIcon name="info-circle" size={14} color={colors.warning} />
+                  <Text style={styles.searchFeedbackText}>No matching addresses. Try the postcode or ask the customer to share their location.</Text>
+                </>
+              )}
             </View>
           ) : null}
           {hasCoords ? (
@@ -858,6 +927,7 @@ export function LocationSection({
           <View style={[styles.mapWrap, mapExpanded && styles.mapWrapExpanded]}>
             {routeMapHtml ? (
               Platform.OS === 'web' ? (
+                // eslint-disable-next-line react-hooks/refs -- attaching a ref to an element is not reading it; createElement is needed because RN types have no <iframe>.
                 createElement('iframe', {
                   ref: routeMapFrameRef,
                   srcDoc: routeMapHtml,
@@ -1400,11 +1470,34 @@ const styles = StyleSheet.create({
     ...locationCardShadow,
   },
   suggestionItem: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
   },
+  suggestionItemPressed: { backgroundColor: colors.accentMuted },
+  searchFeedback: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  searchFeedbackText: { flex: 1, minWidth: 0, color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
+  searchFeedbackError: { color: colors.danger },
+  searchRetryButton: {
+    minHeight: 44,
+    minWidth: 64,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchRetryText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '800' },
   suggestionText: { color: colors.text, fontSize: fontSize.sm },
   confirmedText: { marginTop: 6, color: colors.success, fontSize: fontSize.xs, fontWeight: '700' },
   locationEmptyState: { display: 'none' },

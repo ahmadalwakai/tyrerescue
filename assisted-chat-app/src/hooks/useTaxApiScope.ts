@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { api, getAdminToken, getApiBaseUrl } from '@/lib/api';
 import { getAdminSessionRevision } from './useAdminSession';
 
@@ -10,7 +11,7 @@ export class TaxScopeChangedError extends Error {
 export function useTaxApiScope(identity: string) {
   const token = getAdminToken(); const baseUrl = getApiBaseUrl(); const revision = getAdminSessionRevision();
   const scope = useMemo(() => ({ identity, token, baseUrl, revision }), [identity, token, baseUrl, revision]);
-  const active = useRef(scope); active.current = scope;
+  const active = useLatestRef(scope);
   const mounted = useRef(false); const requests = useRef(new Set<AbortController>());
   const isCurrent = useCallback(() => mounted.current && active.current === scope && Boolean(scope.token)
     && getAdminToken() === scope.token && getApiBaseUrl() === scope.baseUrl && getAdminSessionRevision() === scope.revision, [scope]);

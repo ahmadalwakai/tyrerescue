@@ -8,6 +8,8 @@ function fixture() {
     'react-native': { Platform: { OS: 'ios' } },
     './api': {
       ApiError: class ApiError extends Error {},
+      REQUEST_TIMEOUT_ERROR: 'timed out',
+      createRequestSignal: () => ({ signal: undefined, timedOut: () => false, dispose() {} }),
       getApiBaseUrl: () => state.baseUrl,
       getAdminToken: () => state.token,
       getApiContextRevision: () => state.revision,

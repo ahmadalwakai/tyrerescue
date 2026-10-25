@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
+import { usePolling } from '@/hooks/usePolling';
 
 // Mirror of the web/admin response shapes so we don't import server types.
 
@@ -79,11 +80,15 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
   const [ensureFailed, setEnsureFailed] = useState(false);
 
   // Use refs so the polling effect doesn't re-run on every state change.
+  // Synced in an effect (not during render); it is declared before the
+  // effects that read it, so they always see the current booking.
   const bookingIdRef = useRef<string | null>(bookingId);
-  bookingIdRef.current = bookingId;
   const mountedRef = useRef(true);
   const dataRef = useRef<BookingTrackingData | null>(null);
-  dataRef.current = data;
+  useEffect(() => {
+    bookingIdRef.current = bookingId;
+    dataRef.current = data;
+  }, [bookingId, data]);
 
   const ensure = useCallback(async () => {
     const id = bookingIdRef.current;
@@ -119,12 +124,13 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
     }
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (signal?: AbortSignal) => {
     const id = bookingIdRef.current;
     if (!id) return;
     try {
-      const res = await api.get<AdminGetResponse>(`/api/admin/bookings/${id}/tracking`);
-      if (!mountedRef.current) return;
+      const res = await api.get<AdminGetResponse>(`/api/admin/bookings/${id}/tracking`, { signal });
+      // Drop a response for a booking that is no longer the current one.
+      if (!mountedRef.current || signal?.aborted || bookingIdRef.current !== id) return;
       if (!res.exists) return;
       if (!res.customerToken || !res.customerUrl || !res.state) return;
       setData({
@@ -165,16 +171,15 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
     void ensure();
   }, [bookingId, autoEnsure, ensure]);
 
-  // Polling — single interval, exits early if terminal state was reached.
-  useEffect(() => {
-    if (!bookingId) return;
-    const id = setInterval(() => {
-      const status = dataRef.current?.state.status;
-      if (status === 'completed' || status === 'expired') return;
-      void refresh();
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [bookingId, refresh]);
+  // Polling — skips ticks once a terminal state is reached. It also polls
+  // while data is empty, so a session appears even if ensure() failed.
+  const pollTracking = useCallback(async (signal: AbortSignal) => {
+    const status = dataRef.current?.state.status;
+    if (status === 'completed' || status === 'expired') return;
+    await refresh(signal);
+  }, [refresh]);
+  usePolling(pollTracking, { enabled: Boolean(bookingId), intervalMs: POLL_INTERVAL_MS, key: bookingId });
 
-  return { data, error, busy, ensure, refresh, ensureFailed };
+  const manualRefresh = useCallback(() => refresh(), [refresh]);
+  return { data, error, busy, ensure, refresh: manualRefresh, ensureFailed };
 }

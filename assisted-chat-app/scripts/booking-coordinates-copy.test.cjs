@@ -54,6 +54,7 @@ function harness() {
     '@/lib/clipboard': loadSource('lib/clipboard.ts', { 'expo-clipboard': { setStringAsync: (value) => { state.clipboard.push(value); return state.write(value); } } }),
     './ui': { AppButton: 'AppButton', StatusBanner: 'StatusBanner' },
     './theme': loadSource('components/theme.ts'),
+    '@/hooks/useLatestRef': { useLatestRef: (value) => { const ref = react.useRef(value); ref.current = value; return ref; } },
   };
   const copy = loadSource('components/CopyCoordinatesButton.tsx', common);
   const address = loadSource('components/CopyAddressButton.tsx', { ...common, '@/lib/booking-address': loadSource('lib/booking-address.ts') });

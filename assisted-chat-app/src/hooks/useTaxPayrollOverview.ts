@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { api, getAdminToken, getApiBaseUrl } from '../lib/api';
 import { getAdminSessionRevision } from './useAdminSession';
 import { isTaxOverviewCompanyId, parseTaxPayrollOverview, taxPayrollOverviewRequestError } from '../lib/tax-payroll-overview-response';
@@ -18,7 +19,7 @@ export function useTaxPayrollOverview(companyId: string) {
   const baseUrl = getApiBaseUrl();
   const revision = getAdminSessionRevision();
   const scope = useMemo(() => ({ token, baseUrl, revision, companyId }), [token, baseUrl, revision, companyId]);
-  const activeScope = useRef(scope); activeScope.current = scope;
+  const activeScope = useLatestRef(scope);
   const mounted = useRef(false);
   const sequence = useRef(0);
   const controllers = useRef(new Set<AbortController>());

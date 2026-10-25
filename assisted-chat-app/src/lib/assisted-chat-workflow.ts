@@ -7,7 +7,9 @@ import type {
   QuickBookPatchResponse,
 } from '@/types/assisted-chat';
 import type { AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
-import { isValidCoordinate } from '@/lib/geo';
+// Relative on purpose: the server's vitest suite imports this file, and there
+// `@/` resolves to the repository root, not this app's src/.
+import { isValidCoordinate } from './geo';
 
 export const ASSISTED_CHAT_STAGE_ORDER = [
   'CUSTOMER',

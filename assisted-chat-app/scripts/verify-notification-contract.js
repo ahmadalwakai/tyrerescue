@@ -673,6 +673,8 @@ async function verifyConfirmedRegistrationAndIosReadiness() {
         Linking: {}, Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: (value) => value } },
       '@/lib/notifications': notifications, '@/lib/notification-startup-config': startupConfig,
       '@/lib/api': { ...api, ApiError: class ApiError extends Error {} },
+      // Inert like the react mock above: the ref holds this render's value.
+      '@/hooks/useLatestRef': { useLatestRef: (current) => ({ current }) },
       '../theme': { colors: {}, fontSize: {}, radius: {}, space: {} },
     }),
   });
@@ -744,6 +746,8 @@ async function verifyConfirmedRegistrationAndIosReadiness() {
   const apiFacade = loadTsModule(path.join(projectRoot, 'src/lib/api.ts'), {
     __DEV__: false,
     process: { env: { NODE_ENV: 'production' } },
+    // The facade bounds every request with a timeout.
+    AbortController, setTimeout, clearTimeout,
     require: requireMocks({
       'expo-constants': { expoConfig: {} }, 'react-native': { Platform: platform },
       './startup-logging': startupLogging,

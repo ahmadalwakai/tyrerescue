@@ -9,6 +9,8 @@ export function useMonthlyTax(companyId: string, date: string) {
   const [state, setState] = useState<{ scope: object; data: MonthlyTaxSummary | null; loading: boolean; error: string | null }>({ scope, data: null, loading: true, error: null });
   const [write, setWrite] = useState<{ scope: object; busy: boolean; error: string | null; notice: string | null }>({ scope, busy: false, error: null, notice: null });
   const activeWrite = useRef<object | null>(null); const reads = useRef(0);
+  // Declared before the callbacks that reset it (record, voidRecord).
+  const key = useRef<{ body: string; value: string } | null>(null);
   useEffect(() => { activeWrite.current = null; reads.current += 1; }, [scope]);
   const load = useCallback(async () => {
     const request = ++reads.current;
@@ -44,12 +46,13 @@ export function useMonthlyTax(companyId: string, date: string) {
       return false;
     } finally { if (activeWrite.current === operation) { activeWrite.current = null; if (isCurrent()) setWrite((previous) => ({ ...previous, busy: false })); } }
   }, [scope, isCurrent, call, companyId, state, load]);
-  const key = useRef<{ body: string; value: string } | null>(null);
-  const requestKey = (body: Record<string, unknown>) => {
+  // A callback (not a plain function) so the compiler knows the ref is only
+  // written from event handlers, never during render.
+  const requestKey = useCallback((body: Record<string, unknown>) => {
     const encoded = JSON.stringify({ companyId, backend: scope.baseUrl, revision: scope.revision, ...body });
     if (key.current?.body !== encoded) key.current = { body: encoded, value: newTaxRequestKey() };
     return key.current!.value;
-  };
+  }, [companyId, scope.baseUrl, scope.revision]);
   const voidRecord = useCallback(async (kind: 'payments' | 'adjustments', id: string, reason: string, idempotencyKey: string) => {
     if (!isCurrent() || activeWrite.current || !TAX_UUID.test(id) || reason.trim().length < 5 || state.scope !== scope || !state.data) return false;
     if (kind === 'payments' ? !state.data.canRecordPayments : !state.data.canRecordAdjustments) return false;

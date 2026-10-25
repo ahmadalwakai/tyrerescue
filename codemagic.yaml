@@ -1,5 +1,85 @@
-# Build only the customer iOS app; TestFlight upload follows separately.
+# Build only; TestFlight upload follows separately.
 workflows:
+  assisted-chat-ios:
+    name: Tyre Rescue Assisted Chat - iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    working_directory: assisted-chat-app
+    environment:
+      node: 24.22.1
+      xcode: '26.2'
+      cocoapods: default
+      # Signing comes from the team's Codemagic code signing identities
+      # (Apple Distribution certificate + App Store profile for this bundle).
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: uk.tyrerescue.assistedchat
+      groups:
+        # EXPO_PUBLIC_MAPBOX_TOKEN: address search and maps; the build fails without it.
+        - assisted_chat_ios_public
+      vars:
+        CI: '1'
+        EXPO_NO_TELEMETRY: '1'
+        EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
+        CM_RECURSIVE_SUBMODULE_INIT: 'false'
+        DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
+    # Start explicitly from the UI or API; no automatic publishing trigger.
+    scripts:
+      - name: Verify build environment
+        script: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v24.22.1
+          origin="$(git -C "$CM_BUILD_DIR" remote get-url origin)"
+          case "$origin" in
+            https://github.com/ahmadalwakai/tyrerescue|https://github.com/ahmadalwakai/tyrerescue.git) ;;
+            *) echo 'Unexpected source repository'; exit 1 ;;
+          esac
+          if [ -z "${EXPO_PUBLIC_MAPBOX_TOKEN:-}" ]; then
+            echo 'EXPO_PUBLIC_MAPBOX_TOKEN is missing from the assisted_chat_ios_public group.'
+            exit 1
+          fi
+          node -e "const e=require('./app.json').expo; console.log('Building ' + e.ios.bundleIdentifier + ' ' + e.version + ' (' + e.ios.buildNumber + ')')"
+
+      - name: Install dependencies
+        script: |
+          set -euo pipefail
+          # The app's ESLint config extends the root config, and eslint plus
+          # its plugins are installed at the repository root.
+          (cd "$CM_BUILD_DIR" && npm ci --ignore-scripts --no-audit --no-fund)
+          # Also applies the pinned expo-notifications patch (postinstall).
+          npm ci --no-audit --no-fund
+
+      - name: Typecheck, lint and test
+        script: |
+          set -euo pipefail
+          npm run check
+
+      - name: Generate native iOS project and install CocoaPods
+        script: |
+          set -euo pipefail
+          npx --no-install expo prebuild --platform ios --no-install --clean
+          printf 'export NODE_BINARY="%s"\n' "$(command -v node)" > ios/.xcode.env.local
+          cd ios
+          pod install --repo-update
+
+      - name: Apply signing profiles
+        script: |
+          set -euo pipefail
+          xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: |
+          set -euo pipefail
+          workspace="$(ls -d ios/*.xcworkspace | head -n 1)"
+          scheme="$(basename "$workspace" .xcworkspace)"
+          xcode-project build-ipa --workspace "$workspace" --scheme "$scheme"
+
+    artifacts:
+      - $CM_BUILD_DIR/assisted-chat-app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+
   customer-ios19-native:
     name: Tyre Rescue 1.0.4 (19) - customer iOS
     instance_type: mac_mini_m2

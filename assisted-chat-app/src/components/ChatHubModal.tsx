@@ -193,9 +193,14 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const bottomPadding = useChatBottomPadding();
   const scopeKey = `${getAdminSessionRevision()}:${getApiContextRevision()}`;
   const scopeRef = useRef({ visible, scopeKey, generation: 0, conversationId: null as string | null });
-  if (scopeRef.current.visible !== visible || scopeRef.current.scopeKey !== scopeKey) {
-    scopeRef.current = { visible, scopeKey, generation: scopeRef.current.generation + 1, conversationId: null };
-  }
+  // Start a new fence generation when visibility or account scope changes.
+  // Done in a layout effect (refs must not be written during render); it
+  // still runs before any passive effect or user event of this commit.
+  useLayoutEffect(() => {
+    if (scopeRef.current.visible !== visible || scopeRef.current.scopeKey !== scopeKey) {
+      scopeRef.current = { visible, scopeKey, generation: scopeRef.current.generation + 1, conversationId: null };
+    }
+  }, [visible, scopeKey]);
   const driverRequestRef = useRef<object | null>(null);
   const listRequestRef = useRef(0);
   const { observeMessages, playSent } = useChatSounds({ visible, conversationId: selected?.id ?? null, scopeKey });

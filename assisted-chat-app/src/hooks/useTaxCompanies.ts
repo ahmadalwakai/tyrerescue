@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { api, getAdminToken, getApiBaseUrl } from '../lib/api';
 import { getAdminSessionRevision } from './useAdminSession';
 import {
@@ -22,7 +23,7 @@ export function useTaxCompanies() {
   const baseUrl = getApiBaseUrl();
   const revision = getAdminSessionRevision();
   const scope = useMemo(() => ({ token, baseUrl, revision }), [token, baseUrl, revision]);
-  const activeScope = useRef(scope); activeScope.current = scope;
+  const activeScope = useLatestRef(scope);
   const mounted = useRef(false);
   const sequence = useRef(0);
   const createInFlight = useRef<object | null>(null);

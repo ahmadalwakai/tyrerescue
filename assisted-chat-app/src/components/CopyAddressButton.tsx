@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { StyleSheet, Text, View } from 'react-native';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatBookingAddressForCopy } from '@/lib/booking-address';
@@ -14,7 +15,7 @@ interface Props {
 export function CopyAddressButton({ address, postcode, contextKey = '' }: Props) {
   const value = formatBookingAddressForCopy(address, postcode);
   const scope = `${contextKey}\n${value}`;
-  const currentScope = useRef(scope); currentScope.current = scope;
+  const currentScope = useLatestRef(scope);
   const mounted = useRef(false);
   const inFlight = useRef(false);
   const [state, setState] = useState<{ scope: string; status: 'copying' | 'ok' | 'err' } | null>(null);

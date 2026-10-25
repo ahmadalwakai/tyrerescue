@@ -19,7 +19,7 @@ function harness() {
   const fetch = vi.fn(async () => Response.json({ ok: true }));
   const fixtureModule = { exports: {} };
   new vm.Script(compiled).runInNewContext({
-    module: fixtureModule, exports: fixtureModule.exports, URL, fetch, __DEV__: false, process: { env: { NODE_ENV: 'production' } },
+    module: fixtureModule, exports: fixtureModule.exports, URL, fetch, AbortController, setTimeout, clearTimeout, __DEV__: false, process: { env: { NODE_ENV: 'production' } },
     require: (id: string) => {
       if (id === 'expo-constants') return { __esModule: true, default: { expoConfig: {} } };
       if (id === 'react-native') return { Platform: { OS: 'ios' } };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { api, ApiError, getApiContextRevision } from '@/lib/api';
 import { subscribeBrowserNetworkEvents } from '@/lib/browser-network-events';
@@ -185,9 +185,14 @@ export function useAdminPaymentLink({
 
   const ref = draft.dispatchedRefNumber ?? draft.paymentLink?.refNumber ?? null;
   const hasLink = draft.paymentLink != null;
-  // Update these during render so a cleared/new draft is fenced before effects.
-  refRef.current = ref;
-  createIdentityRef.current = `${draft.dispatchedBookingId ?? draft.paymentLink?.bookingId ?? ''}|${ref ?? ''}`;
+  const createIdentity = `${draft.dispatchedBookingId ?? draft.paymentLink?.bookingId ?? ''}|${ref ?? ''}`;
+  // Fence a cleared/new draft before any passive effect or user event: layout
+  // effects run right after commit, ahead of both (refs must not be written
+  // during render).
+  useLayoutEffect(() => {
+    refRef.current = ref;
+    createIdentityRef.current = createIdentity;
+  }, [ref, createIdentity]);
   const linkKey = draft.paymentLink
     ? [
         ref ?? draft.paymentLink.refNumber,

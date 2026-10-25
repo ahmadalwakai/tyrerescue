@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { Alert, Linking, Platform } from 'react-native';
 import { api, ApiError, getAdminToken, SESSION_VERIFICATION_ERROR } from '../lib/api';
 import { copyToClipboard } from '../lib/clipboard';
@@ -23,8 +24,7 @@ export function useDriverLocationShare({ bookingRef, bookingId }: Input) {
   const inflight = useRef<AbortController | null>(null);
   const sessionBaseUrl = api.baseUrl;
   const sessionToken = getAdminToken();
-  const currentBooking = useRef({ bookingRef, bookingId });
-  currentBooking.current = { bookingRef, bookingId };
+  const currentBooking = useLatestRef({ bookingRef, bookingId });
 
   useEffect(() => {
     mounted.current = true;

@@ -43,6 +43,8 @@ function harness(name: string, initialArgs: string[] = [COMPANY, EMPLOYEE]) {
     return hooks[index].value;
   };
   const react = {
+    // Runs during render, like the render-time ref writes it replaced.
+    useLayoutEffect(effect: () => unknown) { effect(); },
     useState(initial: unknown) {
       const index = cursor++;
       if (!hooks[index]) hooks[index] = { value: typeof initial === 'function' ? initial() : initial };

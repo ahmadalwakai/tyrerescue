@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { ActivityIndicator, AppState, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   readAdminNotificationPermissionStatus,
@@ -151,10 +152,8 @@ export function NotificationReliabilityCard({ testID, onSetupChanged, onStatusCh
   const mounted = useRef(true);
   const testInFlight = useRef(false);
   const requestSequence = useRef(0);
-  const setupChanged = useRef(onSetupChanged);
-  const statusChanged = useRef(onStatusChanged);
-  setupChanged.current = onSetupChanged;
-  statusChanged.current = onStatusChanged;
+  const setupChanged = useLatestRef(onSetupChanged);
+  const statusChanged = useLatestRef(onStatusChanged);
 
   useEffect(() => {
     statusChanged.current?.({ permission, pushSync, testStatus });

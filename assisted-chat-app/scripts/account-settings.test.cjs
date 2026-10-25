@@ -175,6 +175,7 @@ function hookHarness() {
     },
   };
   const source = loadSource('hooks/useAccountPreferences.ts', {
+    '@/hooks/useLatestRef': { useLatestRef: (value) => { const ref = react.useRef(value); ref.current = value; return ref; } },
     react, '@react-native-async-storage/async-storage': storage,
     '@/lib/account-preferences': preferences,
     '@/lib/api': { getAdminToken: () => state.token, getApiBaseUrl: () => state.baseUrl },

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { usePolling } from '@/hooks/usePolling';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -125,13 +126,19 @@ export function useAdminStock(enabled: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
-  useEffect(() => {
-    if (!enabled) return;
-    const interval = setInterval(() => {
-      void doFetch(page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort, { silent: true });
-    }, 15_000);
-    return () => clearInterval(interval);
-  }, [doFetch, enabled, filterAvailable, filterRim, filterSeason, filterWidth, page, search, sort]);
+  // Silent background refresh every 15s: no overlapping requests and no
+  // polling while the app is in the background. Filter changes fetch on
+  // their own, so the interval only restarts without an immediate run.
+  const silentRefresh = useCallback(
+    () => doFetch(page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort, { silent: true }),
+    [doFetch, filterAvailable, filterRim, filterSeason, filterWidth, page, search, sort],
+  );
+  usePolling(silentRefresh, {
+    enabled,
+    intervalMs: 15_000,
+    key: [page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort].join('|'),
+    immediate: false,
+  });
 
   function showToast(text: string, ok: boolean) {
     setToast({ text, ok });

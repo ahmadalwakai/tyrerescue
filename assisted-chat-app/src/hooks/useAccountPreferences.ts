@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { getAdminToken, getApiBaseUrl } from '@/lib/api';
 import {
   accountPreferencesStorageKey, DEFAULT_ACCOUNT_PREFERENCES, parseAccountPreferences,
@@ -30,8 +31,8 @@ export function useAccountPreferences({ visible, userId, apiBaseUrl }: Options) 
   const revision = getAdminSessionRevision();
   const key = userId ? accountPreferencesStorageKey(apiBaseUrl, userId) : null;
   const scope = useMemo(() => ({ key, apiBaseUrl, revision, token }), [key, apiBaseUrl, revision, token]);
-  const currentScope = useRef(scope); currentScope.current = scope;
-  const visibleRef = useRef(visible); visibleRef.current = visible;
+  const currentScope = useLatestRef(scope);
+  const visibleRef = useLatestRef(visible);
   const mounted = useRef(false);
   const generation = useRef(0);
   const busy = useRef(false);

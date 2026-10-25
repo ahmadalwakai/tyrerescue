@@ -14,6 +14,12 @@ const config = [
       'jsx-a11y/alt-text': ['warn', {
         elements: ['img', 'object', 'area', 'input[type="image"]'],
       }],
+      // Remaining hits are load-on-open and reset-on-prop-change effects: an
+      // extra render, not a wrong result, and this app does not enable the
+      // React Compiler. Kept visible as warnings to burn down while the large
+      // screens are split; the correctness rules (refs, purity, immutability,
+      // preserve-manual-memoization) stay errors.
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
   {

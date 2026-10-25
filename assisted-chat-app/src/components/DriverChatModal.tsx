@@ -120,9 +120,14 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
   const bottomPadding = useChatBottomPadding();
   const scopeKey = `${getAdminSessionRevision()}:${getApiContextRevision()}:${bookingId ?? ''}`;
   const scopeRef = useRef({ visible, scopeKey, generation: 0, conversationId: null as string | null });
-  if (scopeRef.current.visible !== visible || scopeRef.current.scopeKey !== scopeKey) {
-    scopeRef.current = { visible, scopeKey, generation: scopeRef.current.generation + 1, conversationId: null };
-  }
+  // Start a new fence generation when visibility or account scope changes.
+  // Done in a layout effect (refs must not be written during render); it
+  // still runs before any passive effect or user event of this commit.
+  useLayoutEffect(() => {
+    if (scopeRef.current.visible !== visible || scopeRef.current.scopeKey !== scopeKey) {
+      scopeRef.current = { visible, scopeKey, generation: scopeRef.current.generation + 1, conversationId: null };
+    }
+  }, [visible, scopeKey]);
   const { observeMessages, playSent } = useChatSounds({ visible, conversationId, scopeKey });
   const captureScope = useCallback(() => ({ ...scopeRef.current, token: getAdminToken(), apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() }), []);
   const isCurrent = useCallback((scope: ReturnType<typeof captureScope>, id?: string) => (

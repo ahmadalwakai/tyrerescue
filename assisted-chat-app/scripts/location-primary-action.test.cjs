@@ -13,7 +13,7 @@ const screen = parse('components/AssistedChatScreen.tsx');
 const locationSection = parse('components/LocationSection.tsx');
 const draftSource = parse('hooks/useAssistedChatDraft.ts');
 const geo = loadSource('lib/geo.ts', {});
-const workflowModule = loadSource('lib/assisted-chat-workflow.ts', { '@/lib/geo': geo });
+const workflowModule = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo });
 
 function findNode(source, predicate, label) {
   let found;
@@ -135,7 +135,8 @@ test('typed but unselected address cannot advance or send a link', async () => {
   assert.equal(action.label, 'Done Editing');
   assert.equal(action.disabled, true);
   assert.match(action.reason, /Select an address from the suggestions/);
-  assert.equal(action.helper, action.reason);
+  // The reason is rendered once, beneath the button; the helper keeps the guidance.
+  assert.equal(action.helper, 'Confirm this address and continue to the next step');
   await action.press();
   assert.equal(h.state.editingStage, 'LOCATION');
   assert.equal(h.state.keyboardDismisses, 0);

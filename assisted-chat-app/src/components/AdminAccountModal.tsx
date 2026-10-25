@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import { getAdminSessionRevision, useAdminSession } from '@/hooks/useAdminSession';
@@ -76,7 +77,7 @@ export function AdminAccountModal({ visible, onClose, onDismiss, onLogout, onNot
   const revision = getAdminSessionRevision();
   const apiRevision = getApiContextRevision();
   const scope = useMemo(() => ({ visible, token, revision, apiRevision, userId: session.user?.id, apiBaseUrl }), [visible, token, revision, apiRevision, session.user?.id, apiBaseUrl]);
-  const activeScope = useRef(scope); activeScope.current = scope;
+  const activeScope = useLatestRef(scope);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const current = useCallback(() => mounted.current && scope.visible && activeScope.current === scope && Boolean(scope.token)

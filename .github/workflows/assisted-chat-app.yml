@@ -1,0 +1,49 @@
+name: Assisted Chat app
+
+on:
+  pull_request:
+    paths:
+      - 'assisted-chat-app/**'
+      - '.github/workflows/assisted-chat-app.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'assisted-chat-app/**'
+      - '.github/workflows/assisted-chat-app.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: assisted-chat-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: assisted-chat-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            assisted-chat-app/package-lock.json
+
+      # The app's ESLint config extends the root config, and eslint plus its
+      # plugins are installed at the repository root.
+      - run: npm ci --ignore-scripts
+        working-directory: .
+
+      # Also applies the pinned expo-notifications patch (postinstall), which
+      # fails the job if the installed version no longer matches the patch.
+      - run: npm ci
+
+      # Type check, lint (errors only fail the job) and the isolated test
+      # suites, including the notification and iOS startup config contracts.
+      - run: npm run check

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '@/components/theme';
 import { useTaxApiScope } from '@/hooks/useTaxApiScope';
@@ -11,7 +12,7 @@ export function CompanyPayrollAccessPanel({ companyId }: { companyId: string }) 
   const [progress, setProgress] = useState({ scope, loading: true, busy: false });
   const [feedback, setFeedback] = useState<{ scope: object; error: string | null; notice: string | null }>({ scope, error: null, notice: null });
   const lock = useRef<object | null>(null); const read = useRef<object | null>(null);
-  const currentFeed = useRef(state); currentFeed.current = state;
+  const currentFeed = useLatestRef(state);
   const setLoading = useCallback((loading: boolean) => setProgress((old) => ({ scope, loading, busy: old.scope === scope && old.busy })), [scope]);
   const setBusy = useCallback((busy: boolean) => setProgress((old) => ({ scope, busy, loading: old.scope === scope ? old.loading : true })), [scope]);
   const setError = useCallback((error: string | null) => setFeedback((old) => ({ scope, error, notice: old.scope === scope ? old.notice : null })), [scope]);

@@ -167,9 +167,11 @@ if (__DEV__) {
 // and stored locally by `useAdminSession` after the login screen.
 //
 // EXPO_PUBLIC_ADMIN_TOKEN remains as an optional dev-only fallback so the
-// app still works when no one has logged in yet.
+// app still works when no one has logged in yet. Release builds ignore it:
+// an EXPO_PUBLIC_ value is compiled into the bundle, so a token set by
+// mistake in an EAS environment would otherwise ship inside the app.
 let currentToken: string | null =
-  process.env.EXPO_PUBLIC_ADMIN_TOKEN?.trim() || null;
+  (__DEV__ && process.env.EXPO_PUBLIC_ADMIN_TOKEN?.trim()) || null;
 export function setAdminToken(token: string | null): void {
   const next = token && token.trim() ? token.trim() : null;
   if (next !== currentToken) apiContextRevision += 1;
@@ -201,10 +203,40 @@ export class ApiError extends Error {
   }
 }
 
+export const REQUEST_TIMEOUT_ERROR = 'The server took too long to respond. Check your connection and retry.';
+const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
+
+/**
+ * An AbortSignal that fires when the caller's signal aborts or after
+ * `timeoutMs`. Built by hand because Hermes lacks AbortSignal.timeout/any.
+ * Call `dispose()` once the request settles.
+ */
+export function createRequestSignal(signal: AbortSignal | undefined, timeoutMs: number) {
+  const controller = new AbortController();
+  let timedOut = false;
+  const onCallerAbort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else signal?.addEventListener('abort', onCallerAbort);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  return {
+    signal: controller.signal,
+    timedOut: () => timedOut,
+    dispose: () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onCallerAbort);
+    },
+  };
+}
+
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface RequestOptions {
   signal?: AbortSignal;
+  /** Defaults to 20 seconds; covers the response body as well. */
+  timeoutMs?: number;
 }
 
 async function request<T>(
@@ -213,6 +245,29 @@ async function request<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
+  const deadline = createRequestSignal(options.signal, options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+  try {
+    return await requestWithSignal<T>(method, path, body, options.signal, deadline.signal);
+  } catch (error) {
+    // A caller's own abort keeps its original error; only our deadline is
+    // reported as a timeout.
+    if (deadline.timedOut() && !options.signal?.aborted) {
+      throw new ApiError(REQUEST_TIMEOUT_ERROR, 0);
+    }
+    throw error;
+  } finally {
+    deadline.dispose();
+  }
+}
+
+async function requestWithSignal<T>(
+  method: Method,
+  path: string,
+  body: unknown,
+  callerSignal: AbortSignal | undefined,
+  signal: AbortSignal,
+): Promise<T> {
+  const options = { signal: callerSignal };
   const requestInit: RequestInit = {
     method,
     headers: {
@@ -220,7 +275,7 @@ async function request<T>(
       ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
-    signal: options.signal,
+    signal,
   };
 
   normalizeDevWebApiBaseUrl();
@@ -237,7 +292,7 @@ async function request<T>(
       if (requestContextRevision === apiContextRevision) resolvedApiBaseUrl = baseUrl;
       break;
     } catch (error) {
-      if (options.signal?.aborted) throw error;
+      if (options.signal?.aborted || signal.aborted) throw error;
       lastNetworkError = error;
       const nextBaseUrl = baseUrls[index + 1];
       if (__DEV__ && nextBaseUrl) {
@@ -258,7 +313,7 @@ async function request<T>(
   try {
     payload = ct.includes('application/json') ? await res.json() : await res.text();
   } catch (error) {
-    if (res.status !== 401 || options.signal?.aborted) throw error;
+    if (res.status !== 401 || options.signal?.aborted || signal.aborted) throw error;
     // Even an invalid proxy/error body must surface the same retryable 401.
     payload = null;
   }

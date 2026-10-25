@@ -75,6 +75,9 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
   const pinRef = useRef('');
   const pinInputRef = useRef<TextInput>(null);
   const unlockTokenRef = useRef<string | null>(null);
+  // Mirrors whether unlockTokenRef holds a token, so the submit button
+  // re-renders when the token is granted or revoked (refs do not re-render).
+  const [hasUnlockToken, setHasUnlockToken] = useState(false);
   const mountedRef = useRef(false);
   const [phase, setPhase] = useState<Phase>('checking');
   const [roles, setRoles] = useState<string[]>([]);
@@ -100,6 +103,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
   const resetSensitiveState = useCallback(() => {
     clearPin();
     unlockTokenRef.current = null;
+    setHasUnlockToken(false);
     setFieldErrors({});
   }, [clearPin]);
 
@@ -107,6 +111,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
     const token = unlockTokenRef.current;
     if (!token) return;
     unlockTokenRef.current = null;
+    setHasUnlockToken(false);
     const adminToken = getAdminToken();
     void fetch(`${getApiBaseUrl()}/api/mobile/admin/add-admin/unlock`, {
       method: 'DELETE',
@@ -191,6 +196,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
       try {
         const result = await api.post<UnlockResponse>('/api/mobile/admin/add-admin/unlock', { pin });
         unlockTokenRef.current = result.unlockToken;
+        setHasUnlockToken(true);
         setPhase('unlocked');
         setNotice(`Unlocked until ${new Date(result.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`);
       } catch (error) {
@@ -268,7 +274,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
 
   const canSubmitForm =
     phase !== 'submitting' &&
-    Boolean(unlockTokenRef.current) &&
+    hasUnlockToken &&
     roles.length > 0 &&
     name.trim().length >= 2 &&
     email.trim().length > 0 &&

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { api, ApiError, getApiContextRevision } from '@/lib/api';
 import {
   ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
@@ -129,8 +130,7 @@ export function useAssistedChatDispatch({
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
-  const latestDraft = useRef(draft);
-  latestDraft.current = draft;
+  const latestDraft = useLatestRef(draft);
   const confirmed = useRef<{ quickBookingId: string; response: FinalizeResponse } | null>(null);
   const notifiedBookings = useRef(new Set<string>());
 

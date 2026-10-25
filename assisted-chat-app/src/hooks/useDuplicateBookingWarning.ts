@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNow } from '@/hooks/useNow';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import type { TodayBookingItem } from './useTodayBookings';
 import type { RecentCustomer } from '@/types/assisted-chat';
@@ -55,93 +56,103 @@ export function useDuplicateBookingWarning({
   todayBookings,
   recentCustomers,
 }: UseDuplicateBookingWarningArgs): DuplicateBookingMatch | null {
-  return useMemo(() => {
-    // Once the operator has actually dispatched this draft we don't want to
-    // warn against the booking they just created.
-    if (draft.dispatchedRefNumber) return null;
+  // The duplicate window is wall-clock relative. useMemo only re-runs when
+  // its inputs change, so a minute clock is one of them; otherwise a match
+  // would keep warning long after it left the 60-minute window.
+  const now = useNow(60_000);
+  return useMemo(
+    () => findDuplicateBooking(draft, todayBookings, recentCustomers, now),
+    [draft, todayBookings, recentCustomers, now],
+  );
+}
 
-    const phone = digits(draft.customer.phone);
-    const addr = draft.location.address.trim().toLowerCase();
-    const sizes = lowerSizes(buildBookingTyreLinePayload(draft.tyreLines));
-    const lat = draft.location.lat;
-    const lng = draft.location.lng;
-    // Intentional: the duplicate window is wall-clock relative. Re-running
-    // this on each render with a fresh "now" is the desired behaviour so
-    // entries naturally drop out after 60 minutes without a timer.
-    // eslint-disable-next-line react-hooks/purity
-    const now = Date.now();
+/** Pure matcher behind useDuplicateBookingWarning. */
+export function findDuplicateBooking(
+  draft: AssistedChatDraft,
+  todayBookings: TodayBookingItem[],
+  recentCustomers: RecentCustomer[],
+  now: number,
+): DuplicateBookingMatch | null {
+  // Once the operator has actually dispatched this draft we don't want to
+  // warn against the booking they just created.
+  if (draft.dispatchedRefNumber) return null;
 
-    // Today's bookings (highest signal — same operator session, same day).
-    for (const b of todayBookings) {
-      if (!withinWindow(b.createdAtIso, now)) continue;
-      const bPhone = digits(b.customerPhone);
-      if (phone && bPhone && phone === bPhone) {
-        return {
-          source: 'today',
-          reason: 'phone',
-          bookingReference: b.bookingReference,
-          whenIso: b.createdAtIso,
-          customerPhone: b.customerPhone,
-          customerAddress: b.customerAddress,
-        };
-      }
-      const bAddr = (b.customerAddress ?? '').trim().toLowerCase();
-      const bSize = (b.tyreSize ?? '').trim().toLowerCase();
-      if (addr && sizes.size > 0 && bAddr && bSize && addr === bAddr && sizes.has(bSize)) {
-        return {
-          source: 'today',
-          reason: 'address+size',
-          bookingReference: b.bookingReference,
-          whenIso: b.createdAtIso,
-          customerPhone: b.customerPhone,
-          customerAddress: b.customerAddress,
-        };
-      }
+  const phone = digits(draft.customer.phone);
+  const addr = draft.location.address.trim().toLowerCase();
+  const sizes = lowerSizes(buildBookingTyreLinePayload(draft.tyreLines));
+  const lat = draft.location.lat;
+  const lng = draft.location.lng;
+
+  // Today's bookings (highest signal — same operator session, same day).
+  for (const b of todayBookings) {
+    if (!withinWindow(b.createdAtIso, now)) continue;
+    const bPhone = digits(b.customerPhone);
+    if (phone && bPhone && phone === bPhone) {
+      return {
+        source: 'today',
+        reason: 'phone',
+        bookingReference: b.bookingReference,
+        whenIso: b.createdAtIso,
+        customerPhone: b.customerPhone,
+        customerAddress: b.customerAddress,
+      };
     }
+    const bAddr = (b.customerAddress ?? '').trim().toLowerCase();
+    const bSize = (b.tyreSize ?? '').trim().toLowerCase();
+    if (addr && sizes.size > 0 && bAddr && bSize && addr === bAddr && sizes.has(bSize)) {
+      return {
+        source: 'today',
+        reason: 'address+size',
+        bookingReference: b.bookingReference,
+        whenIso: b.createdAtIso,
+        customerPhone: b.customerPhone,
+        customerAddress: b.customerAddress,
+      };
+    }
+  }
 
-    // Recent customers (broader — covers prior sessions within the window).
-    for (const r of recentCustomers) {
-      if (!withinWindow(r.lastUsedAtIso, now)) continue;
-      const rPhone = digits(r.customerPhone);
-      if (phone && rPhone && phone === rPhone) {
+  // Recent customers (broader — covers prior sessions within the window).
+  for (const r of recentCustomers) {
+    if (!withinWindow(r.lastUsedAtIso, now)) continue;
+    const rPhone = digits(r.customerPhone);
+    if (phone && rPhone && phone === rPhone) {
+      return {
+        source: 'recent',
+        reason: 'phone',
+        bookingReference: r.lastBookingReference,
+        whenIso: r.lastUsedAtIso,
+        customerPhone: r.customerPhone,
+        customerAddress: r.customerAddress,
+      };
+    }
+    const rAddr = (r.customerAddress ?? '').trim().toLowerCase();
+    const rSizes = lowerSizes(r.tyreLines?.length ? buildBookingTyreLinePayload(r.tyreLines) : []);
+    const rSize = (r.tyreSize ?? '').trim().toLowerCase();
+    if (rSize) rSizes.add(rSize);
+    const hasSizeOverlap = [...sizes].some((size) => rSizes.has(size));
+    if (addr && sizes.size > 0 && rAddr && rSizes.size > 0 && addr === rAddr && hasSizeOverlap) {
+      return {
+        source: 'recent',
+        reason: 'address+size',
+        bookingReference: r.lastBookingReference,
+        whenIso: r.lastUsedAtIso,
+        customerPhone: r.customerPhone,
+        customerAddress: r.customerAddress,
+      };
+    }
+    if (lat != null && lng != null && r.lat != null && r.lng != null && hasSizeOverlap) {
+      const meters = Math.hypot((lat - r.lat) * 111_000, (lng - r.lng) * 63_000);
+      if (meters <= 50) {
         return {
           source: 'recent',
-          reason: 'phone',
+          reason: 'coords+size',
           bookingReference: r.lastBookingReference,
           whenIso: r.lastUsedAtIso,
           customerPhone: r.customerPhone,
           customerAddress: r.customerAddress,
         };
       }
-      const rAddr = (r.customerAddress ?? '').trim().toLowerCase();
-      const rSizes = lowerSizes(r.tyreLines?.length ? buildBookingTyreLinePayload(r.tyreLines) : []);
-      const rSize = (r.tyreSize ?? '').trim().toLowerCase();
-      if (rSize) rSizes.add(rSize);
-      const hasSizeOverlap = [...sizes].some((size) => rSizes.has(size));
-      if (addr && sizes.size > 0 && rAddr && rSizes.size > 0 && addr === rAddr && hasSizeOverlap) {
-        return {
-          source: 'recent',
-          reason: 'address+size',
-          bookingReference: r.lastBookingReference,
-          whenIso: r.lastUsedAtIso,
-          customerPhone: r.customerPhone,
-          customerAddress: r.customerAddress,
-        };
-      }
-      if (lat != null && lng != null && r.lat != null && r.lng != null && hasSizeOverlap) {
-        const meters = Math.hypot((lat - r.lat) * 111_000, (lng - r.lng) * 63_000);
-        if (meters <= 50) {
-          return {
-            source: 'recent',
-            reason: 'coords+size',
-            bookingReference: r.lastBookingReference,
-            whenIso: r.lastUsedAtIso,
-            customerPhone: r.customerPhone,
-            customerAddress: r.customerAddress,
-          };
-        }
-      }
     }
-    return null;
-  }, [draft, todayBookings, recentCustomers]);
+  }
+  return null;
 }

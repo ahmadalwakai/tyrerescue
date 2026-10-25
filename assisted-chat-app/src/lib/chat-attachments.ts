@@ -1,5 +1,14 @@
 import { Platform } from 'react-native';
-import { getApiBaseUrl, ApiError, getAdminToken, getApiContextRevision } from './api';
+import {
+  getApiBaseUrl,
+  ApiError,
+  createRequestSignal,
+  getAdminToken,
+  getApiContextRevision,
+  REQUEST_TIMEOUT_ERROR,
+} from './api';
+
+const UPLOAD_TIMEOUT_MS = 90_000;
 
 export interface ChatAttachmentUpload {
   url: string;
@@ -102,14 +111,26 @@ async function uploadChatAttachment(
   if (revision !== getApiContextRevision() || token !== getAdminToken() || baseUrl !== getApiBaseUrl()) {
     throw new Error('The account or project changed. Reopen the conversation before sending an attachment.');
   }
-  const res = await fetch(`${baseUrl}/api/chat/upload`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: formData,
-  });
-
-  const contentType = res.headers.get('content-type') || '';
-  const payload: unknown = contentType.includes('application/json') ? await res.json() : await res.text();
+  // Uploads get longer than ordinary requests: voice notes and photos on a
+  // weak mobile connection, but never an indefinite spinner.
+  const deadline = createRequestSignal(undefined, UPLOAD_TIMEOUT_MS);
+  let res: Response;
+  let payload: unknown;
+  try {
+    res = await fetch(`${baseUrl}/api/chat/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+      signal: deadline.signal,
+    });
+    const contentType = res.headers.get('content-type') || '';
+    payload = contentType.includes('application/json') ? await res.json() : await res.text();
+  } catch (error) {
+    if (deadline.timedOut()) throw new ApiError(REQUEST_TIMEOUT_ERROR, 0);
+    throw error;
+  } finally {
+    deadline.dispose();
+  }
 
   if (!res.ok) {
     let message = `Upload failed (${res.status})`;

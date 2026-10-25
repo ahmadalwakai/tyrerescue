@@ -55,7 +55,7 @@ function harness(page:Page,reply:(request:RequestFixture)=>Promise<Response>) {
   let handler=reply;
   const changed=(a:any[]|undefined,b:any[]|undefined)=>!a||!b||a.length!==b.length||b.some((v,i)=>v!==a[i]);
   const memo=(fn:()=>any,deps?:any[])=>{const i=cursor++;if(!hooks[i]||changed(hooks[i].deps,deps))hooks[i]={value:fn(),deps};return hooks[i].value;};
-  const react={useState(initial:any){const i=cursor++;if(!hooks[i])hooks[i]={value:typeof initial==='function'?initial():initial};return[hooks[i].value,(next:any)=>{const value=typeof next==='function'?next(hooks[i].value):next;if(!Object.is(value,hooks[i].value)){hooks[i].value=value;dirty=true;}}];},
+  const react={useLayoutEffect(effect:()=>unknown){effect();},useState(initial:any){const i=cursor++;if(!hooks[i])hooks[i]={value:typeof initial==='function'?initial():initial};return[hooks[i].value,(next:any)=>{const value=typeof next==='function'?next(hooks[i].value):next;if(!Object.is(value,hooks[i].value)){hooks[i].value=value;dirty=true;}}];},
     useRef(initial:any){const i=cursor++;if(!hooks[i])hooks[i]={value:{current:initial}};return hooks[i].value;},useMemo:memo,useCallback:(fn:any,deps?:any[])=>memo(()=>fn,deps),
     useEffect(fn:()=>void|(()=>void),deps?:any[]){const i=cursor++;if(!hooks[i]||changed(hooks[i].deps,deps))effects.push(()=>{hooks[i]?.cleanup?.();hooks[i]={deps,cleanup:fn()};});}};
   const context=vm.createContext({Error,TypeError,RangeError,Promise,AbortController,URL,Response,Headers,__DEV__:false,process:{env:{NODE_ENV:'production'}},console:{log(){},warn(){},error(){}},setTimeout,clearTimeout,setInterval,clearInterval,

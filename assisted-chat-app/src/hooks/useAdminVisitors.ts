@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { usePolling } from '@/hooks/usePolling';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -76,10 +77,8 @@ export function useAdminVisitors(period: VisitorPeriod, enabled: boolean) {
   const [newArrivals, setNewArrivals] = useState<LiveVisitorItem[]>([]);
 
   const sinceRef = useRef(new Date().toISOString());
-  const fullTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const liveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchFull = useCallback(async () => {
+  const fetchFull = useCallback(async (signal?: AbortSignal) => {
     if (!enabled) return;
     try {
       setLoading(true);
@@ -88,55 +87,49 @@ export function useAdminVisitors(period: VisitorPeriod, enabled: boolean) {
         stats: VisitorStats;
         page: number;
         totalCount: number;
-      }>(`/api/mobile/admin/visitors?period=${period}&limit=50`);
+      }>(`/api/mobile/admin/visitors?period=${period}&limit=50`, { signal });
+      if (signal?.aborted) return;
       setVisitors(data.visitors);
       setStats(data.stats);
       setTotalCount(data.totalCount);
       setError(null);
     } catch {
+      if (signal?.aborted) return;
       setError('Failed to load visitors');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [enabled, period]);
 
-  const fetchLive = useCallback(async () => {
-    if (!enabled) return;
+  // Initial load + full refresh every 30s. Keyed by period so switching
+  // period drops a late response for the previous one.
+  const refreshFull = usePolling(fetchFull, { enabled, intervalMs: 30_000, key: period });
+
+  const fetchLive = useCallback(async (signal: AbortSignal) => {
     try {
       const since = sinceRef.current;
       const data = await api.get<{ visitors: LiveVisitorItem[] }>(
-        `/api/mobile/admin/visitors/live?since=${encodeURIComponent(since)}`
+        `/api/mobile/admin/visitors/live?since=${encodeURIComponent(since)}`,
+        { signal },
       );
+      if (signal.aborted) return;
       if (data.visitors.length > 0) {
         sinceRef.current = new Date().toISOString();
         setNewArrivals((prev) => [...data.visitors, ...prev].slice(0, 5));
         // Also refresh full stats
-        void fetchFull();
+        void refreshFull();
       }
     } catch {
       // silent — live poll failures don't need UI error
     }
-  }, [enabled, fetchFull]);
+  }, [refreshFull]);
 
-  // Initial load + full refresh every 30s
   useEffect(() => {
-    if (!enabled) return;
-    sinceRef.current = new Date().toISOString();
-    void fetchFull();
-    fullTimerRef.current = setInterval(fetchFull, 30_000);
-    return () => {
-      if (fullTimerRef.current) clearInterval(fullTimerRef.current);
-    };
-  }, [enabled, fetchFull]);
+    if (enabled) sinceRef.current = new Date().toISOString();
+  }, [enabled]);
 
   // Live polling every 5s
-  useEffect(() => {
-    if (!enabled) return;
-    liveTimerRef.current = setInterval(fetchLive, 5_000);
-    return () => {
-      if (liveTimerRef.current) clearInterval(liveTimerRef.current);
-    };
-  }, [enabled, fetchLive]);
+  usePolling(fetchLive, { enabled, intervalMs: 5_000 });
 
   const dismissArrival = useCallback((id: string) => {
     setNewArrivals((prev) => prev.filter((v) => v.id !== id));
@@ -150,6 +143,6 @@ export function useAdminVisitors(period: VisitorPeriod, enabled: boolean) {
     error,
     newArrivals,
     dismissArrival,
-    refresh: fetchFull,
+    refresh: refreshFull,
   };
 }

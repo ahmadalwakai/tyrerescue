@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import { StyleSheet, Text, View } from 'react-native';
 import { getApiContextRevision } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -19,8 +20,7 @@ export function CopyCoordinatesButton({ lat, lng, contextKey }: Props) {
   const revision = getApiContextRevision();
   const key = JSON.stringify([contextKey, revision, value]);
   const scope = useMemo<CopyScope>(() => ({ key, revision }), [key, revision]);
-  const currentScope = useRef(scope);
-  currentScope.current = scope;
+  const currentScope = useLatestRef(scope);
   const mounted = useRef(false);
   const inFlight = useRef<CopyScope | null>(null);
   const [state, setState] = useState<{ scope: CopyScope; status: 'copying' | 'ok' | 'err' } | null>(null);

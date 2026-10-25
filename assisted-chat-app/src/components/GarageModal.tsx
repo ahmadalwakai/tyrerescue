@@ -544,8 +544,10 @@ export function GarageModal({ visible, onClose }: GarageModalProps) {
     }
   }, [stockSearch]);
 
+  // The city the loaded data belongs to, as a plain value for the callback.
+  const dataCityId = data?.selectedCityId ?? null;
   const handleAddSizeToCity = useCallback(async () => {
-    if (!data?.selectedCityId) {
+    if (!dataCityId) {
       setStockError('Select a city first.');
       return;
     }
@@ -558,7 +560,7 @@ export function GarageModal({ visible, onClose }: GarageModalProps) {
     setStockError(null);
     setStockSuccess(null);
     try {
-      await api.post(`/api/stock/cities/${data.selectedCityId}/inventory`, {
+      await api.post(`/api/stock/cities/${dataCityId}/inventory`, {
         tyreProductId: stockSelected.id,
         minStock: intFromText(minStock),
         targetStock: intFromText(targetStock),
@@ -566,13 +568,13 @@ export function GarageModal({ visible, onClose }: GarageModalProps) {
       });
       if (quantity > 0) {
         await api.post('/api/stock/movements', {
-          cityId: data.selectedCityId,
+          cityId: dataCityId,
           tyreProductId: stockSelected.id,
           movementType: 'RECEIVED',
           quantityDelta: quantity,
           reason: 'garage_add_size',
           note: `Added from Garage screen: ${stockSelected.sizeDisplay}`,
-          idempotencyKey: `garage-add-${data.selectedCityId}-${stockSelected.id}-${Date.now()}`,
+          idempotencyKey: `garage-add-${dataCityId}-${stockSelected.id}-${Date.now()}`,
         });
       }
       setStockSuccess(`${stockSelected.sizeDisplay} added to ${cityLabel}.`);
@@ -580,14 +582,14 @@ export function GarageModal({ visible, onClose }: GarageModalProps) {
       setStockResults([]);
       setStockSelected(null);
       setInitialUnits('0');
-      await load(data.selectedCityId);
+      await load(dataCityId);
       setPanel(null);
     } catch (err) {
       setStockError(err instanceof Error ? err.message : 'Failed to add size to stock.');
     } finally {
       setStockBusy(false);
     }
-  }, [cityLabel, data?.selectedCityId, initialUnits, load, minStock, orderedStock, stockSelected, targetStock]);
+  }, [cityLabel, dataCityId, initialUnits, load, minStock, orderedStock, stockSelected, targetStock]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>

@@ -70,6 +70,7 @@ function harness() {
   const node = (type, props) => ({ type, props });
   const onLogout = async () => { state.logouts += 1; };
   const component = loadSource('components/AdminAccountModal.tsx', {
+    '@/hooks/useLatestRef': { useLatestRef: (value) => { const ref = react.useRef(value); ref.current = value; return ref; } },
     react, 'react/jsx-runtime': { jsx: node, jsxs: node },
     'react-native': {
       ActivityIndicator: 'ActivityIndicator', Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Switch: 'Switch', Text: 'Text', View: 'View',

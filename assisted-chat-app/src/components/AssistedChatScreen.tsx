@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from 'react';
+import { useNow } from '@/hooks/useNow';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   AppState,
   Keyboard,
@@ -75,7 +77,7 @@ import { CopyAddressButton } from './CopyAddressButton';
 import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
-import { usePressScale, useOnChangeFadeSlide } from './motion';
+import { usePressScale, useOnChangeFadeSlide, useReducedMotion } from './motion';
 import { AppIcon, type AppIconName } from './icons/AppIcon';
 import { api, getAdminToken, getApiContextRevision } from '@/lib/api';
 import { getAdminSessionRevision } from '@/hooks/useAdminSession';
@@ -209,6 +211,22 @@ function requireStartupModule<T>(label: string, load: () => T): T {
 
 const DEPOSIT_PERCENT = 20;
 const DRIVER_NEARBY_ALERT_MINUTES = 5;
+
+const CLEAR_DRAFT_TITLE = 'Clear this draft?';
+const CLEAR_DRAFT_MESSAGE = 'Customer details, location, tyres, price and notes on this screen will be removed. Saved quotes and bookings are not affected.';
+
+/** Clearing wipes the whole operator workflow, so it always asks first. */
+function confirmClearDraft(): Promise<boolean> {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return Promise.resolve(window.confirm(`${CLEAR_DRAFT_TITLE}\n\n${CLEAR_DRAFT_MESSAGE}`));
+  }
+  return new Promise((resolve) => {
+    Alert.alert(CLEAR_DRAFT_TITLE, CLEAR_DRAFT_MESSAGE, [
+      { text: 'Keep draft', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Clear draft', style: 'destructive', onPress: () => resolve(true) },
+    ], { cancelable: true, onDismiss: () => resolve(false) });
+  });
+}
 
 function DeferredVirtualLandlineModal(props: {
   visible: boolean;
@@ -1336,10 +1354,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     draft.dispatchedRefNumber != null &&
     draft.dispatchedBookingId != null;
   // Driver fix older than 3 minutes (matching the backend stale window) reads stale.
+  // Ticks only while a driver fix is shown, so the stale label appears on
+  // time even when no other update re-renders the screen.
+  const trackingNow = useNow(30_000, trackingHasDriverLocation && trackingLastUpdatedAt != null);
   const trackingIsStale =
     trackingHasDriverLocation &&
     trackingLastUpdatedAt != null &&
-    Date.now() - new Date(trackingLastUpdatedAt).getTime() > 180_000;
+    trackingNow - new Date(trackingLastUpdatedAt).getTime() > 180_000;
   const trackDriverHint = !trackingHasCustomerCoords
     ? 'Customer location unavailable'
     : !trackingHasDriverLocation
@@ -1536,6 +1557,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     quoteActions.setMessage(null);
     locationShare.setMessage(null);
   }, [clear, locationShare, quoteActions]);
+
+  const handleConfirmClear = useCallback(async () => {
+    if (await confirmClearDraft()) handleClear();
+  }, [handleClear]);
 
   const handleCreateVirtualLandlineDraft = useCallback(
     (prefill: VirtualLandlineDraftPrefill) => {
@@ -2327,26 +2352,30 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       description: 'Reset this operator workflow.',
       disabledReason: draftHasContent ? null : 'Draft is already empty.',
       destructive: true,
-      onPress: handleClear,
+      onPress: () => { void handleConfirmClear(); },
     });
 
-    if (onLogout) {
-      actions.push({
-        id: 'logout',
-        label: 'Log out',
-        description: 'End this admin session.',
-        onPress: () => {
-          void handleLogout();
-        },
-      });
-    }
-
-    return actions;
+    // Appended as an array element rather than via push(): handing a
+    // ref-reading callback to an arbitrary call during render is something
+    // the React compiler cannot prove safe.
+    return onLogout
+      ? [
+          ...actions,
+          {
+            id: 'logout',
+            label: 'Log out',
+            description: 'End this admin session.',
+            onPress: () => {
+              void handleLogout();
+            },
+          },
+        ]
+      : actions;
   }, [
     activeProjectId,
     draft,
     draftHasContent,
-    handleClear,
+    handleConfirmClear,
     handleCopyCoords,
     handleCopyCustomerMessage,
     handleCopyJobDetails,
@@ -2539,19 +2568,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             notificationState={headerNotificationVisualState}
             onCall={customerDialNumber ? handleCallCustomer : undefined}
             onWhatsApp={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
-            onClearDraft={handleClear}
+            onClearDraft={() => { void handleConfirmClear(); }}
             clearDraftDisabled={!draftHasContent}
             onDownloadInvoice={hasHeaderInvoiceRef ? handleDownloadHeaderInvoice : undefined}
             invoiceBusy={headerInvoiceBusy}
           />
 
           {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
-          <AppButton
-            label={`Driver journeys${driverJourneys.unreadCount ? ` · ${driverJourneys.unreadCount} unread` : ''}`}
-            variant="secondary"
-            onPress={() => { void driverJourneys.open(); }}
-            accessibilityLabel={`Driver journeys, ${driverJourneys.unreadCount} unread alerts`}
-          />
           {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
           {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
           {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
@@ -2581,8 +2604,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             onCall={handleCallCustomer}
             onWhatsApp={handleOpenWhatsApp}
             onCopyReference={handleCopyReferenceNumber}
-            onClearDraft={handleClear}
+            onClearDraft={() => { void handleConfirmClear(); }}
             onDownloadInvoice={handleDownloadHeaderInvoice}
+          />
+          <DriverJourneysRow
+            unreadCount={driverJourneys.unreadCount}
+            onPress={() => { void driverJourneys.open(); }}
           />
 
           <OperatorStepProgress
@@ -2762,14 +2789,19 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               label={primaryLabel}
               icon={isManualLocationEditing || activeStage === 'PAYMENT' ? 'check' : 'paper-plane'}
               multilineLabel={isManualLocationEditing || activeStage === 'PAYMENT'}
-              helper={isManualLocationEditing ? primaryDisabledReason ?? 'Confirm this address and continue to the next step' : activeStage === 'PAYMENT' ? primaryDisabledReason ?? 'Review your payment selection and continue' : activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : primaryDisabledReason ?? 'Continue the assisted workflow'}
+              helper={isManualLocationEditing ? 'Confirm this address and continue to the next step' : activeStage === 'PAYMENT' ? 'Review your payment selection and continue' : activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : 'Continue the assisted workflow'}
               onPress={() => {
                 void handlePrimaryAction();
               }}
               loading={activeStage === 'PAYMENT' ? dispatch.busy : !isManualLocationEditing && ((editingStage === 'LOCATION' && Boolean(locationShare.busy)) || (!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)))}
               disabled={primaryDisabled}
             />
-            {primaryDisabledReason ? <Text style={styles.primaryReason}>{primaryDisabledReason}</Text> : null}
+            {primaryDisabledReason ? (
+              <View style={styles.primaryReasonRow} accessibilityLiveRegion="polite">
+                <AppIcon name="info-circle" size={13} color={colors.warning} />
+                <Text style={styles.primaryReason}>{primaryDisabledReason}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -3659,6 +3691,8 @@ function PremiumAppHeader({
                 onPress={onOpenChatHub}
                 accessibilityRole="button"
                 accessibilityLabel="Open chat hub"
+                // The 34px brand mark keeps its size; hitSlop gives it a 44px touch target.
+                hitSlop={5}
                 testID="assisted-chat-header-chat-hub-button"
                 style={({ pressed }) => [styles.assistedChatMarkButton, pressed && styles.contactButtonPressed]}
               >
@@ -3669,8 +3703,12 @@ function PremiumAppHeader({
               <Text style={styles.headerTitle} numberOfLines={1} testID="assisted-chat-header-title">Assisted Chat</Text>
             </View>
             <HeaderLiveVisitorCounter state={liveVisitors} />
-            <Text style={styles.headerCustomer} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-customer">{showCustomerMeta ? customerName : ''}</Text>
-            <Text style={styles.headerPhone} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-phone">{showCustomerMeta ? customerPhone : ''}</Text>
+            {showCustomerMeta ? (
+              <>
+                <Text style={styles.headerCustomer} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-customer">{customerName}</Text>
+                <Text style={styles.headerPhone} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-phone">{customerPhone}</Text>
+              </>
+            ) : null}
           </View>
         </View>
         <View style={styles.headerUtilityRow}>
@@ -3777,6 +3815,7 @@ function PrimaryActionDeck({
         onPress={onCall}
         accessibilityLabel="Call customer"
         testID="assisted-chat-header-call-button"
+        label="Call"
       />
       <PrimaryActionCard
         icon="whatsapp"
@@ -3785,6 +3824,7 @@ function PrimaryActionDeck({
         onPress={onWhatsApp}
         accessibilityLabel="Send via WhatsApp"
         testID="assisted-chat-header-whatsapp-button"
+        label="WhatsApp"
       />
       {invoiceAvailable ? (
         <PrimaryActionCard
@@ -3795,6 +3835,7 @@ function PrimaryActionDeck({
           onPress={onDownloadInvoice}
           accessibilityLabel="Download invoice"
           testID="assisted-chat-header-invoice-button"
+          label="Invoice"
         />
       ) : null}
       {referenceAvailable ? (
@@ -3804,6 +3845,7 @@ function PrimaryActionDeck({
           onPress={onCopyReference}
           accessibilityLabel="Copy booking reference"
           testID="assisted-chat-header-copy-reference-button"
+          label="Copy ref"
         />
       ) : null}
       <PrimaryActionCard
@@ -3813,13 +3855,39 @@ function PrimaryActionDeck({
         onPress={onClearDraft}
         accessibilityLabel="Clear draft"
         testID="assisted-chat-header-clear-draft-button"
+        label="Clear"
       />
     </View>
   );
 }
 
+function DriverJourneysRow({ unreadCount, onPress }: { unreadCount: number; onPress: () => void }) {
+  const hasUnread = unreadCount > 0;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Driver journeys, ${unreadCount} unread alerts`}
+      testID="assisted-chat-driver-journeys-button"
+      style={({ pressed }) => [styles.journeysRow, pressed && styles.contactButtonPressed]}
+    >
+      <View style={styles.journeysIcon}>
+        <AppIcon name="truck" size={16} color={colors.accent} />
+      </View>
+      <Text style={styles.journeysLabel} numberOfLines={1}>Driver journeys</Text>
+      {hasUnread ? (
+        <View style={styles.journeysBadge}>
+          <Text style={styles.journeysBadgeText}>{unreadCount} unread</Text>
+        </View>
+      ) : null}
+      <AppIcon name="chevron-right" size={14} color={colors.subtle} />
+    </Pressable>
+  );
+}
+
 function PrimaryActionCard({
   icon,
+  label,
   tone,
   disabled,
   loading,
@@ -3828,6 +3896,8 @@ function PrimaryActionCard({
   testID,
 }: {
   icon: AppIconName;
+  /** Short visible caption; icons alone were ambiguous. */
+  label: string;
   tone: PremiumTone;
   disabled?: boolean;
   loading?: boolean;
@@ -3838,43 +3908,38 @@ function PrimaryActionCard({
   const isDisabled = Boolean(disabled || loading);
   const palette = tonePalette(tone);
   const { pressScaleStyle, pressIn, pressOut } = usePressScale(isDisabled, 0.975);
+  const reducedMotion = useReducedMotion();
   const [glow] = useState(() => new Animated.Value(0));
 
+  // One gentle highlight when an action becomes available, then rest. A
+  // permanent loop on every card competed with the current task for
+  // attention and kept animating in the background.
   useEffect(() => {
-    if (isDisabled) {
+    if (isDisabled || reducedMotion) {
       glow.stopAnimation();
       glow.setValue(0);
       return;
     }
-
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glow, {
-          toValue: 1,
-          duration: 1600,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(glow, {
-          toValue: 0,
-          duration: 1600,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glow, isDisabled]);
+    glow.setValue(0);
+    const sweep = Animated.timing(glow, {
+      toValue: 1,
+      duration: 900,
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    sweep.start();
+    return () => sweep.stop();
+  }, [glow, isDisabled, reducedMotion]);
 
   const ringStyle = {
     opacity: glow.interpolate({
       inputRange: [0, 0.5, 1],
-      outputRange: [0.14, 0.44, 0.14],
+      outputRange: [0.14, 0.36, 0.14],
     }),
     transform: [
       {
         scale: glow.interpolate({
           inputRange: [0, 1],
-          outputRange: [0.88, 1.18],
+          outputRange: [0.94, 1],
         }),
       },
     ],
@@ -3944,12 +4009,15 @@ function PrimaryActionCard({
             ]}
           >
             <View style={[styles.actionGlyphCore, { backgroundColor: palette.soft }]}>
-              <AppIcon name={icon} size={24} color={palette.fg} />
+              <AppIcon name={icon} size={20} color={palette.fg} />
             </View>
             <Animated.View style={[styles.actionGlyphShine, shineStyle]} />
           </Animated.View>
+          {loading ? <ActivityIndicator color={palette.fg} style={styles.actionCardLoader} /> : null}
         </View>
-        {loading ? <ActivityIndicator color={palette.fg} style={styles.actionCardLoader} /> : null}
+        <Text style={[styles.actionCardLabel, { color: disabled ? colors.disabledText : colors.text }]} numberOfLines={1}>
+          {label}
+        </Text>
       </Animated.View>
     </Pressable>
   );
@@ -4021,14 +4089,14 @@ function PremiumBottomAction({
       ]}
     >
       <Animated.View style={[styles.premiumCtaInner, pressScaleStyle]}>
-        <View style={styles.premiumCtaIcon}>
-          {loading ? <ActivityIndicator color={colors.text} /> : <AppIcon name={icon} size={24} color={colors.text} />}
+        <View style={[styles.premiumCtaIcon, disabled && styles.premiumCtaIconDisabled]}>
+          {loading ? <ActivityIndicator color={colors.text} /> : <AppIcon name={icon} size={22} color={disabled ? colors.disabledText : colors.text} />}
         </View>
         <View style={styles.premiumCtaCopy}>
-          <Text style={styles.premiumCtaLabel} numberOfLines={multilineLabel ? 2 : 1}>{label}</Text>
-          <Text style={styles.premiumCtaHelper} numberOfLines={1}>{helper}</Text>
+          <Text style={[styles.premiumCtaLabel, disabled && styles.premiumCtaLabelDisabled]} numberOfLines={multilineLabel ? 2 : 1}>{label}</Text>
+          <Text style={[styles.premiumCtaHelper, disabled && styles.premiumCtaHelperDisabled]} numberOfLines={1}>{helper}</Text>
         </View>
-        <AppIcon name="chevron-right" size={24} color={colors.accentText} />
+        <AppIcon name="chevron-right" size={20} color={disabled ? colors.disabledText : colors.accentText} />
       </Animated.View>
     </Pressable>
   );
@@ -4599,10 +4667,11 @@ const styles = StyleSheet.create({
   keyboardAvoider: { flex: 1, zIndex: 1, backgroundColor: colors.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: {
-    minHeight: 220,
-    paddingHorizontal: space.md,
+    // Aligns with the page gutter like the cards below (a second inset left
+    // too little room for the title beside the brand mark at 360px).
+    paddingHorizontal: 0,
     paddingTop: 12,
-    paddingBottom: 18,
+    paddingBottom: 14,
     borderBottomWidth: 0,
     backgroundColor: '#000000',
     overflow: 'hidden',
@@ -4619,7 +4688,7 @@ const styles = StyleSheet.create({
   },
   headerIdentityRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
     flexGrow: 1,
     flexShrink: 1,
@@ -4657,7 +4726,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0,
     flexShrink: 1,
@@ -4897,66 +4966,111 @@ const styles = StyleSheet.create({
   heroStatusText: { fontSize: fontSize.xs, fontWeight: '900' },
   heroTitle: {
     color: colors.text,
-    fontSize: 34,
+    fontSize: 24,
     fontWeight: '900',
-    lineHeight: 38,
+    lineHeight: 30,
     letterSpacing: 0,
   },
   heroTitleAccent: { color: colors.accent },
   heroHelper: {
     color: colors.muted,
-    fontSize: 16,
-    lineHeight: 20,
-    marginTop: 3,
-    maxWidth: 330,
+    fontSize: fontSize.sm,
+    lineHeight: 19,
+    marginTop: 2,
   },
+  // In normal flow below the top row (the fixed 220px box and absolute copy
+  // were leftovers of the removed video background), so a two-line title can
+  // never overlap the customer name and phone.
   heroCopyBlock: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 18,
-    zIndex: 3,
+    marginTop: 12,
   },
   actionCard: {
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 0,
     minWidth: 0,
-    minHeight: 64,
+    minHeight: 72,
     borderWidth: 1,
     borderRadius: 16,
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
     ...(compactCardShadow ?? {}),
   },
   actionCardInner: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
     minWidth: 0,
+    maxWidth: '100%',
+  },
+  journeysRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.glass,
+  },
+  journeysIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentMuted,
+  },
+  journeysLabel: {
+    flex: 1,
+    minWidth: 0,
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+  },
+  journeysBadge: {
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: colors.warningBg,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+  },
+  journeysBadgeText: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
+  actionCardLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    textAlign: 'center',
+    maxWidth: '100%',
   },
   actionCardPressed: { opacity: 0.84 },
   actionCardDisabled: { opacity: 0.56 },
   actionCardLoader: { position: 'absolute' },
   actionGlyphFrame: {
-    width: 54,
-    height: 54,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   actionGlyphRing: {
     position: 'absolute',
-    width: 52,
-    height: 52,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 17,
     borderWidth: 1,
   },
   actionGlyph: {
-    width: 46,
-    height: 46,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 15,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -4973,9 +5087,9 @@ const styles = StyleSheet.create({
         }),
   },
   actionGlyphCore: {
-    width: 34,
-    height: 34,
-    borderRadius: 13,
+    width: 30,
+    height: 30,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
@@ -5302,10 +5416,15 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   premiumCtaDisabled: {
-    backgroundColor: colors.glassStrong,
+    backgroundColor: colors.panel,
     borderColor: colors.borderStrong,
-    opacity: 0.72,
   },
+  premiumCtaIconDisabled: {
+    backgroundColor: colors.cardMuted,
+    borderColor: colors.border,
+  },
+  premiumCtaLabelDisabled: { color: colors.muted },
+  premiumCtaHelperDisabled: { color: colors.subtle },
   premiumCtaPressed: { opacity: 0.86 },
   premiumCtaIcon: {
     width: 54,
@@ -5318,10 +5437,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.30)',
   },
   premiumCtaCopy: { flex: 1, minWidth: 0 },
-  premiumCtaLabel: { color: colors.accentText, fontSize: 22, fontWeight: '900' },
+  premiumCtaLabel: { color: colors.accentText, fontSize: 18, lineHeight: 22, fontWeight: '900' },
   premiumCtaHelper: { color: 'rgba(8,11,18,0.72)', fontSize: fontSize.xs, fontWeight: '800', marginTop: 2 },
   premiumCtaArrow: { color: colors.accentText, fontSize: 24, fontWeight: '900', paddingHorizontal: 4 },
-  primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
+  primaryReasonRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 6 },
+  primaryReason: { flex: 1, minWidth: 0, color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', lineHeight: 16 },
   paymentLinkHint: { color: colors.muted, fontSize: fontSize.sm, marginBottom: 8 },
   paymentLinkAmount: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginBottom: 2 },
   paymentLinkStatus: { color: colors.warning, fontSize: fontSize.sm, fontWeight: '700' },

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { api } from '@/lib/api';
+import { usePolling } from '@/hooks/usePolling';
 
 export interface ActiveJobPaymentSummary {
   state: string;
@@ -210,59 +211,56 @@ export function normalizeActiveJobItem(value: unknown): ActiveJobItem | null {
   };
 }
 
+interface ActiveJobsSnapshot {
+  sourceApp: string | null;
+  items: ActiveJobItem[];
+  lastUpdated: number;
+}
+
 export function useActiveJobs(enabled: boolean, sourceApp: string | null = null) {
-  const [items, setItems] = useState<ActiveJobItem[]>([]);
+  // Results are tagged with the project they were loaded for, so switching
+  // project never shows the previous project's jobs, even briefly.
+  const [snapshot, setSnapshot] = useState<ActiveJobsSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const aliveRef = useRef(true);
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     try {
       const path = sourceApp
         ? `/api/admin/active-jobs?sourceApp=${encodeURIComponent(sourceApp)}`
         : '/api/admin/active-jobs';
-      const data = await api.get<ActiveJobsResponse>(path);
-      if (!aliveRef.current) return;
+      const data = await api.get<ActiveJobsResponse>(path, { signal });
+      if (signal.aborted) return;
       const rawJobs = Array.isArray(data?.activeJobs) ? data.activeJobs : [];
-      setItems(rawJobs.flatMap((job) => {
-        const normalized = normalizeActiveJobItem(job);
-        return normalized ? [normalized] : [];
-      }));
+      setSnapshot({
+        sourceApp,
+        items: rawJobs.flatMap((job) => {
+          const normalized = normalizeActiveJobItem(job);
+          return normalized ? [normalized] : [];
+        }),
+        lastUpdated: Date.now(),
+      });
       setError(null);
-      setLastUpdated(Date.now());
     } catch (err) {
-      if (!aliveRef.current) return;
+      if (signal.aborted) return;
       console.warn('[active-jobs] load failed', err);
       setError(err instanceof Error ? err.message : 'Failed to load active jobs');
     } finally {
-      if (aliveRef.current) setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [sourceApp]);
 
-  useEffect(() => {
-    aliveRef.current = true;
-    if (!enabled) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-      return () => {
-        aliveRef.current = false;
-      };
-    }
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null;
-    void refresh();
-    timerRef.current = setInterval(() => {
-      void refresh();
-    }, POLL_MS);
-    return () => {
-      aliveRef.current = false;
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-    };
-  }, [enabled, refresh]);
+  const refresh = usePolling(load, { enabled, intervalMs: POLL_MS, key: sourceApp });
 
-  return { items, loading, error, lastUpdated, refresh };
+  const current = snapshot?.sourceApp === sourceApp ? snapshot : null;
+  return {
+    items: current?.items ?? EMPTY_ITEMS,
+    loading,
+    error,
+    lastUpdated: current?.lastUpdated ?? null,
+    refresh,
+  };
 }
+
+const EMPTY_ITEMS: ActiveJobItem[] = [];

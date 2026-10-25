@@ -30,6 +30,8 @@ function harness() {
   const changed = (before?: any[], next?: any[]) => !before || !next || before.length !== next.length || next.some((value, i) => value !== before[i]);
   const memo = (factory: () => any, deps?: any[]) => { const i = cursor++; if (!slots[i] || changed(slots[i].deps, deps)) slots[i] = { value: factory(), deps }; return slots[i].value; };
   const react = {
+    // Runs during render, like the render-time ref writes it replaced.
+    useLayoutEffect(effect: () => unknown) { effect(); },
     useState(initial: any) { const i = cursor++; if (!slots[i]) slots[i] = { value: typeof initial === 'function' ? initial() : initial };
       return [slots[i].value, (update: any) => { const next = typeof update === 'function' ? update(slots[i].value) : update; if (!Object.is(next, slots[i].value)) { slots[i].value = next; dirty = true; } }]; },
     useRef(initial: any) { const i = cursor++; if (!slots[i]) slots[i] = { value: { current: initial } }; return slots[i].value; },

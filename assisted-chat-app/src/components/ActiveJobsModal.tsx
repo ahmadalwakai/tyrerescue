@@ -906,20 +906,28 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
 
   const bookingRef = job?.bookingRef ?? null;
 
+  // Plain values as memo inputs, so the dependencies are exactly what the
+  // memo reads (optional chains in dependency lists defeat the compiler).
+  const routeDriverLocation = route?.driverLocation ?? null;
+  const routeCustomerLocation = route?.customerLocation ?? null;
+  const jobDriverLat = job?.driver.lat ?? null;
+  const jobDriverLng = job?.driver.lng ?? null;
+  const jobCustomerLat = job?.customer.lat ?? null;
+  const jobCustomerLng = job?.customer.lng ?? null;
   const driverPin = useMemo(() => (
-    route?.driverLocation
-      ? { lat: route.driverLocation.lat, lng: route.driverLocation.lng }
-      : job?.driver.lat != null && job?.driver.lng != null
-        ? { lat: job.driver.lat, lng: job.driver.lng }
+    routeDriverLocation
+      ? { lat: routeDriverLocation.lat, lng: routeDriverLocation.lng }
+      : jobDriverLat != null && jobDriverLng != null
+        ? { lat: jobDriverLat, lng: jobDriverLng }
         : null
-  ), [job?.driver.lat, job?.driver.lng, route?.driverLocation]);
+  ), [jobDriverLat, jobDriverLng, routeDriverLocation]);
   const customerPin = useMemo(() => (
-    route?.customerLocation
-      ? { lat: route.customerLocation.lat, lng: route.customerLocation.lng }
-      : job?.customer.lat != null && job?.customer.lng != null
-        ? { lat: job.customer.lat, lng: job.customer.lng }
+    routeCustomerLocation
+      ? { lat: routeCustomerLocation.lat, lng: routeCustomerLocation.lng }
+      : jobCustomerLat != null && jobCustomerLng != null
+        ? { lat: jobCustomerLat, lng: jobCustomerLng }
         : null
-  ), [job?.customer.lat, job?.customer.lng, route?.customerLocation]);
+  ), [jobCustomerLat, jobCustomerLng, routeCustomerLocation]);
 
   // Polling lifecycle: fixed 5s cadence while the modal is visible. It never
   // overlaps requests and preserves the last good route if a refresh fails.

@@ -12,7 +12,7 @@ const parse = (relative) => ts.createSourceFile(relative, fs.readFileSync(path.j
 const screen = parse('components/AssistedChatScreen.tsx');
 const draftSource = parse('hooks/useAssistedChatDraft.ts');
 const geo = loadSource('lib/geo.ts', {});
-const workflow = loadSource('lib/assisted-chat-workflow.ts', { '@/lib/geo': geo });
+const workflow = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo });
 const pricing = loadSource('lib/pricing-context.ts', {});
 
 function findNode(source, predicate, label) {
@@ -337,6 +337,7 @@ function createDispatchHarness(patch = {}) {
     },
   };
   const hook = loadSource('hooks/useAssistedChatDispatch.ts', {
+    '@/hooks/useLatestRef': { useLatestRef: (value) => { const ref = react.useRef(value); ref.current = value; return ref; } },
     react, '@/lib/api': { api, ApiError, getApiContextRevision: () => state.revision },
     '@/lib/pricing-context': pricing, '@/lib/assisted-chat-workflow': workflow,
   });
@@ -629,6 +630,9 @@ function createExistingPaymentHarness(patch = {}) {
       return [state.hooks[index], (value) => { state.hooks[index] = typeof value === 'function' ? value(state.hooks[index]) : value; }]; },
     useRef(initial) { const index = state.cursor++; if (!(index in state.hooks)) state.hooks[index] = { current: initial }; return state.hooks[index]; },
     useCallback: (fn) => fn, useMemo: (fn) => fn(), useEffect: () => {},
+    // Layout effects sync the draft fence refs; run them as part of render,
+    // which is when this harness reads them.
+    useLayoutEffect: (effect) => { effect(); },
   };
   const api = { post: async (url, body) => {
     state.posts.push({ url, body });

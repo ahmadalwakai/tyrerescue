@@ -58,6 +58,8 @@ function harness() {
     return hooks[index].value;
   };
   const react = {
+    // Runs during render, like the render-time ref writes it replaced.
+    useLayoutEffect(effect: () => unknown) { effect(); },
     useState(initial: unknown) {
       const index = cursor++;
       if (!hooks[index]) hooks[index] = { value: typeof initial === 'function' ? initial() : initial };
@@ -103,6 +105,7 @@ function harness() {
       if (id.includes('startup-logging')) return { logStartupModuleStarted() {}, logStartupModuleCompleted() {}, logStartupModuleFailed() {} };
       if (id.endsWith('/useAdminSession') || id === './useAdminSession') return { getAdminSessionRevision: () => revision };
       if (id.startsWith('.')) return loadModule(path.resolve(path.dirname(absolute), `${id}.ts`));
+      if (id === '@/hooks/useLatestRef') return loadModule(path.join(APP, 'hooks/useLatestRef.ts'));
       throw new Error(`Unexpected isolated module: ${id}`);
     };
     const run = vm.runInContext(`(function(require, module, exports) { ${code}\n})`, context, { filename: absolute });

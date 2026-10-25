@@ -4,7 +4,7 @@ const test = require('node:test');
 const { loadSource } = require('./chat-modals.test.cjs');
 
 const geo = loadSource('lib/geo.ts', {});
-const { quoteFromQuickBookPatch } = loadSource('lib/assisted-chat-workflow.ts', { '@/lib/geo': geo });
+const { quoteFromQuickBookPatch } = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo });
 const price = { subtotal: 100, vatAmount: 20, total: 120, lineItems: [] };
 
 test('pricing displays retain the charged distance rather than raw travel or garage distance', () => {
