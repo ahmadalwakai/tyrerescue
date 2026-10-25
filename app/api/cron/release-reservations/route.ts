@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 import { db } from '@/lib/db';
 import { inventoryReservations } from '@/lib/db/schema';
 import { eq, and, lte } from 'drizzle-orm';
@@ -7,8 +8,7 @@ import { releaseReservations } from '@/lib/inventory/stock-service';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -29,9 +29,9 @@ export async function GET(request: Request) {
 
   const result = await releaseReservations({
     reservationIds: expired.map(r => r.id),
-    // Quote-time reservations never deducted physical stock (the customer
-    // hadn't paid), so expiring them does not restore any stock — it just
-    // removes the soft-hold so the tyre is available again.
+    // Quote and B2B reservations are soft holds that never deducted physical
+    // stock, so expiring them does not restore any stock — it just removes
+    // the hold so the tyre is available again.
     restoreStock: false,
     reason: 'quote-release',
     actor: 'cron',

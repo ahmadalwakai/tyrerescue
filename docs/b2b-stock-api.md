@@ -258,6 +258,10 @@ curl -X POST \
 The reservation is atomic and race-safe. Concurrent requests for the same product
 cannot both succeed if there is insufficient stock.
 
+A reservation is a hold: it reduces the available quantity until it expires but
+does not change physical stock. `stockAfter` is the available quantity left
+after this hold (physical stock minus all active reservations).
+
 ---
 
 ## Error responses

@@ -9,6 +9,20 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Local `vercel build` output (one full .next build per folder).
+    ".vercel/**",
+    // Build output of any nested app.
+    "**/.next/**",
+    "**/dist/**",
+    // Separate apps with their own toolchains (same set tsconfig.next.json excludes).
+    "driver-app/**",
+    "admin-app/**",
+    "assisted-chat-app/**",
+    "stock-app/**",
+    "edinburgh-tyre-fitting/**",
+    "247moglasgow/**",
+    "tyre-rescue/**",
+    "builds/**",
     "out/**",
     "build/**",
     "artifacts/**",

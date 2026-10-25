@@ -79,7 +79,7 @@ const REDIS_LIMIT_TIMEOUT_MS = 5_000;
 // Keys whose prefix indicates an auth or sensitive operation. When Redis
 // falls back for these, shared cross-instance enforcement is lost — log at
 // ERROR so monitoring alerts fire rather than just emitting a warning.
-const SENSITIVE_KEY_PREFIXES = ['login:', 'register:', 'forgotPassword:', 'sms:'];
+const SENSITIVE_KEY_PREFIXES = ['login:', 'register:', 'forgotPassword:', 'sms:', 'proxy-auth:'];
 
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY_PREFIXES.some((p) => key.startsWith(p));
@@ -230,6 +230,7 @@ export const RATE_LIMITS = {
   sms:              { limit: 3,  windowMs: 15 * 60_000 },
   coverageCheck:    { limit: 20, windowMs: 60_000 },
   analyticsEvent:   { limit: 60, windowMs: 60_000 },
+  tyrePhotoUpload:  { limit: 10, windowMs: 10 * 60_000 },
 
   // ---- auth ----
   login:            { limit: 8,  windowMs: 15 * 60_000 },

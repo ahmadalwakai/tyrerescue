@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 import { db, bookings, driverNotifications } from '@/lib/db';
 import { eq, and, isNotNull, gte, lte, notInArray } from 'drizzle-orm';
 import { notifyDriverUpcomingJob } from '@/lib/notifications/driver-push';
@@ -15,7 +16,11 @@ import { notifyDriverUpcomingJob } from '@/lib/notifications/driver-push';
 
 const REMINDER_WINDOW_MINUTES = 30;
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const now = new Date();
   const windowEnd = new Date(now.getTime() + REMINDER_WINDOW_MINUTES * 60 * 1000);
 

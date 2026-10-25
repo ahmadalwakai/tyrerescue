@@ -15,7 +15,8 @@ vi.mock('uuid', () => ({
 
 const { authMobile } = await import('@/lib/auth');
 const { put } = await import('@vercel/blob');
-const { POST, resolveChatUploadMimeType } = await import('../../app/api/chat/upload/route');
+const { POST } = await import('../../app/api/chat/upload/route');
+const { resolveChatUploadMimeType } = await import('@/lib/chat/upload-mime');
 
 const authMobileMock = vi.mocked(authMobile);
 const putMock = vi.mocked(put);

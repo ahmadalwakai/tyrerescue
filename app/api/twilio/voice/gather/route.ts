@@ -13,6 +13,7 @@ import {
   updateCallSession,
 } from '@/lib/ai-receptionist/session';
 import { twimlGather, twimlSay, twimlXmlResponse } from '@/lib/ai-receptionist/twiml';
+import { isValidTwilioRequest, twilioWebhookBaseUrl } from '@/lib/ai-receptionist/twilio-signature';
 import { sendUrgentBookingTopicPush } from '@/lib/notifications/urgent-booking-push';
 import type { CollectedData, TranscriptEntry } from '@/lib/ai-receptionist/types';
 import { CONVERSATION_STEPS } from '@/lib/ai-receptionist/types';
@@ -21,12 +22,15 @@ export const runtime = 'nodejs';
 
 const MAX_RETRIES = 2;
 
-function baseUrl(): string {
-  return (process.env.TWILIO_WEBHOOK_URL ?? 'https://www.tyrerescue.uk').replace(/\/$/, '');
+function gatherUrl(callSid: string, step: number): string {
+  return `${twilioWebhookBaseUrl()}/api/twilio/voice/gather?step=${step}&callSid=${encodeURIComponent(callSid)}`;
 }
 
-function gatherUrl(callSid: string, step: number): string {
-  return `${baseUrl()}/api/twilio/voice/gather?step=${step}&callSid=${encodeURIComponent(callSid)}`;
+/** The step lives in the action URL's query; Twilio only posts its own fields. */
+function readStep(request: Request, params: URLSearchParams): number {
+  const raw = new URL(request.url).searchParams.get('step') ?? params.get('step') ?? '0';
+  const step = Number(raw);
+  return Number.isInteger(step) && step >= 0 ? step : 0;
 }
 
 function appendTranscript(
@@ -40,11 +44,17 @@ function appendTranscript(
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
+
+  if (!(await isValidTwilioRequest(request, rawBody))) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
   const params = new URLSearchParams(rawBody);
 
-  const callSid = params.get('callSid') ?? params.get('CallSid') ?? '';
+  // Twilio's own CallSid is part of the signed body; prefer it over the query copy.
+  const callSid = params.get('CallSid') ?? new URL(request.url).searchParams.get('callSid') ?? '';
   const speech = (params.get('SpeechResult') ?? '').trim();
-  const stepParam = Number(params.get('step') ?? '0');
+  const stepParam = readStep(request, params);
 
   if (!callSid) return new Response('Bad Request', { status: 400 });
 

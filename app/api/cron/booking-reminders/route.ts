@@ -1,4 +1,6 @@
+import { buildCustomerBookingTrackingUrl } from '@/lib/customer-booking-access';
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 import { getOutboundUrl } from '@/lib/config/site';
 import { db } from '@/lib/db';
 import { bookings, notifications } from '@/lib/db/schema';
@@ -8,8 +10,7 @@ import { sendEmail } from '@/lib/email/resend';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
   const siteUrl = getOutboundUrl();
 
   for (const booking of upcoming) {
+    const trackingUrl = await buildCustomerBookingTrackingUrl(siteUrl, booking);
     // Create notification record
     const [notification] = await db
       .insert(notifications)
@@ -67,7 +69,7 @@ export async function GET(request: Request) {
         <p>This is a reminder that your <strong>${booking.serviceType}</strong> booking is scheduled for <strong>${scheduledTime}</strong>.</p>
         <p><strong>Location:</strong> ${booking.addressLine}</p>
         <p><strong>Reference:</strong> ${booking.refNumber}</p>
-        <p>You can track your driver on the day at: ${siteUrl}/tracking/${booking.refNumber}</p>
+        <p>You can track your driver on the day at: ${trackingUrl}</p>
         <p>Thanks,<br/>Tyre Rescue</p>
       `,
       notificationId: notification.id,

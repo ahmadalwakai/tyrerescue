@@ -10,6 +10,7 @@ import { bookings, emailVerificationTokens, users } from '@/lib/db/schema';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { verifyEmail, welcome } from '@/lib/email/templates';
 import { authMobile, signMobileToken } from '@/lib/auth';
+import { serverSigningSecret } from '@/lib/auth/mobile-token';
 import { getBookingPaymentSummary, isPaymentFullySettledForInvoice } from '@/lib/payments/payment-summary';
 import {
   formatTyreDisplayLine,
@@ -38,9 +39,6 @@ const INVOICEABLE_BOOKING_STATUSES = [
   'completed',
 ] as const;
 
-const CUSTOMER_INVOICE_JWT_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? 'fallback-secret',
-);
 
 export interface CustomerMobileUser {
   id: string;
@@ -48,9 +46,11 @@ export interface CustomerMobileUser {
   name: string;
   phone: string | null;
   role: string;
+  emailVerified?: boolean | null;
 }
 
 export interface CustomerMobileBooking {
+  bookingId: string;
   refNumber: string;
   status: string;
   bookingType: string;
@@ -79,9 +79,10 @@ export async function getCustomerMobileUser(request: Request): Promise<CustomerM
       name: users.name,
       phone: users.phone,
       role: users.role,
+      emailVerified: users.emailVerified,
     })
     .from(users)
-    .where(eq(users.id, session.user.id))
+    .where(and(eq(users.id, session.user.id), eq(users.role, 'customer')))
     .limit(1);
 
   return user ?? null;
@@ -106,6 +107,7 @@ export async function buildCustomerSessionPayload(user: CustomerMobileUser) {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      emailVerified: user.emailVerified === true,
     },
     bookings: await listCustomerMobileBookings(user.id),
   };
@@ -170,6 +172,7 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
       const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || row.quantity || null;
 
       return {
+        bookingId: row.id,
         refNumber: row.refNumber,
         status: row.status,
         bookingType: row.bookingType,
@@ -199,6 +202,12 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
 export async function linkUnclaimedBookingsForEmail(userId: string, email: string) {
   const normalizedEmail = email.trim().toLowerCase();
 
+  const [verifiedUser] = await db.select({ id: users.id }).from(users).where(and(
+    eq(users.id, userId), eq(users.role, 'customer'), eq(users.emailVerified, true),
+    sql`lower(${users.email}) = ${normalizedEmail}`,
+  )).limit(1);
+  if (!verifiedUser) return;
+
   await db
     .update(bookings)
     .set({ userId, updatedAt: new Date() })
@@ -206,6 +215,11 @@ export async function linkUnclaimedBookingsForEmail(userId: string, email: strin
       and(
         isNull(bookings.userId),
         sql`lower(${bookings.customerEmail}) = ${normalizedEmail}`,
+        // Re-check verification in the update itself so registration, stale
+        // sessions and a concurrently changed email can never claim history.
+        sql`exists (select 1 from ${users} where ${users.id} = ${userId}
+          and ${users.role} = 'customer' and ${users.emailVerified} = true
+          and lower(${users.email}) = ${normalizedEmail})`,
       ),
     );
 }
@@ -281,11 +295,11 @@ export async function signCustomerInvoiceToken(input: {
     .setIssuedAt()
     .setExpirationTime('2h')
     .setSubject(input.bookingId)
-    .sign(CUSTOMER_INVOICE_JWT_SECRET);
+    .sign(serverSigningSecret());
 }
 
 export async function verifyCustomerInvoiceToken(token: string) {
-  const { payload } = await jwtVerify(token, CUSTOMER_INVOICE_JWT_SECRET);
+  const { payload } = await jwtVerify(token, serverSigningSecret(), { algorithms: ['HS256'] });
   if (payload.purpose !== 'customer_invoice') {
     throw new Error('Invalid token purpose');
   }

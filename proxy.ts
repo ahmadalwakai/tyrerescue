@@ -131,18 +131,13 @@ export async function proxy(request: NextRequest) {
   /* ─── Rate limiting (per-route, per-IP) ─── */
   const rawIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const ip = normalizeIp(rawIp);
-  const proxyRl = checkProxyRateLimit(ip, pathname, request.method);
+  const proxyRl = await checkProxyRateLimit(ip, pathname, request.method);
   if (proxyRl.limited) {
     return NextResponse.json(
       { ok: false, error: 'Too many requests', code: 'RATE_LIMITED' },
       { status: 429, headers: { 'Retry-After': String(proxyRl.retryAfterSeconds), 'Cache-Control': 'no-store' } },
     );
   }
-
-  // Get session using auth()
-  const session = await auth();
-  const isLoggedIn = !!session;
-  const userRole = session?.user?.role;
 
   // Public routes - always accessible
   const publicRoutes = [
@@ -215,6 +210,14 @@ export async function proxy(request: NextRequest) {
     }
     return withCors(response);
   }
+
+  // Only protected routes need the session. Resolving it for public pages and
+  // API calls ran the JWT callback (a database query for customers) on every
+  // request; API routes authorize themselves.
+  const session = await auth();
+  // Require a real user, not just a truthy session object.
+  const isLoggedIn = Boolean(session?.user?.id && session.user.role);
+  const userRole = session?.user?.role;
 
   // Protected routes require authentication
   if (!isLoggedIn) {

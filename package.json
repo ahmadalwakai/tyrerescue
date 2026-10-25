@@ -1,10 +1,10 @@
 {
-  "engines": {
-    "node": "24.x"
-  },
   "name": "tyrerescue",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "check:node": "node scripts/check-node-runtime.mjs",
     "predev": "npm run check:node",
@@ -15,6 +15,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:payroll-db": "vitest run --config vitest.payroll-db.config.ts",
+    "test:tax-payroll": "vitest run --config vitest.tax-payroll.config.ts",
+    "typecheck:tax-payroll": "tsc --noEmit -p tsconfig.tax-payroll.json",
     "test:watch": "vitest",
     "db:push": "dotenv -e .env.local -- drizzle-kit push",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
@@ -28,6 +31,7 @@
     "seed:stock": "dotenv -e .env.local -- tsx scripts/seed-from-excel.ts",
     "seed:hero": "dotenv -e .env.local -- tsx scripts/seed-hero-media.ts",
     "appstore:screenshots": "tsx scripts/app-store-screenshots/generate.ts",
+    "audit:b2b-leak": "dotenv -e .env.local -- tsx scripts/audit-b2b-reservation-leak.ts",
     "analytics:backfill-keywords": "dotenv -e .env.local -- tsx scripts/backfill-search-keywords.ts",
     "admin:list": "dotenv -e .env.local -- tsx scripts/admin-user.ts --list",
     "admin:create": "dotenv -e .env.local -- tsx scripts/admin-user.ts"
@@ -46,27 +50,29 @@
     "cheerio": "^1.2.0",
     "date-fns": "^4.1.0",
     "decimal.js": "^10.6.0",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.4",
     "googleapis": "^171.4.0",
     "groq-sdk": "^1.1.1",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "mapbox-gl": "^3.20.0",
     "motion": "^12.38.0",
-    "next": "^16.1.6",
-    "next-auth": "^5.0.0-beta.30",
+    "next": "^16.4.3",
+    "next-auth": "^5.0.0-beta.32",
     "pdf-lib": "^1.17.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.0",
     "stripe": "^20.4.1",
     "twilio": "^6.1.0",
-    "uuid": "^13.0.0",
+    "uuid": "^13.0.2",
     "web-push": "^3.6.7",
-    "xlsx": "^0.18.5",
-    "zod": "^4.3.6"
+    "ws": "^8.22.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/mapbox-gl": "^3.4.1",
@@ -79,11 +85,27 @@
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.30.0",
     "eslint": "^9",
-    "eslint-config-next": "^16.1.6",
+    "eslint-config-next": "^16.4.3",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^4.1.0",
-    "ws": "^8.19.0"
-  }
+    "vitest": "^4.1.0"
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmadalwakai/tyrerescue.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ahmadalwakai/tyrerescue/issues"
+  },
+  "homepage": "https://github.com/ahmadalwakai/tyrerescue#readme"
 }

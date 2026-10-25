@@ -4,6 +4,7 @@ import { put } from '@vercel/blob';
 import { v4 as uuidv4 } from 'uuid';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
+import { resolveChatUploadMimeType } from '@/lib/chat/upload-mime';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,50 +44,17 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   'audio/3gpp': '3gp',
 };
 
-const MIME_BY_EXTENSION: Record<string, string> = {
-  aac: 'audio/aac',
-  gif: 'image/gif',
-  heic: 'image/heic',
-  heif: 'image/heif',
-  jpeg: 'image/jpeg',
-  jpg: 'image/jpeg',
-  m4a: 'audio/mp4',
-  mp3: 'audio/mpeg',
-  mp4: 'audio/mp4',
-  ogg: 'audio/ogg',
-  png: 'image/png',
-  wav: 'audio/wav',
-  webm: 'audio/webm',
-  webp: 'image/webp',
-  '3gp': 'audio/3gpp',
-};
-
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-function normalizeMimeType(type: string): string {
-  return type.split(';')[0]?.trim().toLowerCase() || 'application/octet-stream';
-}
-
-function mimeTypeFromFilename(name: string | undefined): string | null {
-  const extension = name?.split('?')[0]?.split('#')[0]?.split('.').pop()?.toLowerCase();
-  return extension ? MIME_BY_EXTENSION[extension] ?? null : null;
-}
-
-export function resolveChatUploadMimeType(file: Pick<File, 'type' | 'name'>): string {
-  const normalized = normalizeMimeType(file.type);
-  if (normalized !== 'application/octet-stream') return normalized;
-  return mimeTypeFromFilename(file.name) ?? normalized;
-}
-
 function canUseLocalUploadFallback(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
-export function isChatBlobStorageConfigured(): boolean {
+function isChatBlobStorageConfigured(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
 }
 

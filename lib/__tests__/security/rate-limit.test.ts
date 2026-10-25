@@ -264,70 +264,70 @@ describe('normalizeIp', () => {
 describe('checkProxyRateLimit', () => {
   beforeEach(() => resetProxyRateLimitForTests());
 
-  it('never rate-limits GET /api/auth/callback/google (OAuth callback)', () => {
+  it('never rate-limits GET /api/auth/callback/google (OAuth callback)', async () => {
     for (let i = 0; i < 50; i++) {
-      const r = checkProxyRateLimit('1.2.3.4', '/api/auth/callback/google', 'GET');
+      const r = await checkProxyRateLimit('1.2.3.4', '/api/auth/callback/google', 'GET');
       expect(r.limited).toBe(false);
     }
   });
 
-  it('never rate-limits GET /api/auth/session (NextAuth session reads)', () => {
+  it('never rate-limits GET /api/auth/session (NextAuth session reads)', async () => {
     for (let i = 0; i < 50; i++) {
-      const r = checkProxyRateLimit('1.2.3.4', '/api/auth/session', 'GET');
+      const r = await checkProxyRateLimit('1.2.3.4', '/api/auth/session', 'GET');
       expect(r.limited).toBe(false);
     }
   });
 
-  it('never rate-limits GET /api/auth/csrf (CSRF token fetch)', () => {
+  it('never rate-limits GET /api/auth/csrf (CSRF token fetch)', async () => {
     for (let i = 0; i < 50; i++) {
-      const r = checkProxyRateLimit('1.2.3.4', '/api/auth/csrf', 'GET');
+      const r = await checkProxyRateLimit('1.2.3.4', '/api/auth/csrf', 'GET');
       expect(r.limited).toBe(false);
     }
   });
 
-  it('rate-limits POST /api/auth/signin after RATE_LIMIT requests', () => {
+  it('rate-limits POST /api/auth/signin after RATE_LIMIT requests', async () => {
     const ip = '10.0.0.1';
     for (let i = 0; i < 20; i++) {
-      checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
+      await checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
     }
-    const result = checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
+    const result = await checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
     expect(result.limited).toBe(true);
     expect(result.retryAfterSeconds).toBeGreaterThanOrEqual(1);
   });
 
-  it('Retry-After is based on actual window, not hardcoded', () => {
+  it('Retry-After is based on actual window, not hardcoded', async () => {
     vi.useFakeTimers();
     const ip = '10.0.0.2';
     for (let i = 0; i < 21; i++) {
-      checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
+      await checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
     }
     vi.advanceTimersByTime(1_000);
-    const result = checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
+    const result = await checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
     // 1s into a 60s window: ~59s remain.
     expect(result.retryAfterSeconds).toBeGreaterThanOrEqual(58);
     expect(result.retryAfterSeconds).toBeLessThanOrEqual(60);
     vi.useRealTimers();
   });
 
-  it('keeps independent per-route buckets (auth flooding does not block driver/location)', () => {
+  it('keeps independent per-route buckets (auth flooding does not block driver/location)', async () => {
     const ip = '10.0.0.3';
     for (let i = 0; i < 21; i++) {
-      checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
+      await checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
     }
-    expect(checkProxyRateLimit(ip, '/api/auth/signin', 'POST').limited).toBe(true);
-    expect(checkProxyRateLimit(ip, '/api/driver/location', 'POST').limited).toBe(false);
+    expect((await checkProxyRateLimit(ip, '/api/auth/signin', 'POST')).limited).toBe(true);
+    expect((await checkProxyRateLimit(ip, '/api/driver/location', 'POST')).limited).toBe(false);
   });
 
-  it('does not rate-limit unmatched paths', () => {
-    const r = checkProxyRateLimit('1.2.3.4', '/api/contact', 'POST');
+  it('does not rate-limit unmatched paths', async () => {
+    const r = await checkProxyRateLimit('1.2.3.4', '/api/contact', 'POST');
     expect(r.limited).toBe(false);
   });
 
-  it('different IPs have independent counters', () => {
+  it('different IPs have independent counters', async () => {
     for (let i = 0; i < 21; i++) {
-      checkProxyRateLimit('1.1.1.1', '/api/auth/signin', 'POST');
+      await checkProxyRateLimit('1.1.1.1', '/api/auth/signin', 'POST');
     }
-    expect(checkProxyRateLimit('1.1.1.1', '/api/auth/signin', 'POST').limited).toBe(true);
-    expect(checkProxyRateLimit('2.2.2.2', '/api/auth/signin', 'POST').limited).toBe(false);
+    expect((await checkProxyRateLimit('1.1.1.1', '/api/auth/signin', 'POST')).limited).toBe(true);
+    expect((await checkProxyRateLimit('2.2.2.2', '/api/auth/signin', 'POST')).limited).toBe(false);
   });
 });

@@ -30,7 +30,7 @@ const c = colorTokens;
 
 const VRM_ENABLED = process.env.NEXT_PUBLIC_VRM_ENABLED === 'true';
 
-export function QuotePageClient() {
+function QuotePageClient() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [tyreSize, setTyreSize] = useState<TyreSize | null>(null);
   const [manualMode, setManualMode] = useState(!VRM_ENABLED);

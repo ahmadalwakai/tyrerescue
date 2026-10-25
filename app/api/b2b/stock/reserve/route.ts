@@ -125,6 +125,9 @@ export async function POST(request: Request) {
       reservationId: result.reservationId,
       stockAfter: result.stockAfter,
       expiresAt: expiresAt.toISOString(),
+      // Marks holds that never deducted stock_new. Rows without this marker
+      // predate the soft-hold fix — see scripts/audit-b2b-reservation-leak.ts.
+      holdType: 'soft',
     },
   }).catch(() => {});
 

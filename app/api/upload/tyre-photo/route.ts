@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { v4 as uuidv4 } from 'uuid';
+import { checkRateLimit, getClientIp, rateLimitedResponse, RATE_LIMITS } from '@/lib/security';
+import { sniffImageType } from '@/lib/security/image-sniff';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -12,6 +14,16 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
  * Accepts JPEG, PNG, or WebP images up to 10MB.
  */
 export async function POST(request: NextRequest) {
+  // Public (customers upload before signing in), so limit per IP and refuse
+  // oversized bodies before parsing them.
+  const rl = await checkRateLimit(`tyre-photo:${getClientIp(request)}`, RATE_LIMITS.tyrePhotoUpload);
+  if (!rl.ok) return rateLimitedResponse(rl);
+
+  const declaredLength = Number(request.headers.get('content-length') ?? '0');
+  if (declaredLength > MAX_FILE_SIZE + 64 * 1024) {
+    return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 413 });
+  }
+
   try {
     const formData = await request.formData() as any;
     const file = formData.get('file') as File | null;
@@ -35,6 +47,15 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: 'File too large. Maximum size is 10MB.' },
+        { status: 400 }
+      );
+    }
+
+    // The bytes must really be the image type the client declared.
+    const sniffed = sniffImageType(new Uint8Array(await file.slice(0, 12).arrayBuffer()));
+    if (sniffed !== file.type) {
+      return NextResponse.json(
+        { error: 'Invalid file type. Please upload a JPEG, PNG, or WebP image.' },
         { status: 400 }
       );
     }

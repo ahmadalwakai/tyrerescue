@@ -212,8 +212,18 @@ export async function adjustStock(params: AdjustStockParams): Promise<StockResul
   }
 }
 
-// ── Reserve Stock (quote creation) ─────────────────────
+// ── Reserve Stock (B2B soft hold) ──────────────────────
 
+/**
+ * Place a soft hold on stock. Like quote-time reservations, this never
+ * deducts physical stock: availability is `stock_new` minus active holds,
+ * and physical stock only changes on sale. Expired holds are released by
+ * cron with `restoreStock: false`, which is correct for soft holds.
+ *
+ * (Before this was a soft hold it deducted `stock_new` here as well, so an
+ * expired hold lost its stock permanently and an active hold was counted
+ * twice. scripts/audit-b2b-reservation-leak.ts repairs those rows.)
+ */
 export async function reserveStock(params: ReserveStockParams): Promise<ReserveStockResult> {
   const { tyreId, quantity, expiresAt, actorUserId, note } = params;
 
@@ -228,15 +238,16 @@ export async function reserveStock(params: ReserveStockParams): Promise<ReserveS
     await client.query('BEGIN');
     await client.query("SET LOCAL statement_timeout = '8s'");
 
-    // Lock row and check stock
+    // Lock the product row so concurrent holds on the same tyre serialize
+    // their availability check.
     const { rows } = await client.query(
-      `SELECT id, stock_new, available_new, price_new FROM tyre_products WHERE id = $1 FOR UPDATE SKIP LOCKED`,
+      `SELECT id, stock_new, available_new, price_new FROM tyre_products WHERE id = $1 FOR UPDATE`,
       [tyreId],
     );
 
     if (rows.length === 0) {
       await client.query('ROLLBACK');
-      return { success: false, error: 'Product locked or not found', code: 'NOT_FOUND' };
+      return { success: false, error: 'Product not found', code: 'NOT_FOUND' };
     }
 
     const row = rows[0];
@@ -245,23 +256,22 @@ export async function reserveStock(params: ReserveStockParams): Promise<ReserveS
       return { success: false, error: 'Product is not available', code: 'UNAVAILABLE' };
     }
 
-    const currentStock = sanitizeInt(row.stock_new);
-    if (currentStock < quantity) {
-      await client.query('ROLLBACK');
-      return { success: false, error: `Insufficient stock: ${currentStock} available, ${quantity} requested`, code: 'INSUFFICIENT_STOCK' };
-    }
-
-    const newStock = currentStock - quantity;
-
-    // Decrement stock
-    const updateResult = await client.query(
-      `UPDATE tyre_products SET stock_new = stock_new - $1, updated_at = NOW() WHERE id = $2 AND stock_new >= $1 RETURNING id`,
-      [quantity, tyreId],
+    const { rows: heldRows } = await client.query(
+      `SELECT COALESCE(SUM(quantity), 0)::int AS held
+         FROM inventory_reservations
+        WHERE tyre_id = $1 AND released = false AND expires_at > NOW()`,
+      [tyreId],
     );
 
-    if (updateResult.rowCount === 0) {
+    const currentStock = sanitizeInt(row.stock_new);
+    const availableStock = currentStock - sanitizeInt(heldRows[0]?.held);
+    if (availableStock < quantity) {
       await client.query('ROLLBACK');
-      return { success: false, error: 'Stock changed during processing', code: 'INSUFFICIENT_STOCK' };
+      return {
+        success: false,
+        error: `Insufficient stock: ${Math.max(0, availableStock)} available, ${quantity} requested`,
+        code: 'INSUFFICIENT_STOCK',
+      };
     }
 
     // Create reservation
@@ -272,11 +282,11 @@ export async function reserveStock(params: ReserveStockParams): Promise<ReserveS
       [tyreId, quantity, expiresAt],
     );
 
-    // Log movement
+    // Log movement — a soft hold leaves physical stock unchanged.
     await client.query(
       `INSERT INTO inventory_movements (id, tyre_id, booking_id, movement_type, quantity_delta, stock_after, actor_user_id, note)
-       VALUES (gen_random_uuid(), $1, NULL, 'reserve', $2, $3, $4, $5)`,
-      [tyreId, -quantity, newStock, actorUserId ?? null, note ?? `Reserved ${quantity} for quote`],
+       VALUES (gen_random_uuid(), $1, NULL, 'reserve', 0, $2, $3, $4)`,
+      [tyreId, currentStock, actorUserId ?? null, note ?? `Soft-reserved ${quantity}`],
     );
 
     await client.query('COMMIT');
@@ -284,7 +294,8 @@ export async function reserveStock(params: ReserveStockParams): Promise<ReserveS
     return {
       success: true,
       reservationId: resRows[0].id,
-      stockAfter: newStock,
+      // Available (unheld) stock after this hold, as B2B clients see it.
+      stockAfter: availableStock - quantity,
     };
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
@@ -320,6 +331,10 @@ export async function commitReservationsForBooking(
   try {
     await client.query('BEGIN');
     await client.query("SET LOCAL statement_timeout = '8s'");
+
+    // Serialize fulfillment across webhook/confirm workers before reading the
+    // sale marker. Checking before this lock lets two workers both deduct.
+    await client.query('SELECT id FROM bookings WHERE id = $1 FOR UPDATE', [bookingId]);
 
     // Idempotency: if any 'sale' movement already exists for this booking,
     // the stock has already been deducted — exit cleanly.

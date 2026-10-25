@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 import { db } from '@/lib/db';
 import { demandSnapshots, pricingConfig } from '@/lib/db/schema';
 import { eq, gte } from 'drizzle-orm';
 import { getPricingConfig, invalidatePricingConfigCache, isNightWindow } from '@/lib/pricing-config';
 
 export async function GET(request: Request) {
-  // Protect with cron secret if set
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {

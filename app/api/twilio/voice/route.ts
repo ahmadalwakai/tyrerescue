@@ -1,6 +1,7 @@
 import 'server-only';
 import { createCallSession } from '@/lib/ai-receptionist/session';
 import { twimlGather, twimlSay, twimlXmlResponse } from '@/lib/ai-receptionist/twiml';
+import { isValidTwilioRequest, twilioWebhookBaseUrl } from '@/lib/ai-receptionist/twilio-signature';
 
 export const runtime = 'nodejs';
 
@@ -11,31 +12,11 @@ const GREETING =
 
 const HINTS = 'emergency, flat tyre, puncture, blowout, slow puncture, enquiry, booking, price, quote, yes, no';
 
-function webhookBaseUrl(): string {
-  return (process.env.TWILIO_WEBHOOK_URL ?? 'https://www.tyrerescue.uk').replace(/\/$/, '');
-}
-
-async function verifyTwilioSignature(request: Request, rawBody: string): Promise<boolean> {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) return true; // Skip in dev if not set
-
-  try {
-    const { validateRequest } = await import('twilio');
-    const signature = request.headers.get('x-twilio-signature') ?? '';
-    const url = webhookBaseUrl() + new URL(request.url).pathname;
-    const params = Object.fromEntries(new URLSearchParams(rawBody));
-    return validateRequest(authToken, signature, url, params);
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(request: Request) {
   const rawBody = await request.text();
 
-  if (process.env.NODE_ENV === 'production') {
-    const valid = await verifyTwilioSignature(request, rawBody);
-    if (!valid) return new Response('Forbidden', { status: 403 });
+  if (!(await isValidTwilioRequest(request, rawBody))) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   const params = new URLSearchParams(rawBody);
@@ -46,7 +27,7 @@ export async function POST(request: Request) {
 
   await createCallSession(callSid, callerNumber);
 
-  const actionUrl = `${webhookBaseUrl()}/api/twilio/voice/gather?step=0&callSid=${encodeURIComponent(callSid)}`;
+  const actionUrl = `${twilioWebhookBaseUrl()}/api/twilio/voice/gather?step=0&callSid=${encodeURIComponent(callSid)}`;
 
   return twimlXmlResponse(
     twimlGather({ text: GREETING, actionUrl, hints: HINTS, timeout: 10 }),

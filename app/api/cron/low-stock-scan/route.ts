@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 import { getOutboundUrl } from '@/lib/config/site';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
@@ -17,8 +18,7 @@ const LOW_STOCK_THRESHOLD = 3;
 const EMAILS_PAUSED = process.env.LOW_STOCK_EMAILS_ENABLED !== '1';
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

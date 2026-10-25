@@ -7,8 +7,10 @@ import '@/lib/config/auth-url-guard';
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
-import { SignJWT, jwtVerify } from 'jose';
 import { db, users, accounts, drivers } from '@/lib/db';
+import { errors as joseErrors } from 'jose';
+import { signMobileToken, verifySignedMobileToken } from './auth/mobile-token';
+import { decideGoogleSignIn } from './auth/google-link';
 import { eq, and } from 'drizzle-orm';
 import {
   hashPassword as hashPasswordValue,
@@ -41,7 +43,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      authorization: { params: { prompt: 'consent', access_type: 'offline' } },
     }),
     Credentials({
       credentials: {
@@ -94,47 +95,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider !== 'google') return true;
 
       const email = user.email?.toLowerCase();
       if (!email) return false;
 
-      // Check if user already exists
       const [existing] = await db
         .select()
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
 
-      if (existing) {
-        // Link Google account if not already linked
-        const [existingAccount] = await db
-          .select()
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.provider, 'google'),
-              eq(accounts.userId, existing.id)
-            )
-          )
-          .limit(1);
+      const [linked] = existing
+        ? await db
+            .select({ providerAccountId: accounts.providerAccountId })
+            .from(accounts)
+            .where(and(eq(accounts.provider, 'google'), eq(accounts.userId, existing.id)))
+            .limit(1)
+        : [];
 
-        if (!existingAccount) {
-          await db.insert(accounts).values({
-            userId: existing.id,
-            type: account.type ?? 'oauth',
-            provider: 'google',
-            providerAccountId: account.providerAccountId,
-            accessToken: account.access_token ?? null,
-            refreshToken: account.refresh_token ?? null,
-            expiresAt: account.expires_at ?? null,
-            tokenType: account.token_type ?? null,
-            scope: account.scope ?? null,
-            idToken: account.id_token ?? null,
-          });
-        }
+      const decision = decideGoogleSignIn({
+        emailVerifiedByGoogle: profile?.email_verified === true,
+        existingUser: existing ?? null,
+        linkedGoogleAccountId: linked?.providerAccountId ?? null,
+        providerAccountId: account.providerAccountId,
+      });
+      if (decision === 'deny') return false;
+      if (decision === 'allow') return true;
 
+      // Sign-in only needs the Google identity, so no OAuth tokens are stored.
+      const accountRow = {
+        type: account.type ?? 'oauth',
+        provider: 'google',
+        providerAccountId: account.providerAccountId,
+      };
+
+      if (decision === 'link') {
+        await db.insert(accounts).values({ ...accountRow, userId: existing!.id });
         return true;
       }
 
@@ -149,18 +147,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         })
         .returning();
 
-      await db.insert(accounts).values({
-        userId: newUser.id,
-        type: account.type ?? 'oauth',
-        provider: 'google',
-        providerAccountId: account.providerAccountId,
-        accessToken: account.access_token ?? null,
-        refreshToken: account.refresh_token ?? null,
-        expiresAt: account.expires_at ?? null,
-        tokenType: account.token_type ?? null,
-        scope: account.scope ?? null,
-        idToken: account.id_token ?? null,
-      });
+      await db.insert(accounts).values({ ...accountRow, userId: newUser.id });
 
       return true;
     },
@@ -184,6 +171,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.role = dbUser.role;
           }
         }
+      }
+      if (token.role === 'customer') {
+        const [customer] = await db.select({ id: users.id }).from(users)
+          .where(and(eq(users.id, token.id as string), eq(users.role, 'customer'))).limit(1);
+        if (!customer) return null;
       }
       return token;
     },
@@ -247,28 +239,49 @@ export async function verifyPassword(
 
 // ── Mobile JWT helpers ──
 
-const MOBILE_JWT_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET ?? 'fallback-secret',
-);
-
-export async function signMobileToken(payload: {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  driverId?: string;
-}): Promise<string> {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .setSubject(payload.id)
-    .sign(MOBILE_JWT_SECRET);
-}
+export { signMobileToken };
 
 export async function verifyMobileToken(token: string) {
-  const { payload } = await jwtVerify(token, MOBILE_JWT_SECRET);
-  return payload as { id: string; email: string; name: string; role: string; driverId?: string; sub: string };
+  if (token.startsWith('dcs_v1.')) {
+    const { verifyDriverDeviceSession } = await import('./auth/driver-device-sessions');
+    return verifyDriverDeviceSession(token);
+  }
+  if (token.startsWith('acs_v1.')) {
+    const { verifyAdminDeviceSession } = await import('./auth/admin-device-sessions');
+    return verifyAdminDeviceSession(token);
+  }
+  const payload = await verifySignedMobileToken(token);
+
+  // A signed token stays valid for 7 days, so re-check staff accounts on every
+  // use: removing the admin/driver role (or the driver record) must lock the
+  // app out immediately, as it already does for device-session tokens.
+  // A revoked account is a JOSE error (callers answer 401); a database
+  // failure propagates unchanged so callers answer 5xx, never a false 401.
+  if (payload.role === 'driver') {
+    const { getCurrentDriverSessionUser, DriverDeviceSessionUnauthorizedError } = await import('./auth/driver-device-sessions');
+    try {
+      return await getCurrentDriverSessionUser(payload.id, payload.driverId);
+    } catch (error) {
+      if (error instanceof DriverDeviceSessionUnauthorizedError) throw new joseErrors.JWTInvalid('Driver account is no longer active');
+      throw error;
+    }
+  }
+  if (payload.role === 'admin') {
+    const [admin] = await db.select({ id: users.id }).from(users)
+      .where(and(eq(users.id, payload.id), eq(users.role, 'admin'), eq(users.emailVerified, true))).limit(1);
+    if (!admin) throw new joseErrors.JWTInvalid('Admin account is no longer active');
+  }
+  return payload;
+}
+
+/** True for an invalid/revoked credential; false for infrastructure failures. */
+async function isMobileAuthRejection(error: unknown): Promise<boolean> {
+  if (error instanceof joseErrors.JOSEError) return true;
+  const [{ DriverDeviceSessionUnauthorizedError }, { AdminDeviceSessionUnauthorizedError }] = await Promise.all([
+    import('./auth/driver-device-sessions'),
+    import('./auth/admin-device-sessions'),
+  ]);
+  return error instanceof DriverDeviceSessionUnauthorizedError || error instanceof AdminDeviceSessionUnauthorizedError;
 }
 
 /** General auth helper that works for both web sessions and mobile Bearer tokens (any role) */
@@ -278,23 +291,30 @@ export async function authMobile(request?: Request) {
     const authHeader = request.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
+      let payload: Awaited<ReturnType<typeof verifyMobileToken>>;
       try {
-        const payload = await verifyMobileToken(token);
-        return {
-          user: {
-            id: payload.id,
-            email: payload.email,
-            name: payload.name,
-            role: payload.role as 'customer' | 'driver' | 'admin',
-          },
-        };
-      } catch {
-        return null;
+        payload = await verifyMobileToken(token);
+      } catch (error) {
+        if (await isMobileAuthRejection(error)) return null;
+        throw error;
       }
+      // A database outage must remain a server failure, never a false 401 that
+      // would erase an otherwise valid offline customer session.
+      if (payload.role === 'customer') {
+        const [customer] = await db.select({ id: users.id }).from(users)
+          .where(and(eq(users.id, payload.id), eq(users.role, 'customer'))).limit(1);
+        if (!customer) return null;
+      }
+      return { user: { id: payload.id, email: payload.email, name: payload.name, role: payload.role as 'customer' | 'driver' | 'admin' } };
     }
   }
   // Fall back to web session
   const session = await auth();
+  if (session?.user.role === 'customer') {
+    const [customer] = await db.select({ id: users.id }).from(users)
+      .where(and(eq(users.id, session.user.id), eq(users.role, 'customer'))).limit(1);
+    if (!customer) return null;
+  }
   return session;
 }
 
