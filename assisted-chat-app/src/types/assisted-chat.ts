@@ -445,3 +445,32 @@ export interface StockConfidence {
   blocking: boolean;
 }
 
+
+/** Server-side returning-customer match (GET /api/mobile/admin/customers/match). */
+export type ReturningCustomerConfidence = 'linked_account' | 'phone' | 'address_tyre' | 'review';
+
+export interface ReturningCustomerBooking {
+  refNumber: string;
+  createdAt: string | null;
+  status: string;
+  addressLine: string | null;
+  lat: number | null;
+  lng: number | null;
+  vehicleReg: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  tyreSize: string | null;
+  quantity: number | null;
+  lockingNutStatus: string | null;
+  paymentType: string | null;
+  totalAmount: string | null;
+}
+
+export interface ReturningCustomerMatch {
+  key: string;
+  confidence: ReturningCustomerConfidence;
+  reasons: string[];
+  customer: { name: string | null; phone: string | null; email: string | null; accountLinked: boolean };
+  bookingCount: number;
+  bookings: ReturningCustomerBooking[];
+}

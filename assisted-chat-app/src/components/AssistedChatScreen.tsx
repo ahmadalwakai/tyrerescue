@@ -57,6 +57,10 @@ import { CompactQuoteCard, type CompactQuoteStatus } from './quote/CompactQuoteC
 import { EditQuotePriceModal } from './quote/EditQuotePriceModal';
 import { TodayBookingsModal } from './TodayBookingsModal';
 import { RecentCustomersModal } from './RecentCustomersModal';
+import { ReturningCustomerCard } from './ReturningCustomerCard';
+import { useReturningCustomer } from '@/hooks/useReturningCustomer';
+import { fillEmptyFromMatch } from '@/lib/returning-customer';
+import type { ReturningCustomerMatch } from '@/types/assisted-chat';
 import { DuplicateBookingWarning } from './DuplicateBookingWarning';
 import { AdminQuotesModal } from './AdminQuotesModal';
 import { AdminBookingsModal } from './AdminBookingsModal';
@@ -1603,6 +1607,33 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     [draft.customer, update],
   );
 
+  // Server-side customer history for the typed number. Matches are only shown;
+  // nothing is copied until the operator chooses, and then only into empty fields.
+  const returningCustomer = useReturningCustomer({
+    phone: draft.customer.phone,
+    enabled: api.hasAdminToken && !draft.dispatchedRefNumber,
+    scopeKey: `${getAdminSessionRevision()}:${getApiContextRevision()}`,
+  });
+  const [dismissedMatches, setDismissedMatches] = useState<{ phone: string | null; keys: string[] }>({ phone: null, keys: [] });
+  const visibleMatches = useMemo(() => returningCustomer.matches.filter((match) => (
+    dismissedMatches.phone !== returningCustomer.phone || !dismissedMatches.keys.includes(match.key)
+  )), [dismissedMatches, returningCustomer.matches, returningCustomer.phone]);
+  const handleUseMatch = useCallback((match: ReturningCustomerMatch) => {
+    const { patch, filled } = fillEmptyFromMatch(draft, match);
+    if (filled.length === 0) {
+      flashNotice({ kind: 'ok', text: 'Nothing was changed: those fields already have details.' });
+      return;
+    }
+    update(patch);
+    flashNotice({ kind: 'ok', text: `Filled ${filled.join(', ')} from customer history. Check before continuing.` });
+  }, [draft, flashNotice, update]);
+  const handleDismissMatch = useCallback((match: ReturningCustomerMatch) => {
+    setDismissedMatches((current) => ({
+      phone: returningCustomer.phone,
+      keys: current.phone === returningCustomer.phone ? [...current.keys, match.key] : [match.key],
+    }));
+  }, [returningCustomer.phone]);
+
   const handleEmailBlur = useCallback(() => {
     const email = normalizeEmailAddress(draft.customer.email);
     if (email !== draft.customer.email) {
@@ -2665,6 +2696,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               setBreakdownVisible,
               openPaymentStage: () => setEditingStage('PAYMENT'),
               paymentLinkActions,
+              returningCustomerCard: (
+                <ReturningCustomerCard
+                  matches={visibleMatches}
+                  loading={returningCustomer.loading}
+                  onUse={handleUseMatch}
+                  onDismiss={handleDismissMatch}
+                />
+              ),
             })}
             {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
               <View style={styles.dispatchedStack}>
@@ -3024,6 +3063,7 @@ interface RenderActiveStageArgs {
   setBreakdownVisible: (value: boolean) => void;
   openPaymentStage: () => void;
   paymentLinkActions: ReturnType<typeof useAdminPaymentLink>;
+  returningCustomerCard: ReactNode;
 
 }
 
@@ -3065,6 +3105,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     setBreakdownVisible,
     openPaymentStage,
     paymentLinkActions,
+    returningCustomerCard,
   } = args;
 
   if (activeStage === 'CUSTOMER') {
@@ -3151,6 +3192,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             </View>
           </SectionCard>
         </Pressable>
+        {returningCustomerCard}
         <CallNotesCard
           callNotesInput={callNotesInput}
           setCallNotesInput={setCallNotesInput}

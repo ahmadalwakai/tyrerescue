@@ -267,6 +267,13 @@
       "when": 1792627203000,
       "tag": "0037_chat_reliability",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792627204000,
+      "tag": "0038_customer_match_indexes",
+      "breakpoints": true
     }
   ]
 }
