@@ -250,6 +250,7 @@ function DeferredChatHubModal(props: {
   visible: boolean;
   initialConversationId?: string | null;
   initialConversationChannel?: ChatNotificationChannel;
+  onOpenBooking?: (bookingRef: string) => void;
   onClose: () => void;
   onDismiss: () => void;
 }) {
@@ -1169,6 +1170,24 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const handleCloseChatHub = useCallback(() => {
     if (modalPresentation.close('chat', Platform.OS === 'ios')) setChatHubOpen(false);
   }, [modalPresentation]);
+  // iOS cannot present the bookings screen over the chat hub: close the hub
+  // and open the booking once its dismissal has finished.
+  const bookingAfterChatRef = useRef<string | null>(null);
+  const handleOpenBookingFromChat = useCallback((refNumber: string) => {
+    bookingAfterChatRef.current = refNumber;
+    if (!modalPresentation.close('chat', Platform.OS === 'ios')) { bookingAfterChatRef.current = null; return; }
+    setChatHubOpen(false);
+    if (Platform.OS !== 'ios') {
+      bookingAfterChatRef.current = null;
+      openBookingsInApp(refNumber);
+    }
+  }, [modalPresentation, openBookingsInApp]);
+  const handleChatHubDismissed = useCallback(() => {
+    modalPresentation.didDismiss('chat');
+    const refNumber = bookingAfterChatRef.current;
+    bookingAfterChatRef.current = null;
+    if (refNumber) openBookingsInApp(refNumber);
+  }, [modalPresentation, openBookingsInApp]);
   const handleOpenProfile = useCallback(() => {
     if (!modalPresentation.open('account')) return;
     setMoreOpen(false);
@@ -2953,7 +2972,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       <DeferredChatHubModal visible={chatHubOpen}
         initialConversationId={chatNotificationTarget?.apiRevision === getApiContextRevision() && chatNotificationTarget.sessionRevision === getAdminSessionRevision() ? chatNotificationTarget.conversationId : null}
         initialConversationChannel={chatNotificationTarget?.channel}
-        onClose={handleCloseChatHub} onDismiss={() => modalPresentation.didDismiss('chat')} />
+        onOpenBooking={handleOpenBookingFromChat}
+        onClose={handleCloseChatHub} onDismiss={handleChatHubDismissed} />
       <MessageSenderModal
         visible={messageSenderOpen}
         draft={draft}

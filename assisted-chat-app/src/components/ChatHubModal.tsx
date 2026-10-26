@@ -27,6 +27,7 @@ import { ChatComposerIconButton } from './ChatComposerIconButton';
 import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
 import { usePolling } from '@/hooks/usePolling';
+import { ChatBookingContext, type ChatBookingContextData } from './chat/ChatBookingContext';
 import {
   appendConversationPage,
   createClientMessageId,
@@ -118,6 +119,8 @@ interface Props {
   initialConversationId?: string | null;
   /** The only kind of thread the notification may open (default: customer). */
   initialConversationChannel?: 'customer_admin' | 'admin_driver';
+  /** Opens the booking in the bookings screen (after this modal has closed). */
+  onOpenBooking?: (bookingRef: string) => void;
   entryMode?: 'all' | 'drivers';
   onClose: () => void;
   onDismiss?: () => void;
@@ -190,7 +193,7 @@ function getDriverChatBooking(driver: DriverListItem | null): { id: string; ref:
   return null;
 }
 
-export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', initialConversationId, initialConversationChannel = 'customer_admin' }: Props) {
+export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', initialConversationId, initialConversationChannel = 'customer_admin', onOpenBooking }: Props) {
   const { drivers, loading: driversLoading, error: driversError, reload: reloadDrivers } = useDriverList(visible);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selected, setSelected] = useState<ConversationSummary | null>(null);
@@ -218,6 +221,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const [actionBusy, setActionBusy] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
+  const [bookingContext, setBookingContext] = useState<{ ref: string; data: ChatBookingContextData | null; loading: boolean; error: string | null } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   // Prepending older messages must not jump the view to the bottom.
   const keepScrollPositionRef = useRef(false);
@@ -259,7 +263,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     scopeRef.current.conversationId = null;
     driverRequestRef.current = null;
     setOpeningDriverChat(false);
-    setSelected(null); setDetail(null); setMessages([]); setText(''); setSending(false); setMediaBusy(false); setVoiceBusy(false); setStatusBusy(false);
+    setSelected(null); setDetail(null); setMessages([]); setText(''); setSending(false); setMediaBusy(false); setVoiceBusy(false); setStatusBusy(false); setBookingContext(null);
     setActionTarget(null); setEditTarget(null); setActionBusy(false); setError(null);
   }, [cancelRecording]);
 
@@ -419,6 +423,22 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     if (visible && !loadingChat && snapshot && snapshot.id === selected?.id) observeMessages(snapshot.messages, snapshot.id);
   }, [selected?.id, loadingChat, messages, observeMessages, visible]);
 
+  // Booking and payment context for a booking thread, from the same endpoint
+  // the bookings screen uses. A response for another thread is discarded.
+  const loadBookingContext = useCallback(async (conversationId: string, ref: string) => {
+    const scope = captureScope();
+    setBookingContext((current) => (current?.ref === ref ? { ...current, loading: true, error: null } : { ref, data: null, loading: true, error: null }));
+    try {
+      const data = await api.get<ChatBookingContextData>(`/api/mobile/admin/bookings/${encodeURIComponent(ref)}`);
+      if (isCurrent(scope, conversationId)) setBookingContext({ ref, data, loading: false, error: null });
+    } catch (err) {
+      if (isCurrent(scope, conversationId)) {
+        setBookingContext((current) => ({ ref, data: current?.ref === ref ? current.data : null, loading: false,
+          error: err instanceof Error ? err.message : 'Could not load the booking.' }));
+      }
+    }
+  }, [captureScope, isCurrent]);
+
   const openConversation = useCallback(async (conversation: ConversationSummary) => {
     scopeRef.current.generation += 1;
     scopeRef.current.conversationId = conversation.id;
@@ -432,6 +452,9 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setOlderCursor(null);
     setLoadingOlder(false);
     scrollMetricsRef.current = { offset: 0, height: 0, content: 0 };
+    const bookingRef = conversation.bookingId && conversation.scope !== 'direct_driver' ? conversation.bookingRef : null;
+    setBookingContext(bookingRef ? { ref: bookingRef, data: null, loading: true, error: null } : null);
+    if (bookingRef) void loadBookingContext(conversation.id, bookingRef);
     setText('');
     setError(null);
     setLoadingChat(true);
@@ -450,7 +473,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     } finally {
       if (isCurrent(scope, conversation.id)) setLoadingChat(false);
     }
-  }, [captureScope, fetchMessages, isCurrent]);
+  }, [captureScope, fetchMessages, isCurrent, loadBookingContext]);
 
   const openDriverConversation = useCallback(async (driver: DriverListItem) => {
     if (driverRequestRef.current) return;
@@ -496,6 +519,11 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     if (selectedId) await fetchMessages(selectedId).catch(() => undefined);
   }, [fetchMessages, selectedId]);
   usePolling(pollMessages, { enabled: visible && Boolean(selectedId), intervalMs: 10_000, key: `${scopeKey}|${selectedId}`, immediate: false });
+  const contextRef = bookingContext?.ref ?? null;
+  const pollBookingContext = useCallback(async () => {
+    if (selectedId && contextRef) await loadBookingContext(selectedId, contextRef);
+  }, [contextRef, loadBookingContext, selectedId]);
+  usePolling(pollBookingContext, { enabled: visible && Boolean(selectedId && contextRef), intervalMs: 60_000, key: `${scopeKey}|${selectedId}|${contextRef}`, immediate: false });
 
   useLayoutEffect(() => {
     scopeRef.current.visible = visible;
@@ -519,7 +547,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setActionTarget(null);
     setEditTarget(null);
     setEditText('');
-    setListCursor(null); setLoadingMoreList(false); setOlderCursor(null); setLoadingOlder(false);
+    setListCursor(null); setLoadingMoreList(false); setOlderCursor(null); setLoadingOlder(false); setBookingContext(null);
     mediaSendIdsRef.current.clear();
     if (visible) setChannel('all');
     return () => { scopeRef.current.visible = false; scopeRef.current.generation += 1; };
@@ -892,6 +920,16 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                     style={styles.threadAction}
                   />
                 </View>
+              ) : null}
+              {bookingContext ? (
+                <ChatBookingContext
+                  bookingRef={bookingContext.ref}
+                  data={bookingContext.data}
+                  loading={bookingContext.loading}
+                  error={bookingContext.error}
+                  onRefresh={() => { if (selected) void loadBookingContext(selected.id, bookingContext.ref); }}
+                  onOpenBooking={onOpenBooking}
+                />
               ) : null}
               <ScrollView
                 ref={scrollRef}

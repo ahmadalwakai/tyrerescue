@@ -67,6 +67,7 @@ function createChatHarness(kind = 'hub') {
     '@/lib/chat-download': { saveChatAttachmentToDevice: async () => {} },
     './ui': { AppButton: 'AppButton', StatusBanner: 'StatusBanner' }, './theme': theme,
     './chat/ChatScreenLayout': { ChatScreenLayout: 'ChatScreenLayout', useChatBottomPadding: () => 34 },
+    './chat/ChatBookingContext': { ChatBookingContext: 'ChatBookingContext' },
     // Each enabled poll registers a manual tick, like the setInterval stub above.
     '@/hooks/usePolling': { usePolling: (task, options) => { react.useEffect(() => { if (!options.enabled) return undefined; if (options.immediate !== false) void task(); state.timers.push(() => task()); return undefined; }, [task, options.enabled, options.key]); return async () => task(); } },
     '@/lib/chat-sync': loadSource('lib/chat-sync.ts', {}),
@@ -168,6 +169,24 @@ if (require.main === module) {
   h.press('Reopen'); await settle();
   assert.equal(JSON.stringify(patches.at(-1)), JSON.stringify({ url: detailUrl, body: { reopen: true } }));
   assert.doesNotMatch(JSON.stringify(h.read()), /This conversation cannot accept new messages/);
+  h.unmount();
+ });
+ test('hub: a booking thread loads its booking context; a late response for a previous thread is ignored', async () => {
+  const h = createChatHarness('hub');
+  h.state.conversations = [conversation('one', 'TYR-2026-00001'), conversation('two', 'TYR-2026-00002')];
+  h.read(); await settle();
+  const first = deferred();
+  h.state.handlers['/api/mobile/admin/bookings/TYR-2026-00001'] = () => first.promise;
+  h.state.handlers['/api/mobile/admin/bookings/TYR-2026-00002'] = () => ({ booking: { refNumber: 'TYR-2026-00002', status: 'paid' }, statusHistory: [], assignedDriver: null, invoice: null });
+  h.select('one'); await settle();
+  assert.ok(h.state.gets.includes('/api/mobile/admin/bookings/TYR-2026-00001'));
+  h.find((node) => node.type === 'ChatScreenLayout').props.onBack(); await settle();
+  h.select('two'); await settle();
+  first.resolve({ booking: { refNumber: 'TYR-2026-00001', status: 'cancelled' }, statusHistory: [], assignedDriver: null, invoice: null });
+  await settle();
+  const panel = h.find((node) => node.type === 'ChatBookingContext');
+  assert.equal(panel.props.bookingRef, 'TYR-2026-00002');
+  assert.equal(panel.props.data.booking.status, 'paid');
   h.unmount();
  });
 }
