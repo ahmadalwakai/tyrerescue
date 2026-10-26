@@ -227,6 +227,14 @@ export interface AssistedChatDraft {
   manualPriceGbp: number | null;
   paymentChoice: AssistedChatPaymentChoice | null;
   paymentLink: StripePaymentLinkState | null;
+  /**
+   * The customer already paid outside Tyre Rescue's Stripe links (another
+   * provider's link, bank transfer). Set before dispatch: no Stripe link is
+   * created and the payment is recorded as soon as the booking exists.
+   */
+  externalPayment?: 'full' | 'deposit' | null;
+  /** A manual payment confirmation the server has recorded for this booking. */
+  manualPaymentRecorded?: 'full' | 'deposit' | null;
   dispatchedRefNumber: string | null;
   /**
    * Booking UUID returned by the finalize endpoint. Persisted so the live

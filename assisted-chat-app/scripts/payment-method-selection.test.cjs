@@ -74,7 +74,7 @@ const uiGlobals = {
   formatGbp: (amount) => `£${amount.toFixed(2)}`,
   ActivityIndicator: 'ActivityIndicator', SectionCard: 'SectionCard', DetailRow: 'DetailRow',
   View: 'View', Text: 'Text', Pressable: 'Pressable', AppIcon: 'AppIcon', StatusBanner: 'StatusBanner',
-  Modal: 'Modal', ScrollView: 'ScrollView', CopyAddressButton: 'CopyAddressButton', AppButton: 'AppButton',
+  Modal: 'Modal', ScrollView: 'ScrollView', CopyAddressButton: 'CopyAddressButton', AppButton: 'AppButton', Switch: 'Switch',
 };
 const uiDeclarations = ['formatPence', 'getQuotePricingDistanceMiles', 'getDepositSummary', 'paymentChoiceLabel', 'paymentOptionLabel'].map(declaration).join('\n');
 function renderFunction(name, props, globals = {}) {
@@ -132,7 +132,8 @@ function createSelectionHarness(options = {}) {
     return action;
   }
   function choices() {
-    const globals = { ...uiGlobals, draft: state.draft, activeQuote: state.activeQuote, dispatch: { busy: state.busy }, effectiveTotal: 120, update: read().update };
+    const globals = { ...uiGlobals, draft: state.draft, activeQuote: state.activeQuote, dispatch: { busy: state.busy }, effectiveTotal: 120, update: read().update,
+      manualPaymentBusy: null, handleMarkPaid: async (kind) => { state.markPaid = [...(state.markPaid ?? []), kind]; }, handleCopyPaymentDetails: async () => { state.copies = (state.copies ?? 0) + 1; } };
     const props = Object.fromEntries(panel.attributes.properties.filter((item) => ts.isJsxAttribute(item) && item.initializer && ts.isJsxExpression(item.initializer)).map((item) => [item.name.getText(screen), execute(`(${item.initializer.expression.getText(screen)})`, globals)]));
     return findNodes(renderFunction('PaymentDispatchPanel', props), (item) => item.type === 'Pressable');
   }
@@ -713,4 +714,88 @@ test('full existing bookings retain the outstanding-balance endpoint', async () 
   assert.deepEqual(h.state.posts.map((call) => call.url), ['/api/admin/bookings/EXISTING-DEPOSIT/payment-link']);
   assert.equal(link.kind, 'full');
   assert.equal(link.amountPence, 12000);
+});
+
+function panelProps(patch = {}) {
+  const calls = { toggles: [], marks: [], copies: 0 };
+  return {
+    calls,
+    props: {
+      effectiveTotal: 194.32, selectedChoice: 'full', busy: false, paymentLink: null, dispatchedRefNumber: null,
+      dispatchedBookingId: null, paymentConfirmed: false, onChoose: () => {}, externalPayment: null, manualPaymentRecorded: null,
+      onToggleExternalPayment: (kind) => calls.toggles.push(kind), onMarkPaid: (kind) => calls.marks.push(kind),
+      markPaidBusy: null, onCopyPaymentDetails: () => { calls.copies += 1; }, ...patch,
+    },
+  };
+}
+const buttons = (tree) => findNodes(tree, (item) => item.type === 'AppButton').map((item) => item.props);
+
+test('before the booking exists, "already paid elsewhere" is a switch for full and deposit, never for cash', () => {
+  for (const choice of ['full', 'deposit']) {
+    const { props, calls } = panelProps({ selectedChoice: choice });
+    const [toggle] = findNodes(renderFunction('PaymentDispatchPanel', props), (item) => item.type === 'Switch');
+    assert.equal(toggle.props.value, false);
+    toggle.props.onValueChange(true);
+    toggle.props.onValueChange(false);
+    assert.deepEqual(calls.toggles, [choice, null]);
+  }
+  const on = findNodes(renderFunction('PaymentDispatchPanel', panelProps({ selectedChoice: 'deposit', externalPayment: 'deposit' }).props), (item) => item.type === 'Switch');
+  assert.equal(on[0].props.value, true);
+  assert.equal(findNodes(renderFunction('PaymentDispatchPanel', panelProps({ selectedChoice: 'cash' }).props), (item) => item.type === 'Switch').length, 0);
+});
+
+test('after the booking exists, staff can mark the deposit and then the balance as paid', () => {
+  const { props, calls } = panelProps({ selectedChoice: 'deposit', dispatchedRefNumber: 'TYR-1', dispatchedBookingId: 'b1' });
+  const labels = buttons(renderFunction('PaymentDispatchPanel', props));
+  assert.deepEqual(labels.map((item) => item.label), ['Mark deposit paid (other link)', 'Mark balance paid (other link)', 'Copy payment details']);
+  labels[0].onPress();
+  assert.deepEqual(calls.marks, ['deposit']);
+  const afterDeposit = buttons(renderFunction('PaymentDispatchPanel', panelProps({ selectedChoice: 'deposit', dispatchedRefNumber: 'TYR-1', manualPaymentRecorded: 'deposit' }).props));
+  assert.deepEqual(afterDeposit.map((item) => item.label), ['Mark balance paid (other link)', 'Copy payment details']);
+  const paid = buttons(renderFunction('PaymentDispatchPanel', panelProps({ dispatchedRefNumber: 'TYR-1', manualPaymentRecorded: 'full' }).props));
+  assert.deepEqual(paid.map((item) => item.label), ['Copy payment details']);
+});
+
+test('the copy button is always there and copies the link once it exists', () => {
+  const { props, calls } = panelProps();
+  const [copy] = buttons(renderFunction('PaymentDispatchPanel', props));
+  assert.equal(copy.label, 'Copy payment details');
+  copy.onPress();
+  assert.equal(calls.copies, 1);
+  const linked = buttons(renderFunction('PaymentDispatchPanel', panelProps({ paymentLink: { kind: 'full', paymentUrl: 'https://pay.example.invalid', amountPence: 19432 } }).props));
+  assert.equal(linked.at(-1).label, 'Copy payment link');
+});
+
+for (const kind of ['full', 'deposit']) {
+  test(`already paid elsewhere (${kind}) creates no Stripe link and records the payment on the new booking`, async () => {
+    const h = createDispatchHarness({ paymentChoice: kind, externalPayment: kind });
+    const original = h.api.post;
+    h.api.post = async (url, body) => {
+      if (!url.endsWith('/manual-payment')) return original(url, body);
+      h.state.posts.push({ url, body });
+      return { status: 'recorded', kind };
+    };
+    assert.equal(await h.read().choosePaymentAndDispatch(kind), true);
+    assert.deepEqual(h.state.posts.map((call) => call.url), [
+      '/api/admin/quick-book/test-quick-book/finalize',
+      '/api/mobile/admin/bookings/TEST-FINALIZED/manual-payment',
+    ]);
+    assert.equal(h.state.posts[1].body.kind, kind);
+    assert.equal(h.state.draft.paymentLink, null);
+    assert.equal(h.state.draft.manualPaymentRecorded, kind);
+    assert.equal(h.read().canRetryPaymentLink, false);
+  });
+}
+
+test('if recording the outside payment fails, the booking stays and no Stripe link is created', async () => {
+  const h = createDispatchHarness({ paymentChoice: 'full', externalPayment: 'full' });
+  const original = h.api.post;
+  h.api.post = async (url, body) => {
+    if (!url.endsWith('/manual-payment')) return original(url, body);
+    throw new Error('Server unavailable.');
+  };
+  assert.equal(await h.read().choosePaymentAndDispatch('full'), false);
+  assert.equal(h.state.posts.some((call) => call.url.endsWith('/checkout-session')), false);
+  assert.equal(h.state.draft.dispatchedRefNumber, 'TEST-FINALIZED');
+  assert.match(h.read().error, /Booking TEST-FINALIZED is saved\. Could not mark it as paid/);
 });

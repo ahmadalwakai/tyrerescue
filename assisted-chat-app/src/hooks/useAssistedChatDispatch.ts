@@ -191,6 +191,20 @@ export function useAssistedChatDispatch({
           throw new Error('This booking already has a confirmed payment or is no longer payable. Open it from Bookings to review its payment status.');
         }
         setPaymentBlockedBookingId(null);
+        // Already paid elsewhere: never create a Stripe link the customer could
+        // pay a second time. Record the payment on the new booking instead.
+        const external = latestDraft.current.externalPayment;
+        if (external && external === canonicalChoice) {
+          try {
+            await api.post(`/api/mobile/admin/bookings/${encodeURIComponent(response.refNumber)}/manual-payment`, { kind: external });
+          } catch (manualError) {
+            confirmation.paymentBlocked = true;
+            throw new Error(`Could not mark it as paid: ${manualError instanceof Error ? manualError.message : 'unknown error'} Use "Mark paid" below to try again.`);
+          }
+          if (!isCurrent()) return false;
+          update({ manualPaymentRecorded: external });
+          return true;
+        }
         confirmation.paymentLink = await checkoutForConfirmedBooking({ ...response, breakdown: response.breakdown ?? canonicalQuote }, quickBookingId);
         if (!isCurrent()) return false;
         if (confirmation.paymentLink) update({ paymentLink: confirmation.paymentLink });
@@ -350,7 +364,7 @@ export function useAssistedChatDispatch({
         }
       }
     },
-    [draft, lockingNutCharge, onBookingCreated, update],
+    [draft, latestDraft, lockingNutCharge, onBookingCreated, update],
   );
 
   const choosePaymentAndDispatch = useCallback(
@@ -362,7 +376,7 @@ export function useAssistedChatDispatch({
   const canRetryPaymentLink = Boolean(
     (draft.dispatchedBookingId || draft.dispatchedRefNumber) &&
     (!paymentBlockedBookingId || paymentBlockedBookingId !== draft.dispatchedBookingId) &&
-    !draft.paymentLink && draft.paymentChoice !== 'cash',
+    !draft.paymentLink && draft.paymentChoice !== 'cash' && !draft.externalPayment && !draft.manualPaymentRecorded,
   );
 
   return { busy, error, result, setError, choosePaymentAndDispatch, retryPaymentLink, canRetryPaymentLink };

@@ -13,6 +13,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -228,6 +229,19 @@ function confirmClearDraft(): Promise<boolean> {
     Alert.alert(CLEAR_DRAFT_TITLE, CLEAR_DRAFT_MESSAGE, [
       { text: 'Keep draft', style: 'cancel', onPress: () => resolve(false) },
       { text: 'Clear draft', style: 'destructive', onPress: () => resolve(true) },
+    ], { cancelable: true, onDismiss: () => resolve(false) });
+  });
+}
+
+/** Recording a payment is a financial record, so it always asks first. */
+function confirmManualPayment(kind: 'full' | 'deposit', amountText: string, stripeLinkSent: boolean): Promise<boolean> {
+  const title = kind === 'deposit' ? 'Mark deposit as paid?' : 'Mark as fully paid?';
+  const message = `Record ${amountText} as paid outside Tyre Rescue's Stripe links (another payment link or bank transfer). This is saved on the booking with your name.${stripeLinkSent ? ' The Stripe link already sent stays open: tell the customer not to use it.' : ''}`;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      { text: kind === 'deposit' ? 'Mark deposit paid' : 'Mark paid', onPress: () => resolve(true) },
     ], { cancelable: true, onDismiss: () => resolve(false) });
   });
 }
@@ -793,6 +807,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [headerInvoiceLoading, setHeaderInvoiceLoading] = useState(false);
+  const [manualPaymentBusy, setManualPaymentBusy] = useState<'full' | 'deposit' | null>(null);
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [notifSetupOpen, setNotifSetupOpen] = useState(false);
@@ -1936,6 +1951,43 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Customer details copied.' : 'Could not copy customer details.' });
   }, [draft, flashNotice]);
 
+  // Copies what the customer needs to pay: the Stripe link once it exists,
+  // otherwise the quote reference, total and the chosen payment split.
+  const handleCopyPaymentDetails = useCallback(async () => {
+    const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
+    const deposit = getDepositSummary(totalPence);
+    const reference = draft.dispatchedRefNumber ? `booking ${draft.dispatchedRefNumber}` : savedQuoteRef ? `quote ${savedQuoteRef}` : null;
+    const lines = [`Tyre Rescue${reference ? ` ${reference}` : ''}: total ${formatPence(totalPence)}.`];
+    if (draft.paymentChoice === 'deposit') lines.push(`Deposit ${formatPence(deposit.depositAmountPence)} now, ${formatPence(deposit.remainingBalancePence)} on arrival.`);
+    if (draft.paymentChoice === 'cash') lines.push('Payment on arrival.');
+    if (draft.paymentLink) lines.push(`Pay securely here: ${draft.paymentLink.paymentUrl}`);
+    const ok = await copyToClipboard(lines.join('\n'));
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? (draft.paymentLink ? 'Payment link and amount copied.' : 'Payment details copied.') : 'Could not copy payment details.' });
+  }, [draft.dispatchedRefNumber, draft.paymentChoice, draft.paymentLink, effectiveTotal, flashNotice, savedQuoteRef]);
+
+  const handleMarkPaid = useCallback(async (kind: 'full' | 'deposit') => {
+    const refNumber = draft.dispatchedRefNumber;
+    if (!refNumber || manualPaymentBusy) return;
+    const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
+    const amountText = kind === 'deposit' ? formatPence(getDepositSummary(totalPence).depositAmountPence)
+      : draft.manualPaymentRecorded === 'deposit' || draft.paymentChoice === 'deposit' ? 'the remaining balance' : formatPence(totalPence);
+    if (!await confirmManualPayment(kind, amountText, Boolean(draft.paymentLink))) return;
+    setManualPaymentBusy(kind);
+    try {
+      const result = await api.post<{ status: string; amountPence?: number }>(
+        `/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}/manual-payment`, { kind },
+      );
+      update({ manualPaymentRecorded: kind, externalPayment: null });
+      flashNotice({ kind: 'ok', text: result.status === 'already_recorded'
+        ? 'Already recorded as paid. Nothing was added.'
+        : `${kind === 'deposit' ? 'Deposit' : 'Payment'} marked as paid${typeof result.amountPence === 'number' ? ` (${formatPence(result.amountPence)})` : ''}.` });
+    } catch (error) {
+      flashNotice({ kind: 'err', text: error instanceof Error ? error.message : 'Could not mark it as paid.' });
+    } finally {
+      setManualPaymentBusy(null);
+    }
+  }, [draft.dispatchedRefNumber, draft.manualPaymentRecorded, draft.paymentChoice, draft.paymentLink, effectiveTotal, flashNotice, manualPaymentBusy, update]);
+
   const handleCopyJobDetails = useCallback(async () => {
     const ok = await copyToClipboard(buildJobDetails(draft, effectiveTotal, lockingNutCharge, selectedPaymentOption));
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Job details copied.' : 'Could not copy job details.' });
@@ -2718,6 +2770,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               setBreakdownVisible,
               openPaymentStage: () => setEditingStage('PAYMENT'),
               paymentLinkActions,
+              handleMarkPaid,
+              manualPaymentBusy,
+              handleCopyPaymentDetails,
               returningCustomerCard: (
                 <ReturningCustomerCard
                   matches={visibleMatches}
@@ -3087,6 +3142,9 @@ interface RenderActiveStageArgs {
   openPaymentStage: () => void;
   paymentLinkActions: ReturnType<typeof useAdminPaymentLink>;
   returningCustomerCard: ReactNode;
+  handleMarkPaid: (kind: 'full' | 'deposit') => Promise<void>;
+  manualPaymentBusy: 'full' | 'deposit' | null;
+  handleCopyPaymentDetails: () => Promise<void>;
 
 }
 
@@ -3129,6 +3187,9 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     openPaymentStage,
     paymentLinkActions,
     returningCustomerCard,
+    handleMarkPaid,
+    manualPaymentBusy,
+    handleCopyPaymentDetails,
   } = args;
 
   if (activeStage === 'CUSTOMER') {
@@ -3527,7 +3588,13 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           dispatchedRefNumber={draft.dispatchedRefNumber}
           dispatchedBookingId={draft.dispatchedBookingId}
           paymentConfirmed={activeQuote?.quoteStatus === 'PAID'}
-          onChoose={(choice) => update({ paymentChoice: choice })}
+          onChoose={(choice) => update({ paymentChoice: choice, externalPayment: null })}
+          externalPayment={draft.externalPayment ?? null}
+          manualPaymentRecorded={draft.manualPaymentRecorded ?? null}
+          onToggleExternalPayment={(kind) => update({ externalPayment: kind })}
+          onMarkPaid={(kind) => { void handleMarkPaid(kind); }}
+          markPaidBusy={manualPaymentBusy}
+          onCopyPaymentDetails={() => { void handleCopyPaymentDetails(); }}
         />
         {breakdownVisible && draft.quote ? (
           <PriceSummary
@@ -4393,6 +4460,12 @@ function PaymentDispatchPanel({
   dispatchedBookingId,
   paymentConfirmed = false,
   onChoose,
+  externalPayment,
+  manualPaymentRecorded,
+  onToggleExternalPayment,
+  onMarkPaid,
+  markPaidBusy,
+  onCopyPaymentDetails,
 }: {
   effectiveTotal: number;
   selectedChoice: AssistedChatPaymentChoice | null;
@@ -4402,6 +4475,12 @@ function PaymentDispatchPanel({
   dispatchedBookingId: string | null;
   paymentConfirmed?: boolean;
   onChoose: (choice: AssistedChatPaymentChoice) => void;
+  externalPayment: 'full' | 'deposit' | null;
+  manualPaymentRecorded: 'full' | 'deposit' | null;
+  onToggleExternalPayment: (kind: 'full' | 'deposit' | null) => void;
+  onMarkPaid: (kind: 'full' | 'deposit') => void;
+  markPaidBusy: 'full' | 'deposit' | null;
+  onCopyPaymentDetails: () => void;
 }) {
   const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
   const deposit = getDepositSummary(totalPence);
@@ -4464,6 +4543,56 @@ function PaymentDispatchPanel({
         })}
       </View>
       {doneMessage ? <StatusBanner kind="ok" message={doneMessage} /> : null}
+      {/* Before the booking exists: say it was already paid elsewhere, so no Stripe link is created. */}
+      {!finalized && !paymentConfirmed && (selectedChoice === 'full' || selectedChoice === 'deposit') ? (
+        <View style={styles.paidElsewhereRow}>
+          <View style={styles.paidElsewhereCopy}>
+            <Text style={styles.paymentLabel}>{selectedChoice === 'deposit' ? 'Deposit already paid' : 'Already paid in full'}</Text>
+            <Text style={styles.paymentDetail}>Paid via another link or bank transfer. No Stripe link will be sent; it is recorded as paid when the booking is created.</Text>
+          </View>
+          <Switch
+            value={externalPayment === selectedChoice}
+            onValueChange={(on) => onToggleExternalPayment(on ? selectedChoice : null)}
+            disabled={busy}
+            accessibilityLabel={selectedChoice === 'deposit' ? 'Deposit already paid via another link' : 'Already paid in full via another link'}
+            trackColor={{ true: colors.success, false: colors.border }}
+          />
+        </View>
+      ) : null}
+      {/* After the booking exists: record a payment made outside Stripe. */}
+      {finalized && dispatchedRefNumber ? (
+        manualPaymentRecorded === 'full' || paymentConfirmed ? (
+          <StatusBanner kind="ok" message={manualPaymentRecorded === 'full' ? 'Marked as fully paid.' : 'Payment is confirmed.'} />
+        ) : (
+          <View style={styles.markPaidActions}>
+            {manualPaymentRecorded === 'deposit' ? <StatusBanner kind="ok" message="Deposit marked as paid." /> : null}
+            {selectedChoice === 'deposit' && manualPaymentRecorded !== 'deposit' ? (
+              <AppButton
+                label="Mark deposit paid (other link)"
+                variant="secondary"
+                onPress={() => onMarkPaid('deposit')}
+                loading={markPaidBusy === 'deposit'}
+                disabled={Boolean(markPaidBusy)}
+                fullWidth
+              />
+            ) : null}
+            <AppButton
+              label={manualPaymentRecorded === 'deposit' || selectedChoice === 'deposit' ? 'Mark balance paid (other link)' : 'Mark paid (other link)'}
+              variant="secondary"
+              onPress={() => onMarkPaid('full')}
+              loading={markPaidBusy === 'full'}
+              disabled={Boolean(markPaidBusy)}
+              fullWidth
+            />
+          </View>
+        )
+      ) : null}
+      <AppButton
+        label={paymentLink ? 'Copy payment link' : 'Copy payment details'}
+        variant="secondary"
+        onPress={onCopyPaymentDetails}
+        fullWidth
+      />
     </SectionCard>
   );
 }
@@ -5347,6 +5476,12 @@ const styles = StyleSheet.create({
   paymentLabelSelected: { color: colors.success },
   paymentDetail: { color: colors.muted, fontSize: fontSize.xs, marginTop: 3, lineHeight: 16 },
   paymentDetailSelected: { color: colors.text },
+  paidElsewhereRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.sm, padding: space.sm,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardMuted, minHeight: 44,
+  },
+  paidElsewhereCopy: { flex: 1, minWidth: 0, gap: 2 },
+  markPaidActions: { gap: space.sm, marginTop: space.sm },
   bodyText: { color: colors.text, fontSize: fontSize.sm, lineHeight: 20, marginBottom: 10 },
   readySummary: { gap: 8, marginBottom: 12 },
   referenceActions: { gap: 8, marginBottom: 12 },
