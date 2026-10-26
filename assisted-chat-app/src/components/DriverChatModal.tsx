@@ -25,7 +25,7 @@ import { saveChatAttachmentToDevice } from '@/lib/chat-download';
 import { ChatComposerIconButton } from './ChatComposerIconButton';
 import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
-import { createClientMessageId, mergeMessages, newestServerMessageId } from '@/lib/chat-sync';
+import { compareServerMessages, createClientMessageId, mergeMessages, newestServerMessageId } from '@/lib/chat-sync';
 
 type ChatRole = 'customer' | 'admin' | 'driver';
 type MessageType = 'text' | 'image' | 'audio' | 'admin_note';
@@ -74,6 +74,8 @@ interface CreateConversationResponse {
 interface MessagesResponse {
   messages: MessageView[];
   nextCursor: string | null;
+  /** Newest message the other side has opened (newest page only). */
+  peerReadUpTo?: { id: string; createdAt: string } | null;
 }
 
 function formatTime(iso: string): string {
@@ -151,6 +153,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
   }, [onClose, cancelRecording]);
 
   // Marks read only up to the newest message actually shown, and only in the foreground.
+  const [peerRead, setPeerRead] = useState<{ conversationId: string; id: string; createdAt: string } | null>(null);
   const markRead = useCallback((id: string, lastReadMessageId: string | null) => {
     if (!lastReadMessageId || AppState.currentState !== 'active') return;
     api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`, { lastReadMessageId }).catch(() => undefined);
@@ -178,6 +181,9 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     setMessages((items) => mergeMessages(items, latest));
     observeMessages(latest, id);
     markRead(id, newestServerMessageId(latest));
+    const marker = data.peerReadUpTo;
+    // Receipts come only from the other side's read marker and never move backwards.
+    if (marker) setPeerRead((current) => (current?.conversationId === id && compareServerMessages(current, marker) >= 0 ? current : { conversationId: id, ...marker }));
   }, [captureScope, isCurrent, markRead, observeMessages]);
 
   // A fast response can finish before the new chat's layout effect installs its sound scope.
@@ -579,7 +585,9 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
                       </Text>
                     )}
                     <Text style={[styles.time, mine ? styles.timeMine : styles.timeOther]}>
-                      {formatTime(message.createdAt)}
+                      {mine
+                        ? `${formatTime(message.createdAt)} · ${peerRead && peerRead.conversationId === conversationId && compareServerMessages(message, peerRead) <= 0 ? 'Read' : 'Sent'}`
+                        : formatTime(message.createdAt)}
                     </Text>
                   </>
                 );

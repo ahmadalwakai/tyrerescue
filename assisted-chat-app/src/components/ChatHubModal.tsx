@@ -28,6 +28,7 @@ import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
 import { usePolling } from '@/hooks/usePolling';
 import { ChatBookingContext, type ChatBookingContextData } from './chat/ChatBookingContext';
+import { loadOutbox, removeFromOutbox, saveToOutbox } from '@/lib/chat-outbox';
 import {
   appendConversationPage,
   createClientMessageId,
@@ -145,6 +146,9 @@ const INBOX_TABS: Array<{ value: InboxTab; label: string }> = [
   { value: 'drivers', label: 'Drivers' },
   { value: 'closed', label: 'Closed' },
 ];
+
+// The inbox reopens on the section the operator last used (for this app session).
+let rememberedInboxTab: InboxTab = 'all';
 
 const LIST_PAGE_SIZE = 100;
 const MESSAGE_PAGE_SIZE = 60;
@@ -477,6 +481,15 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
       ]);
       if (!isCurrent(scope, conversation.id)) return;
       setDetail(nextDetail);
+      const unsent = await loadOutbox(conversation.id);
+      if (unsent.length > 0 && isCurrent(scope, conversation.id)) {
+        setMessages((items) => mergeMessages(items, []).concat(unsent
+          .filter((item) => !items.some((existing) => existing.id === item.id))
+          .map((item): MessageView => ({
+            id: item.id, senderId: '', senderName: 'Admin', senderRole: 'admin', body: item.body, messageType: 'text',
+            deliveryStatus: 'sending', attachments: [], createdAt: item.createdAt, localState: 'failed',
+          }))));
+      }
       setConversations((items) =>
         items.map((item) => (item.id === conversation.id ? { ...item, unreadCount: 0 } : item)),
       );
@@ -561,7 +574,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setEditText('');
     setListCursor(null); setLoadingMoreList(false); setOlderCursor(null); setLoadingOlder(false); setBookingContext(null);
     mediaSendIdsRef.current.clear();
-    if (visible) setChannel('all');
+    if (visible) setChannel(rememberedInboxTab);
     return () => { scopeRef.current.visible = false; scopeRef.current.generation += 1; };
   }, [entryMode, scopeKey, visible]);
 
@@ -604,12 +617,14 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
       );
       if (!isCurrent(scope, conversationId)) return;
       messageFetchRef.current += 1;
+      void removeFromOutbox(conversationId, message.id);
       setMessages((items) => replaceMessage(items, message.id, sent));
       playSent(sent.id);
       markRead(conversationId, sent.id);
       void fetchConversations();
     } catch (err) {
       if (!isCurrent(scope, conversationId)) return;
+      if (message.body) void saveToOutbox(conversationId, { id: message.id, body: message.body, createdAt: message.createdAt });
       setMessages((items) => setLocalState(items, message.id, 'failed'));
       setError(err instanceof Error ? `${err.message} Tap the message to try again.` : 'Could not send message. Tap it to try again.');
     } finally {
@@ -656,9 +671,10 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const discardFailed = useCallback((message: MessageView) => {
     if (message.localState !== 'failed') return;
     setMessages((items) => items.filter((item) => item.id !== message.id));
+    if (selected) void removeFromOutbox(selected.id, message.id);
     // Give the text back so nothing typed is lost.
     if (message.body) setText((current) => current || message.body || '');
-  }, []);
+  }, [selected]);
 
   const inputDisabled =
     sending ||
@@ -1223,7 +1239,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                   return (
                     <Pressable
                       key={item.value}
-                      onPress={() => setChannel(item.value)}
+                      onPress={() => { rememberedInboxTab = item.value; setChannel(item.value); }}
                       accessibilityRole="tab"
                       accessibilityState={{ selected: active }}
                       style={({ pressed }) => [

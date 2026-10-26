@@ -71,6 +71,8 @@ function createChatHarness(kind = 'hub') {
     // Each enabled poll registers a manual tick, like the setInterval stub above.
     '@/hooks/usePolling': { usePolling: (task, options) => { react.useEffect(() => { if (!options.enabled) return undefined; if (options.immediate !== false) void task(); state.timers.push(() => task()); return undefined; }, [task, options.enabled, options.key]); return async () => task(); } },
     '@/lib/chat-sync': loadSource('lib/chat-sync.ts', {}),
+    // In-memory outbox: lost sends survive a simulated relaunch within one harness.
+    '@/lib/chat-outbox': { loadOutbox: async (id) => (state.outbox?.[id] ?? []), saveToOutbox: async (id, item) => { state.outbox = state.outbox ?? {}; state.outbox[id] = [...(state.outbox[id] ?? []).filter((m) => m.id !== item.id), item]; }, removeFromOutbox: async (id, messageId) => { if (state.outbox?.[id]) state.outbox[id] = state.outbox[id].filter((m) => m.id !== messageId); } },
     './ChatComposerIconButton': { ChatComposerIconButton: 'ChatComposerIconButton' }, './ChatImageBubble': { ChatImageBubble: 'ChatImageBubble', ChatPhotoPreview: 'ChatPhotoPreview' }, './VoiceMessageBubble': { VoiceMessageBubble: 'VoiceMessageBubble' },
   };
   const component = loadSource(`components/${kind === 'hub' ? 'ChatHubModal' : 'DriverChatModal'}.tsx`, dependencies, { setInterval: (fn) => { state.timers.push(fn); return fn; }, clearInterval: () => {}, setTimeout: (fn) => { fn(); return 0; }, clearTimeout: () => {} });
@@ -206,6 +208,29 @@ if (require.main === module) {
   h.read(); await h.state.timers.at(-1)(); await settle();
   assert.match(JSON.stringify(h.read()), /· Read/);
   h.unmount();
+ });
+ test('hub: an unsent message survives an app relaunch and is sent once with its original client ID', async () => {
+  const url = '/api/chat/conversations/direct-one/messages';
+  const first = createChatHarness('hub'); first.read(); await settle();
+  first.press('Chat with Hassan'); await settle();
+  first.state.handlers[url] = () => { throw new Error('No connection.'); };
+  first.find((node) => node.props?.accessibilityLabel === 'Message text').props.onChangeText('Tyre is flat');
+  first.press('Send'); await settle();
+  const clientMessageId = first.state.posts.find((call) => call.url === url).body.clientMessageId;
+  assert.equal(first.state.outbox['direct-one'].length, 1);
+  first.unmount();
+  const relaunched = createChatHarness('hub'); relaunched.state.outbox = first.state.outbox;
+  relaunched.read(); await settle();
+  relaunched.press('Chat with Hassan'); await settle();
+  assert.match(JSON.stringify(relaunched.read()), /Not sent/);
+  relaunched.state.handlers[url] = (body) => message(body.clientMessageId, body.body, 'admin');
+  relaunched.press('Message not sent. Double tap to try again.'); await settle();
+  const resent = relaunched.state.posts.filter((call) => call.url === url);
+  assert.equal(resent.length, 1);
+  assert.equal(resent[0].body.clientMessageId, clientMessageId);
+  assert.equal(relaunched.state.outbox['direct-one'].length, 0);
+  assert.doesNotMatch(JSON.stringify(relaunched.read()), /Not sent/);
+  relaunched.unmount();
  });
 }
 module.exports = { createChatHarness, loadSource, theme, message, conversation, deferred, settle };
