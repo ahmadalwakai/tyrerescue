@@ -11,6 +11,7 @@ import {
 import { api } from '@/lib/api';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
+import { ModalSafeAreaView } from './layout/ModalSafeAreaView';
 
 interface ProjectSourceItem {
   sourceApp: string;
@@ -104,6 +105,8 @@ export function ProjectSourcesModal({
 
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      {/* Real device insets instead of a fixed 52pt top. */}
+      <ModalSafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.fullScreen}>
         <View style={styles.header}>
           <Text style={styles.title}>Projects</Text>
@@ -254,11 +257,13 @@ export function ProjectSourcesModal({
           </ScrollView>
         )}
       </View>
+      </ModalSafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   fullScreen: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -268,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: space.lg,
-    paddingTop: 52,
+    paddingTop: space.md,
     paddingBottom: space.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

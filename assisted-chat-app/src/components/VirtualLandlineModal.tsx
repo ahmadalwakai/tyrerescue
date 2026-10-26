@@ -25,6 +25,7 @@ import type {
   VirtualLandlinePreviewResponse,
 } from '@/types/virtual-landline';
 import { AppIcon } from './icons/AppIcon';
+import { ModalSafeAreaView } from './layout/ModalSafeAreaView';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 
@@ -307,6 +308,8 @@ export function VirtualLandlineModal({ visible, onClose, onCreateDraft }: Virtua
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      {/* Keeps the header clear of the status bar / Dynamic Island and the list above the home indicator. */}
+      <ModalSafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.screen}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
@@ -326,7 +329,7 @@ export function VirtualLandlineModal({ visible, onClose, onCreateDraft }: Virtua
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <View style={styles.importCard}>
             <View style={styles.cardHeader}>
-              <View>
+              <View style={styles.cardHeaderCopy}>
                 <Text style={styles.cardTitle}>CSV import</Text>
                 <Text style={styles.cardSubtitle}>Preview exported call history, review the mapping, then confirm import.</Text>
               </View>
@@ -433,20 +436,22 @@ export function VirtualLandlineModal({ visible, onClose, onCreateDraft }: Virtua
             <AppButton label="Search" variant="secondary" onPress={() => void loadInteractions()} style={styles.searchButton} />
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+          <View style={styles.filters} accessibilityRole="tablist">
             {FILTERS.map((filter, index) => {
               const selected = index === filterIndex;
               return (
                 <Pressable
                   key={filter.label}
                   onPress={() => setFilterIndex(index)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
                   style={[styles.filterPill, selected && styles.filterPillActive]}
                 >
                   <Text style={[styles.filterText, selected && styles.filterTextActive]}>{filter.label}</Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
           {loadState === 'loading' ? (
             <View style={styles.loadingBox}>
@@ -482,6 +487,7 @@ export function VirtualLandlineModal({ visible, onClose, onCreateDraft }: Virtua
           ))}
         </ScrollView>
       </View>
+      </ModalSafeAreaView>
     </Modal>
   );
 }
@@ -603,6 +609,7 @@ function InteractionCard({
 }
 
 const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   screen: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -666,6 +673,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  // Lets the subtitle wrap inside the card instead of pushing past its edge.
+  cardHeaderCopy: { flex: 1, minWidth: 0 },
   cardTitle: {
     color: colors.text,
     fontSize: fontSize.lg,
@@ -794,6 +803,8 @@ const styles = StyleSheet.create({
     minWidth: 92,
   },
   filters: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: space.xs,
     paddingVertical: 2,
   },
@@ -804,6 +815,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: space.md,
     paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   filterPillActive: {
     borderColor: colors.glowBorder,

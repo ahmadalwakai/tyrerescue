@@ -23,6 +23,7 @@ import { CopyAddressButton } from './CopyAddressButton';
 import { CopyCoordinatesButton } from './CopyCoordinatesButton';
 import { formatBookingCoordinatesForCopy } from '@/lib/booking-coordinates';
 import { InvoicePresentationEditor, type InvoicePresentationEditorHandle } from './invoices/InvoicePresentationEditor';
+import { ModalSafeAreaView } from './layout/ModalSafeAreaView';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -1415,18 +1416,22 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
   if (selectedRef) {
     return (
       <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={() => { if (invoiceEditorRef.current) invoiceEditorRef.current.requestClose(); else setSelectedRef(null); }}>
-        <BookingDetailView
-          key={`${getApiContextRevision()}:${selectedRef}`}
-          refNumber={selectedRef}
-          invoiceEditorRef={invoiceEditorRef}
-          onBack={() => setSelectedRef(null)}
-        />
+        <ModalSafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+          <BookingDetailView
+            key={`${getApiContextRevision()}:${selectedRef}`}
+            refNumber={selectedRef}
+            invoiceEditorRef={invoiceEditorRef}
+            onBack={() => setSelectedRef(null)}
+          />
+        </ModalSafeAreaView>
       </Modal>
     );
   }
 
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={handleClose}>
+      {/* Real device insets instead of a fixed 52pt top: clear of the Dynamic Island and the home indicator. */}
+      <ModalSafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}
         behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -1436,7 +1441,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
           {/* Header */}
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Bookings</Text>
-            <Pressable onPress={handleClose} style={styles.closeBtn}>
+            <Pressable onPress={handleClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close bookings">
               <Text style={styles.closeBtnText}>Close</Text>
             </Pressable>
           </View>
@@ -1614,6 +1619,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
         )}
         </View>
       </KeyboardAvoidingView>
+      </ModalSafeAreaView>
     </Modal>
   );
 }
@@ -1621,6 +1627,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   keyboardAvoider: {
     flex: 1,
   },
@@ -1633,7 +1640,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: space.lg,
-    paddingTop: 52,
+    paddingTop: space.md,
     paddingBottom: space.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

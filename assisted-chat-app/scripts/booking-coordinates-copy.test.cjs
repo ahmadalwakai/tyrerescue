@@ -62,6 +62,7 @@ function harness() {
     ...common, './CopyCoordinatesButton': copy, './CopyAddressButton': address,
     '@/lib/invoice-download': {}, '@/components/tracking/DriverLocationShareActions': { DriverLocationShareActions: 'DriverLocationShareActions' },
     './invoices/InvoicePresentationEditor': { InvoicePresentationEditor: 'InvoicePresentationEditor' },
+    './layout/ModalSafeAreaView': { ModalSafeAreaView: 'ModalSafeAreaView' },
   });
   function renderer(component) {
     const r = { hooks: [], effects: [], cursor: 0, writes: 0 };
