@@ -287,6 +287,8 @@ function latest(events: CanonicalEvent[], type: PaymentEventType): CanonicalEven
   return null;
 }
 
+// Rows read through a raw Neon Pool carry timestamps as strings: the
+// drizzle neon-http driver replaces the package's global timestamp parsers.
 function rowToCanonicalEvent(row: PaymentEvent): CanonicalEvent {
   return {
     eventType: row.eventType as PaymentEventType,
@@ -301,10 +303,10 @@ function rowToCanonicalEvent(row: PaymentEvent): CanonicalEvent {
     source: row.source,
     status: row.status,
     metadata: payloadObject(row.metadata),
-    occurredAt: row.occurredAt,
-    expiresAt: row.expiresAt,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    occurredAt: parseDate(row.occurredAt),
+    expiresAt: parseDate(row.expiresAt),
+    createdAt: parseDate(row.createdAt),
+    updatedAt: parseDate(row.updatedAt),
   };
 }
 
@@ -338,10 +340,10 @@ function legacyRowToCanonicalEvents(
     stripeCheckoutUrl,
     source: 'system',
     metadata: { legacyPaymentId: row.id, legacyPaymentStatus: row.status },
-    occurredAt: row.updatedAt ?? row.createdAt,
+    occurredAt: parseDate(row.updatedAt) ?? parseDate(row.createdAt),
     expiresAt: null,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: parseDate(row.createdAt),
+    updatedAt: parseDate(row.updatedAt),
   } satisfies Omit<CanonicalEvent, 'eventType' | 'paidVia' | 'linkStatus' | 'status'>;
 
   if (SUCCEEDED_PAYMENT_STATUSES.has(row.status)) {

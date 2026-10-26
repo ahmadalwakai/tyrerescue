@@ -210,6 +210,17 @@ describe('driver server payment truth', () => {
     expect(summary([event({ amountPence: 12033 })], { totalAmount: '120.33' }).settlementVerified).toBe(true);
   });
 
+  it('accepts raw Pool rows whose timestamps arrive as strings', () => {
+    // drizzle's neon-http driver makes the shared Neon parsers return strings,
+    // so booking-invoice-sync passes rows like these.
+    const iso = at.toISOString();
+    const stringDates = { occurredAt: iso, createdAt: iso, updatedAt: iso } as unknown as Partial<PaymentEvent>;
+    const result = buildDriverPaymentSummary(baseBooking, [
+      event({ ...stringDates, expiresAt: iso as unknown as Date, stripePaymentIntentId: null, stripeSessionId: null }),
+    ], [legacy({ stripePiId: 'pi_driver_2', status: 'pending', createdAt: iso, updatedAt: iso })]);
+    expect(result).toMatchObject({ settlementVerified: true, paymentUpdatedAt: iso });
+  });
+
   it('leaves default administrative summary behaviour unchanged', () => {
     const administrative = buildPaymentSummary(baseBooking, [event({ eventType: 'manual_paid', amountPence: 2400 })]);
     expect(administrative.state).toBe('paid');
