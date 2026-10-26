@@ -154,5 +154,21 @@ if (require.main === module) {
   assert.equal(marker.body.lastReadMessageId, clientMessageId);
   h.unmount();
  });
+ test('hub: staff close and reopen a thread; a closed thread accepts no new messages until reopened', async () => {
+  const h = createChatHarness('hub'); h.read(); await settle();
+  h.press('Chat with Hassan'); await settle();
+  const detailUrl = '/api/chat/conversations/direct-one';
+  let status = 'open';
+  h.state.handlers[detailUrl] = () => ({ id: 'direct-one', bookingId: null, channel: 'admin_driver', status, locked: false });
+  const patches = [];
+  h.api.patch = async (url, body) => { patches.push({ url, body }); status = body.close ? 'closed' : 'open'; return { success: true }; };
+  h.press('Close conversation'); await settle();
+  assert.equal(JSON.stringify(patches.at(-1)), JSON.stringify({ url: detailUrl, body: { close: true } }));
+  assert.match(JSON.stringify(h.read()), /This conversation cannot accept new messages/);
+  h.press('Reopen'); await settle();
+  assert.equal(JSON.stringify(patches.at(-1)), JSON.stringify({ url: detailUrl, body: { reopen: true } }));
+  assert.doesNotMatch(JSON.stringify(h.read()), /This conversation cannot accept new messages/);
+  h.unmount();
+ });
 }
 module.exports = { createChatHarness, loadSource, theme, message, conversation, deferred, settle };

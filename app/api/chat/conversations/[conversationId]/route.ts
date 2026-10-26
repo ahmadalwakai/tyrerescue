@@ -47,8 +47,9 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   }
 
   const { conversationId } = await ctx.params;
+  if (!z.string().uuid().safeParse(conversationId).success) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = adminControlSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.issues }, { status: 400 });

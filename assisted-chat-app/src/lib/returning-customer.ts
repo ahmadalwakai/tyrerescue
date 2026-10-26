@@ -54,3 +54,21 @@ export function fillEmptyFromMatch(draft: AssistedChatDraft, match: ReturningCus
   }
   return { patch, filled };
 }
+
+/**
+ * Query for the match endpoint: a complete UK number and/or an address the
+ * operator confirmed from the suggestions. The tyre size is sent only with an
+ * address (it only strengthens address matches). Empty when there is nothing
+ * safe to match on.
+ */
+export function buildMatchQuery(input: { phone: string; confirmedAddress: string | null; tyreSize: string }): string {
+  const params = new URLSearchParams();
+  const phone = normalizeUkPhone(input.phone);
+  const address = input.confirmedAddress?.trim() ?? '';
+  if (phone) params.set('phone', phone);
+  if (address) {
+    params.set('address', address);
+    if (input.tyreSize.trim()) params.set('tyreSize', input.tyreSize.trim());
+  }
+  return phone || address ? params.toString() : '';
+}

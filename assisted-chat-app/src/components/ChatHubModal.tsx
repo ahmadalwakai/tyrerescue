@@ -62,6 +62,7 @@ interface ConversationSummary {
   unreadCount: number;
   createdAt: string;
   lastActivityAt?: string;
+  bookingStatus?: string | null;
 }
 
 interface ConversationDetail {
@@ -216,6 +217,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const [editText, setEditText] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [statusBusy, setStatusBusy] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   // Prepending older messages must not jump the view to the bottom.
   const keepScrollPositionRef = useRef(false);
@@ -257,7 +259,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     scopeRef.current.conversationId = null;
     driverRequestRef.current = null;
     setOpeningDriverChat(false);
-    setSelected(null); setDetail(null); setMessages([]); setText(''); setSending(false); setMediaBusy(false); setVoiceBusy(false);
+    setSelected(null); setDetail(null); setMessages([]); setText(''); setSending(false); setMediaBusy(false); setVoiceBusy(false); setStatusBusy(false);
     setActionTarget(null); setEditTarget(null); setActionBusy(false); setError(null);
   }, [cancelRecording]);
 
@@ -423,7 +425,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     acceptedMessagesRef.current = null;
     sendRequestRef.current = null; messageFetchRef.current += 1;
     const scope = captureScope();
-    setSending(false); setMediaBusy(false); setActionBusy(false); setActionTarget(null); setEditTarget(null);
+    setSending(false); setMediaBusy(false); setActionBusy(false); setActionTarget(null); setEditTarget(null); setStatusBusy(false);
     setSelected(conversation);
     setDetail(null);
     setMessages([]);
@@ -575,6 +577,29 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
       if (isCurrent(scope, conversationId)) setSending(false);
     }
   }, [captureScope, fetchConversations, isCurrent, markRead, playSent, selected]);
+
+  // Closed threads stay closed: new messages never reopen them, and nobody can
+  // post until staff reopen. History is kept either way.
+  const changeConversationStatus = useCallback(async (next: 'close' | 'reopen') => {
+    if (!selected || statusBusy) return;
+    const conversationId = selected.id;
+    const scope = captureScope();
+    setStatusBusy(true);
+    setError(null);
+    try {
+      await api.patch(`/api/chat/conversations/${encodeURIComponent(conversationId)}`, next === 'close' ? { close: true } : { reopen: true });
+      const nextDetail = await api.get<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(conversationId)}`);
+      if (!isCurrent(scope, conversationId)) return;
+      setDetail(nextDetail);
+      setConversations((items) => items.map((item) => (item.id === conversationId
+        ? { ...item, status: nextDetail.status, locked: nextDetail.locked } : item)));
+      void fetchConversations();
+    } catch (err) {
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not update this conversation.');
+    } finally {
+      if (isCurrent(scope, conversationId)) setStatusBusy(false);
+    }
+  }, [captureScope, fetchConversations, isCurrent, selected, statusBusy]);
 
   const handleSend = useCallback(async () => {
     const body = text.trim();
@@ -853,6 +878,21 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
 
           {selected ? (
             <>
+              {detail ? (
+                <View style={styles.threadBar}>
+                  <Text style={styles.threadStatus} accessibilityLiveRegion="polite">
+                    {detail.status === 'open' ? (detail.locked ? 'Open · locked' : 'Open') : detail.status === 'closed' ? 'Closed' : 'Archived'}
+                  </Text>
+                  <AppButton
+                    label={detail.status === 'open' ? 'Close conversation' : 'Reopen'}
+                    variant="secondary"
+                    onPress={() => { void changeConversationStatus(detail.status === 'open' ? 'close' : 'reopen'); }}
+                    loading={statusBusy}
+                    disabled={statusBusy || loadingChat}
+                    style={styles.threadAction}
+                  />
+                </View>
+              ) : null}
               <ScrollView
                 ref={scrollRef}
                 style={styles.messages}
@@ -1192,6 +1232,9 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                         {conversation.scope === 'direct_driver' || !conversation.bookingId ? 'Private driver chat' : conversation.customerName || 'Customer'}
                         {conversation.driverName ? ` - Driver: ${conversation.driverName}` : ''}
                       </Text>
+                      {conversation.bookingId && conversation.bookingStatus ? (
+                        <Text style={styles.bookingStatus} numberOfLines={1}>Booking: {conversation.bookingStatus.replace(/_/g, ' ')}</Text>
+                      ) : null}
                       <Text style={styles.preview} numberOfLines={2}>
                         {conversation.lastMessageSenderRole === 'admin' ? 'You: ' : ''}
                         {conversation.lastMessageBody || 'No message preview yet'}
@@ -1639,6 +1682,13 @@ const styles = StyleSheet.create({
   timeMine: { color: 'rgba(9,9,11,0.72)' },
   // Status text stays dark on the accent bubble; the border carries the state.
   timeFailed: { color: colors.accentText, fontWeight: '800' },
+  threadBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm,
+    paddingHorizontal: space.md, paddingVertical: space.xs, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  threadStatus: { color: colors.muted, fontSize: fontSize.sm, fontWeight: '700', flexShrink: 1 },
+  threadAction: { minHeight: 44 },
+  bookingStatus: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '700' },
   bubbleSending: { opacity: 0.85 },
   bubbleFailed: { borderColor: colors.danger, borderWidth: 2 },
   loadEarlier: {

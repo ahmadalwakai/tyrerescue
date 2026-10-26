@@ -56,3 +56,12 @@ test('a priced draft keeps its location and tyres even if they look empty', () =
   const { filled } = returning.fillEmptyFromMatch(draft({ quote: { total: 100 } }), match);
   assert.deepEqual(Array.from(filled), ['name', 'email']);
 });
+
+test('the lookup sends only a valid UK number and a confirmed address; tyre size only with the address', () => {
+  const query = (input) => Object.fromEntries(new URLSearchParams(returning.buildMatchQuery(input)));
+  assert.deepEqual(query({ phone: '07700 900123', confirmedAddress: null, tyreSize: '205/55R16' }), { phone: '447700900123' });
+  assert.deepEqual(query({ phone: '0770', confirmedAddress: '12 High Street, Glasgow G1 2AB', tyreSize: '205/55R16' }),
+    { address: '12 High Street, Glasgow G1 2AB', tyreSize: '205/55R16' });
+  assert.equal(returning.buildMatchQuery({ phone: '+1 415 555 0100', confirmedAddress: null, tyreSize: '' }), '');
+  assert.equal(returning.buildMatchQuery({ phone: '', confirmedAddress: '   ', tyreSize: '205/55R16' }), '');
+});

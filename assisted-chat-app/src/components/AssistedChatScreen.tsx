@@ -1611,6 +1611,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // nothing is copied until the operator chooses, and then only into empty fields.
   const returningCustomer = useReturningCustomer({
     phone: draft.customer.phone,
+    confirmedAddress: draft.location.status === 'received' && draft.location.lat !== null && draft.location.lng !== null
+      ? draft.location.address : null,
+    tyreSize: draft.tyreLines[0]?.size ?? '',
     enabled: api.hasAdminToken && !draft.dispatchedRefNumber,
     scopeKey: `${getAdminSessionRevision()}:${getApiContextRevision()}`,
   });
@@ -3208,6 +3211,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     return (
       <View>
         <DeferredLocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} />
+        {/* A confirmed address can match history too; filling never replaces this location. */}
+        {returningCustomerCard}
       </View>
     );
   }

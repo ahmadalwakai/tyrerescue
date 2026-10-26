@@ -1,49 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
-import { normalizeUkPhone } from '@/lib/returning-customer';
+import { buildMatchQuery } from '@/lib/returning-customer';
 import type { ReturningCustomerMatch } from '@/types/assisted-chat';
 
 const DEBOUNCE_MS = 450;
 
 interface Options {
   phone: string;
+  /** Only an address confirmed from the suggestions (it has coordinates); free text is never sent. */
+  confirmedAddress: string | null;
+  tyreSize: string;
   enabled: boolean;
   /** Changes when the admin session or API project changes; clears results. */
   scopeKey: string;
 }
 
 /**
- * Looks up a returning customer once a complete UK number is typed. Each new
- * number aborts the previous request, and a response for an older number is
- * never applied. Failures are silent: matching is an aid, not a gate.
+ * Looks up a returning customer from a complete UK number and/or a confirmed
+ * address (plus the tyre size, which raises an address match's confidence).
+ * Each new query aborts the previous request, and a response for an older
+ * query is never applied. Failures are silent: matching is an aid, not a gate.
  */
-export function useReturningCustomer({ phone, enabled, scopeKey }: Options) {
-  // The last settled lookup; results only ever belong to the number and scope they were fetched for.
-  const [settled, setSettled] = useState<{ phone: string; scopeKey: string; matches: ReturningCustomerMatch[] } | null>(null);
+export function useReturningCustomer({ phone, confirmedAddress, tyreSize, enabled, scopeKey }: Options) {
+  // The last settled lookup; results only ever belong to the query and scope they were fetched for.
+  const [settled, setSettled] = useState<{ query: string; scopeKey: string; matches: ReturningCustomerMatch[] } | null>(null);
   const sequence = useRef(0);
-  const normalized = enabled ? normalizeUkPhone(phone) : null;
+  const query = enabled ? buildMatchQuery({ phone, confirmedAddress, tyreSize }) : '';
 
   useEffect(() => {
     const request = ++sequence.current;
-    if (!normalized) return undefined;
+    if (!query) return undefined;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      api.get<{ matches?: ReturningCustomerMatch[] }>(
-        `/api/mobile/admin/customers/match?phone=${encodeURIComponent(normalized)}`,
-        { signal: controller.signal },
-      ).then((data) => {
-        if (request === sequence.current) setSettled({ phone: normalized, scopeKey, matches: data.matches ?? [] });
-      }).catch(() => {
-        if (request === sequence.current) setSettled({ phone: normalized, scopeKey, matches: [] });
-      });
+      api.get<{ matches?: ReturningCustomerMatch[] }>(`/api/mobile/admin/customers/match?${query}`, { signal: controller.signal })
+        .then((data) => {
+          if (request === sequence.current) setSettled({ query, scopeKey, matches: data.matches ?? [] });
+        }).catch(() => {
+          if (request === sequence.current) setSettled({ query, scopeKey, matches: [] });
+        });
     }, DEBOUNCE_MS);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [normalized, scopeKey]);
+  }, [query, scopeKey]);
 
-  const current = Boolean(normalized && settled && settled.phone === normalized && settled.scopeKey === scopeKey);
+  const current = Boolean(query && settled && settled.query === query && settled.scopeKey === scopeKey);
   return {
-    phone: normalized,
+    /** Identifies the query; dismissals are remembered per query. */
+    phone: query || null,
     matches: current && settled ? settled.matches : [],
-    loading: Boolean(normalized) && !current,
+    loading: Boolean(query) && !current,
   };
 }
