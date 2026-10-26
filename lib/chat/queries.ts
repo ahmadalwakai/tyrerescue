@@ -349,3 +349,33 @@ export async function markConversationRead(
 export async function getTotalUnread(userId: string, role: ChatRole): Promise<number> {
   return countInboxUnread(userId, role);
 }
+
+/* ─── Read receipts ────────────────────────────────────────────── */
+
+/**
+ * The newest message the other side has actually opened: the latest read
+ * marker of a participant in a different role (any non-staff participant when
+ * the viewer is staff), or the guest customer's marker. Markers are only ever
+ * written when someone opens the thread, so "read" is never assumed.
+ */
+export async function getPeerReadMarker(
+  conversationId: string,
+  viewerRole: ChatRole,
+): Promise<{ id: string; createdAt: string } | null> {
+  const result = await db.execute(sql`
+    SELECT m.id, to_char(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at
+    FROM (
+      SELECT r.last_read_message_id AS id FROM message_read_state r
+      JOIN conversation_participants p ON p.conversation_id = r.conversation_id AND p.user_id = r.user_id
+      WHERE r.conversation_id = ${conversationId}::uuid AND p.role <> ${viewerRole}
+      UNION ALL
+      SELECT g.last_read_message_id FROM guest_chat_read_state g
+      WHERE g.conversation_id = ${conversationId}::uuid AND ${viewerRole} <> 'customer'
+    ) markers
+    JOIN booking_messages m ON m.id = markers.id AND m.conversation_id = ${conversationId}::uuid
+    ORDER BY m.created_at DESC, m.id DESC
+    LIMIT 1`);
+  const rows = Array.isArray(result) ? result : (result as { rows?: unknown[] }).rows ?? [];
+  const row = rows[0] as { id?: string; created_at?: string } | undefined;
+  return row?.id && row.created_at ? { id: row.id, createdAt: row.created_at } : null;
+}

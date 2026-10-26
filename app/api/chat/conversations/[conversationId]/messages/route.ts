@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ensureParticipant } from '@/lib/chat/permissions';
-import { getMessageById, getMessages, sendMessage } from '@/lib/chat/queries';
+import { getMessageById, getMessages, getPeerReadMarker, sendMessage } from '@/lib/chat/queries';
 import type { MessageType } from '@/lib/chat/types';
 import { createAdminNotification } from '@/lib/notifications';
 import { notifyDriverNewMessage } from '@/lib/notifications/driver-push';
@@ -76,9 +76,14 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: 'Invalid pagination' }, { status: 400 });
   }
   if (actor.id) await ensureParticipant(conversationId, actor.id, actor.role);
-  const result = await getMessages(conversationId, actor.role, cursor, Math.min(rawLimit, 100));
+  const [result, peerReadUpTo] = await Promise.all([
+    getMessages(conversationId, actor.role, cursor, Math.min(rawLimit, 100)),
+    // Read receipts for the viewer's own messages; only on the newest page.
+    cursor ? Promise.resolve(undefined) : getPeerReadMarker(conversationId, actor.role),
+  ]);
   return NextResponse.json({
     ...result,
+    ...(peerReadUpTo !== undefined ? { peerReadUpTo } : {}),
     messages: result.messages.map((message) => normalizeMessageUploadUrls(message, req)),
   });
 }

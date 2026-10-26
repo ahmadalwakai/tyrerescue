@@ -34,6 +34,7 @@ import {
   mergeConversationPages,
   mergeMessages,
   newestServerMessageId,
+  compareServerMessages,
   replaceMessage,
   setLocalState,
   type LocalSendState,
@@ -112,6 +113,8 @@ interface CreateConversationResponse {
 interface MessagesResponse {
   messages: MessageView[];
   nextCursor: string | null;
+  /** Newest message the other side has opened (newest page only). */
+  peerReadUpTo?: { id: string; createdAt: string } | null;
 }
 
 interface Props {
@@ -221,6 +224,8 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const [actionBusy, setActionBusy] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
+  // Read receipts come only from the other side's recorded read marker.
+  const [peerRead, setPeerRead] = useState<{ conversationId: string; id: string; createdAt: string } | null>(null);
   const [bookingContext, setBookingContext] = useState<{ ref: string; data: ChatBookingContextData | null; loading: boolean; error: string | null } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   // Prepending older messages must not jump the view to the bottom.
@@ -392,6 +397,12 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     // Merge rather than replace: older pages and unsent local messages stay.
     setMessages((items) => mergeMessages(items, latest));
     if (options?.initial) setOlderCursor(data.nextCursor ?? null);
+    const marker = data.peerReadUpTo;
+    if (marker) {
+      // A receipt never moves backwards, even if responses arrive out of order.
+      setPeerRead((current) => (current?.conversationId === conversationId && compareServerMessages(current, marker) >= 0
+        ? current : { conversationId, ...marker }));
+    }
     observeMessages(latest, conversationId);
     markRead(conversationId, newestServerMessageId(latest));
   }, [captureScope, isCurrent, markRead, observeMessages]);
@@ -450,6 +461,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setDetail(null);
     setMessages([]);
     setOlderCursor(null);
+    setPeerRead(null);
     setLoadingOlder(false);
     scrollMetricsRef.current = { offset: 0, height: 0, content: 0 };
     const bookingRef = conversation.bookingId && conversation.scope !== 'direct_driver' ? conversation.bookingRef : null;
@@ -1026,7 +1038,9 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                             ? 'Sending…'
                             : message.localState === 'failed'
                               ? 'Not sent · Tap to retry · Hold to remove'
-                              : mine ? `${formatTime(message.createdAt)} · Sent` : formatTime(message.createdAt)}
+                              : mine
+                                ? `${formatTime(message.createdAt)} · ${peerRead && peerRead.conversationId === selected?.id && compareServerMessages(message, peerRead) <= 0 ? 'Read' : 'Sent'}`
+                                : formatTime(message.createdAt)}
                         </Text>
                       </>
                     );

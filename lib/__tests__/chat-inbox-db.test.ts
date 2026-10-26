@@ -10,7 +10,7 @@ vi.mock('@/lib/db', async () => {
 
 import { countInboxUnread, listInbox } from '../chat/inbox';
 import { canAccessConversation } from '../chat/permissions';
-import { markConversationRead } from '../chat/queries';
+import { getPeerReadMarker, markConversationRead } from '../chat/queries';
 
 const pg = new PGlite();
 const id = (group: number, n: number) => `${group}0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -60,6 +60,8 @@ beforeAll(async () => {
     CREATE TABLE message_read_state (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), conversation_id uuid NOT NULL REFERENCES booking_conversations(id),
       user_id uuid NOT NULL REFERENCES users(id), last_read_message_id uuid REFERENCES booking_messages(id), unread_count integer DEFAULT 0,
       updated_at timestamptz DEFAULT now());
+    CREATE TABLE guest_chat_read_state (conversation_id uuid PRIMARY KEY REFERENCES booking_conversations(id),
+      last_read_message_id uuid REFERENCES booking_messages(id), last_read_at timestamptz);
     INSERT INTO users VALUES ('${admin}', 'admin', 'Ava Admin'), ('${admin2}', 'admin', 'Ben Admin'), ('${customer}', 'customer', 'Cara'),
       ('${otherCustomer}', 'customer', 'Olly'), ('${driverUser}', 'driver', 'Dan Driver'), ('${driver2User}', 'driver', 'Eve Driver');
     INSERT INTO drivers VALUES ('${driver}', '${driverUser}'), ('${driver2}', '${driver2User}');
@@ -77,7 +79,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   seq = 0;
-  await pg.exec(`TRUNCATE message_read_state, booking_messages, conversation_participants;
+  await pg.exec(`TRUNCATE guest_chat_read_state, message_read_state, booking_messages, conversation_participants;
     UPDATE bookings SET driver_id = '${driver}' WHERE id = '${booking}';`);
 });
 afterAll(async () => { await pg.close(); });
@@ -182,5 +184,25 @@ describe('chat inbox on disposable PostgreSQL', () => {
     // Customers cannot use staff search to see other threads.
     expect((await listInbox(customer, 'customer', { q: 'Olly' })).conversations.map((item) => item.id))
       .not.toContain(conv.otherCustomer);
+  });
+
+  it('reports read only from the other side, never from a fellow admin', async () => {
+    const first = await message(conv.direct, admin, 'admin', 'are you near?');
+    const second = await message(conv.direct, admin, 'admin', 'call me');
+    await pg.query(`INSERT INTO conversation_participants (conversation_id, user_id, role) VALUES ($1, $2, 'driver'), ($1, $3, 'admin')`,
+      [conv.direct, driverUser, admin2]);
+    expect(await getPeerReadMarker(conv.direct, 'admin')).toBeNull();
+    await markConversationRead(conv.direct, driverUser, 'driver', first);
+    await markConversationRead(conv.direct, admin2, 'admin', second);
+    expect((await getPeerReadMarker(conv.direct, 'admin'))?.id).toBe(first);
+    // The driver sees the staff side's marker.
+    expect((await getPeerReadMarker(conv.direct, 'driver'))?.id).toBe(second);
+  });
+
+  it("counts the guest customer's marker for staff only", async () => {
+    const reply = await message(conv.customerAdmin, admin, 'admin', 'on the way');
+    await pg.query('INSERT INTO guest_chat_read_state VALUES ($1, $2, now())', [conv.customerAdmin, reply]);
+    expect((await getPeerReadMarker(conv.customerAdmin, 'admin'))?.id).toBe(reply);
+    expect(await getPeerReadMarker(conv.customerAdmin, 'customer')).toBeNull();
   });
 });

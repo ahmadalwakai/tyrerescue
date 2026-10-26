@@ -189,5 +189,23 @@ if (require.main === module) {
   assert.equal(panel.props.data.booking.status, 'paid');
   h.unmount();
  });
+ test('hub: own messages show Read only once the server reports the other side has opened them', async () => {
+  const h = createChatHarness('hub');
+  const url = '/api/chat/conversations/direct-one/messages?limit=60';
+  let marker = null;
+  h.state.handlers[url] = () => ({ messages: [message('mine-1', 'On my way', 'admin')], nextCursor: null, peerReadUpTo: marker });
+  h.read(); await settle();
+  h.press('Chat with Hassan'); await settle();
+  assert.match(JSON.stringify(h.read()), /Sent/);
+  assert.doesNotMatch(JSON.stringify(h.read()), /· Read/);
+  marker = { id: 'mine-1', createdAt: '2026-10-22T12:01:00Z' };
+  h.read(); await h.state.timers.at(-1)(); await settle();
+  assert.match(JSON.stringify(h.read()), /· Read/);
+  // A later response without a newer marker never turns it back to Sent.
+  marker = null;
+  h.read(); await h.state.timers.at(-1)(); await settle();
+  assert.match(JSON.stringify(h.read()), /· Read/);
+  h.unmount();
+ });
 }
 module.exports = { createChatHarness, loadSource, theme, message, conversation, deferred, settle };
