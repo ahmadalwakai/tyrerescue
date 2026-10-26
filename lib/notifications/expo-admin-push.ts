@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { adminPushTokens, bookings } from '@/lib/db/schema';
-import { eq, count } from 'drizzle-orm';
+import { eq, count, inArray } from 'drizzle-orm';
 import { activeAdminPushSession } from './admin-device-push';
 
 interface ExpoPushPayload {
@@ -143,6 +143,20 @@ export async function sendAdminExpoPushWithResult(payload: ExpoPushPayload): Pro
           return typeof code === 'string' && knownCodes.has(code) ? code : 'UnknownError';
         }))],
       });
+    }
+    // Expo reports a token the device no longer accepts (app removed or token
+    // rotated). Drop exactly those tokens so they stop receiving failed sends;
+    // the app registers a fresh token on its next sign-in or launch.
+    const staleTokens = tickets.slice(0, recipients).flatMap((ticket, index) => (
+      ticket && typeof ticket === 'object' && (ticket as ExpoPushTicket).status === 'error'
+        && (ticket as ExpoPushTicket).details?.error === 'DeviceNotRegistered' ? [messages[index].to] : []
+    ));
+    if (staleTokens.length > 0) {
+      try {
+        await db.delete(adminPushTokens).where(inArray(adminPushTokens.token, staleTokens));
+      } catch {
+        console.error('[expo-admin-push] could not remove unregistered tokens');
+      }
     }
     return { accepted, failed: recipients - accepted, unavailable };
   } catch {

@@ -9,6 +9,21 @@ import type {
 import { publishAdminEvent } from "./publish-admin-event";
 import { sendWebPushToAll } from "./send-web-push";
 import { sendAdminEmailAlert } from './send-admin-email-alert';
+import { after } from 'next/server';
+
+/**
+ * Side effects must not block the response, but on serverless the function
+ * may stop once it is sent. Inside a request, after() keeps it alive until the
+ * work settles; elsewhere (cron scripts, tests) after() is unavailable and the
+ * work simply continues in the background as before.
+ */
+function keepAliveUntilSettled(task: Promise<unknown>): void {
+  try {
+    after(() => task);
+  } catch {
+    // Outside a request scope.
+  }
+}
 
 /**
  * Central function for creating admin notifications.
@@ -64,9 +79,9 @@ export async function createAdminNotification(
 
     // Fire-and-forget: don't block the main response
     // SSE broadcast
-    publishAdminEvent(event).catch((err) =>
+    keepAliveUntilSettled(publishAdminEvent(event).catch((err) =>
       console.error("[Notifications] SSE publish error:", err)
-    );
+    ));
 
     // Smart push: only push for high-priority events
     const severity = input.severity ?? 'info';
@@ -77,7 +92,7 @@ export async function createAdminNotification(
       input.type === 'chat.message.received';
 
     if (shouldPush) {
-      sendWebPushToAll({
+      keepAliveUntilSettled(sendWebPushToAll({
         title: input.title,
         // Push banners can show on a locked screen: chat text stays in the app.
         body: input.type === 'chat.message.received' ? 'Open Tyre Rescue to read the message.' : input.body,
@@ -92,12 +107,12 @@ export async function createAdminNotification(
           : [],
       }).catch((err) =>
         console.error('[Notifications] Web Push error:', err)
-      );
+      ));
     }
 
     // Email alerts for selected important admin events.
     // Fire-and-forget: never block request completion.
-    sendAdminEmailAlert({
+    keepAliveUntilSettled(sendAdminEmailAlert({
       notificationId: record.id,
       createdAtIso,
       type: input.type,
@@ -109,7 +124,7 @@ export async function createAdminNotification(
       metadata: input.metadata,
     }).catch((err) =>
       console.error('[AdminEmailAlert] Unhandled send error:', err)
-    );
+    ));
 
     return { id: record.id };
   } catch (error) {

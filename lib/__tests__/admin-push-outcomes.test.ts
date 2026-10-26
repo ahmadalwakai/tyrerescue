@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   isFcmConfigured: vi.fn(),
   topicFcm: vi.fn(),
   fetch: vi.fn(),
+  deleteWhere: vi.fn(),
 }));
 
 vi.mock('@/lib/db', async () => {
@@ -17,6 +18,7 @@ vi.mock('@/lib/db', async () => {
           ? { where: mocks.badge }
           : { where: mocks.tokensQuery },
       }),
+      delete: () => ({ where: mocks.deleteWhere }),
     },
   };
 });
@@ -68,6 +70,30 @@ afterEach(() => {
 });
 
 describe('observable Expo acceptance (isolated database and network)', () => {
+  it('removes only the tokens Expo reports as no longer registered', async () => {
+    mocks.tokensQuery.mockResolvedValue([
+      { token: iosToken, platform: 'ios' },
+      { token: modernIosToken, platform: 'ios' },
+    ]);
+    mocks.fetch.mockResolvedValue(relayResponse([
+      { status: 'error', details: { error: 'DeviceNotRegistered' } },
+      { status: 'error', details: { error: 'MessageRateExceeded' } },
+    ]));
+    mocks.deleteWhere.mockResolvedValue(undefined);
+    const result = await sendAdminExpoPushWithResult(payload);
+    expect(result).toMatchObject({ accepted: 0, failed: 2 });
+    expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    const condition = JSON.stringify(mocks.deleteWhere.mock.calls[0][0], (_key, value) => (typeof value === 'object' && value?.constructor?.name === 'PgTable' ? undefined : value));
+    expect(condition).toContain(iosToken);
+    expect(condition).not.toContain(modernIosToken);
+  });
+
+  it('keeps every token when Expo accepts the sends', async () => {
+    mocks.tokensQuery.mockResolvedValue([{ token: iosToken, platform: 'ios' }]);
+    await sendAdminExpoPushWithResult(payload);
+    expect(mocks.deleteWhere).not.toHaveBeenCalled();
+  });
+
   it('counts both Expo token formats and only the requested platform', async () => {
     mocks.tokensQuery.mockResolvedValue([
       { token: iosToken, platform: 'ios' },
