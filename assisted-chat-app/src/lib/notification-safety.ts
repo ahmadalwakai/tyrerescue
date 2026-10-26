@@ -80,6 +80,16 @@ export function parseDriverJourneyNotificationOpenRequest(data: unknown): { even
   return { eventId };
 }
 
+/**
+ * A payment follow-up opens the bookings screen: on its booking when the push
+ * names one, otherwise on the list (a combined reminder for several bookings).
+ */
+export function parsePaymentFollowUpNotificationOpenRequest(data: unknown): { refNumber: string | null } | null {
+  if (!isRecord(data) || data.type !== 'payment_follow_up') return null;
+  const refNumber = readNonEmptyString(data.refNumber);
+  return { refNumber: refNumber && /^[A-Z0-9][A-Z0-9-]{2,39}$/i.test(refNumber) ? refNumber : null };
+}
+
 export function isOkResponse(value: unknown): boolean {
   return isRecord(value) && value.ok === true;
 }

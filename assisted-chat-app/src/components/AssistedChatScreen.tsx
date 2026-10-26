@@ -117,7 +117,7 @@ import {
   type NotificationSubscription,
 } from '@/lib/notifications';
 import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
-import { callbackNotificationDisposition, parseCallbackNotificationOpenRequest, parseChatNotificationOpenRequest,
+import { callbackNotificationDisposition, parseCallbackNotificationOpenRequest, parseChatNotificationOpenRequest, parsePaymentFollowUpNotificationOpenRequest,
   type ChatNotificationChannel, type PendingCallbackNotification } from '@/lib/notification-safety';
 import {
   ensureUrgentAlertsArmed,
@@ -851,6 +851,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     const journeyRequest = getDriverJourneyNotificationOpenRequest(data);
     if (journeyRequest) {
       void openDriverJourney(journeyRequest.eventId);
+      return;
+    }
+    const followUpRequest = parsePaymentFollowUpNotificationOpenRequest(data);
+    if (followUpRequest) {
+      if (!api.hasAdminToken) return;
+      openBookingsInApp(followUpRequest.refNumber);
       return;
     }
     const request = getUrgentBookingNotificationOpenRequest(data);

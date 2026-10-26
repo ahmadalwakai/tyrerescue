@@ -18,3 +18,10 @@ test('unknown types and malformed IDs open nothing', () => {
   // The older customer-only parser keeps its contract.
   assert.equal(safety.parseCustomerChatNotificationOpenRequest({ type: 'driver_chat_message', conversationId: id }), null);
 });
+
+test('payment follow-up opens its booking, or the bookings list for a combined reminder', () => {
+  assert.deepEqual(plain(safety.parsePaymentFollowUpNotificationOpenRequest({ type: 'payment_follow_up', refNumber: 'TYR-2026-18095' })), { refNumber: 'TYR-2026-18095' });
+  assert.deepEqual(plain(safety.parsePaymentFollowUpNotificationOpenRequest({ type: 'payment_follow_up' })), { refNumber: null });
+  assert.deepEqual(plain(safety.parsePaymentFollowUpNotificationOpenRequest({ type: 'payment_follow_up', refNumber: '../x' })), { refNumber: null });
+  assert.equal(safety.parsePaymentFollowUpNotificationOpenRequest({ type: 'chat_message', refNumber: 'TYR-1' }), null);
+});

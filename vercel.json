@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/daily-stock-buy-report",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/payment-follow-up",
+      "schedule": "*/7 * * * *"
     }
   ]
 }

@@ -14,6 +14,7 @@ export const NOTIFICATION_TYPES = {
   AVAILABILITY_UPDATED: "availability.updated",
   PAYMENT_RECEIVED: "payment.received",
   PAYMENT_FAILED: "payment.failed",
+  PAYMENT_FOLLOW_UP: "payment.follow_up",
   TESTIMONIAL_SUBMITTED: "testimonial.submitted",
   VIRTUAL_LANDLINE_MISSED_CALLS_IMPORTED: "virtual_landline.missed_calls_imported",
 } as const;
