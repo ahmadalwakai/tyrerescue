@@ -3,7 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { describe, expect, it, vi } from 'vitest';
-import { parseCallbackNotificationOpenRequest, parseCustomerChatNotificationOpenRequest } from '../../assisted-chat-app/src/lib/notification-safety';
+import { parseCallbackNotificationOpenRequest, parseChatNotificationOpenRequest, parseCustomerChatNotificationOpenRequest } from '../../assisted-chat-app/src/lib/notification-safety';
 import { ModalPresentationController } from '../../assisted-chat-app/src/lib/modal-presentation';
 
 const source = readFileSync(path.resolve(__dirname, '../../assisted-chat-app/src/components/AssistedChatScreen.tsx'), 'utf8');
@@ -40,7 +40,7 @@ function harness(options: { authenticated?: boolean; pending?: boolean } = {}) {
   const modal = new ModalPresentationController();
   const context = {
     exports: {} as { handle(data: unknown): void; present(): void }, api,
-    parseCallbackNotificationOpenRequest, parseCustomerChatNotificationOpenRequest,
+    parseCallbackNotificationOpenRequest, parseChatNotificationOpenRequest, parseCustomerChatNotificationOpenRequest,
     getApiContextRevision: () => 3, getAdminSessionRevision: () => 5,
     setPendingChatNotification: vi.fn(), setChatNotificationTarget: vi.fn(), setChatHubOpen: vi.fn(),
     pendingChatNotification: options.pending === false ? null : { conversationId, apiRevision: 3, sessionRevision: 5 },
@@ -59,7 +59,7 @@ describe('protected administrator chat notification presentation', () => {
     expect(h.context.setPendingChatNotification).not.toHaveBeenCalled();
     h.api.hasAdminToken = true;
     h.handle({ type: 'chat_message', conversationId });
-    expect(h.context.setPendingChatNotification).toHaveBeenCalledExactlyOnceWith({ conversationId, apiRevision: 3, sessionRevision: 5 });
+    expect(h.context.setPendingChatNotification).toHaveBeenCalledExactlyOnceWith({ conversationId, channel: 'customer_admin', apiRevision: 3, sessionRevision: 5 });
   });
 
   it('discards an already queued chat if the administrator token disappears', () => {

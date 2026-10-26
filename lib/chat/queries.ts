@@ -1,5 +1,6 @@
 import { sendBookingChatMessage } from './booking-message';
 import { getOrCreateBookingConversation } from './booking-conversation';
+import { countInboxUnread, listInbox, type InboxFilters } from './inbox';
 import { db } from '@/lib/db';
 import {
   bookingConversations,
@@ -76,238 +77,13 @@ export async function getOrCreateConversation(
 }
 /* ─── List conversations for a user (role-scoped) ──────────────── */
 
+/** First inbox page; see listInbox for visibility, unread policy and paging. */
 export async function listConversations(
   userId: string,
   role: ChatRole,
-  filters?: { bookingRef?: string; status?: string; channel?: string; driverId?: string },
+  filters?: InboxFilters,
 ): Promise<ConversationSummary[]> {
-  // Build base query conditions
-  const conditions: SQL[] = [];
-
-  if (filters?.status) {
-    conditions.push(eq(bookingConversations.status, filters.status));
-  }
-  if (filters?.channel) {
-    conditions.push(eq(bookingConversations.channel, filters.channel));
-  }
-
-  if (role === 'customer') {
-    const rows = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(eq(bookings.userId, userId));
-    const bookingIds = rows.map((r) => r.id);
-    if (bookingIds.length === 0) return [];
-    conditions.push(inArray(bookingConversations.bookingId, bookingIds));
-    conditions.push(sql`${bookingConversations.channel} != 'admin_driver'`);
-  } else if (role === 'driver') {
-    const [driver] = await db
-      .select({ id: drivers.id })
-      .from(drivers)
-      .where(eq(drivers.userId, userId))
-      .limit(1);
-    if (!driver) return [];
-    const bookingRows = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(eq(bookings.driverId, driver.id));
-    const participantRows = await db
-      .select({ conversationId: conversationParticipants.conversationId })
-      .from(conversationParticipants)
-      .where(eq(conversationParticipants.userId, userId));
-    const bookingIds = bookingRows.map((r) => r.id);
-    const participantConversationIds = participantRows.map((r) => r.conversationId);
-    const driverVisibility: SQL[] = [];
-    if (bookingIds.length > 0) driverVisibility.push(inArray(bookingConversations.bookingId, bookingIds));
-    if (participantConversationIds.length > 0) {
-      driverVisibility.push(inArray(bookingConversations.id, participantConversationIds));
-    }
-    if (driverVisibility.length === 0) return [];
-    conditions.push(driverVisibility.length === 1 ? driverVisibility[0] : or(...driverVisibility)!);
-    conditions.push(sql`${bookingConversations.channel} in ('customer_driver', 'admin_driver')`);
-  } else if (filters?.driverId) {
-    const [driver] = await db
-      .select({ id: drivers.id, userId: drivers.userId })
-      .from(drivers)
-      .where(eq(drivers.id, filters.driverId))
-      .limit(1);
-    if (!driver) return [];
-    const bookingRows = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(eq(bookings.driverId, driver.id));
-    const participantRows = driver.userId
-      ? await db
-          .select({ conversationId: conversationParticipants.conversationId })
-          .from(conversationParticipants)
-          .where(eq(conversationParticipants.userId, driver.userId))
-      : [];
-    const bookingIds = bookingRows.map((r) => r.id);
-    const participantConversationIds = participantRows.map((r) => r.conversationId);
-    const driverFilter: SQL[] = [];
-    if (bookingIds.length > 0) driverFilter.push(inArray(bookingConversations.bookingId, bookingIds));
-    if (participantConversationIds.length > 0) {
-      driverFilter.push(inArray(bookingConversations.id, participantConversationIds));
-    }
-    if (driverFilter.length === 0) return [];
-    conditions.push(driverFilter.length === 1 ? driverFilter[0] : or(...driverFilter)!);
-  }
-  // admin without driverId: no booking filter
-
-  // Filter by booking ref if given
-  if (filters?.bookingRef) {
-    const [b] = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(eq(bookings.refNumber, filters.bookingRef))
-      .limit(1);
-    if (!b) return [];
-    conditions.push(eq(bookingConversations.bookingId, b.id));
-  }
-
-  const convRows = await db
-    .select({
-      id: bookingConversations.id,
-      bookingId: bookingConversations.bookingId,
-      channel: bookingConversations.channel,
-      status: bookingConversations.status,
-      locked: bookingConversations.locked,
-      muted: bookingConversations.muted,
-      createdAt: bookingConversations.createdAt,
-    })
-    .from(bookingConversations)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(bookingConversations.updatedAt))
-    .limit(100);
-
-  if (convRows.length === 0) return [];
-
-  // Hydrate with booking ref, customer name, driver name, last message, unread count
-  const result: ConversationSummary[] = [];
-
-  for (const conv of convRows) {
-    const [booking] = conv.bookingId ? await db
-      .select({
-        refNumber: bookings.refNumber,
-        customerName: bookings.customerName,
-        driverId: bookings.driverId,
-      })
-      .from(bookings)
-      .where(eq(bookings.id, conv.bookingId))
-      .limit(1) : [];
-
-    const [directDriver] = !conv.bookingId ? await db.select({ id: drivers.id, userId: drivers.userId, name: users.name })
-      .from(bookingConversations)
-      .innerJoin(drivers, eq(drivers.id, bookingConversations.directDriverId))
-      .innerJoin(users, eq(users.id, drivers.userId))
-      .where(and(eq(bookingConversations.id, conv.id), eq(users.role, 'driver'))).limit(1) : [];
-    if (!conv.bookingId && (
-      conv.channel !== 'admin_driver' || !directDriver || role === 'customer' ||
-      (role === 'driver' && directDriver.userId !== userId) ||
-      (filters?.driverId && directDriver.id !== filters.driverId)
-    )) continue;
-
-    let driverId: string | null = directDriver?.id ?? booking?.driverId ?? null;
-    let driverName: string | null = directDriver?.name ?? null;
-    const [participantDriver] = await db
-      .select({
-        driverId: drivers.id,
-        name: users.name,
-      })
-      .from(conversationParticipants)
-      .innerJoin(users, eq(users.id, conversationParticipants.userId))
-      .innerJoin(drivers, eq(drivers.userId, users.id))
-      .where(
-        and(
-          eq(conversationParticipants.conversationId, conv.id),
-          eq(conversationParticipants.role, 'driver'),
-        ),
-      )
-      .limit(1);
-
-    if (!directDriver && participantDriver) {
-      driverId = participantDriver.driverId;
-      driverName = participantDriver.name ?? null;
-    } else if (!directDriver && booking?.driverId) {
-      const [d] = await db
-        .select({ userId: drivers.userId })
-        .from(drivers)
-        .where(eq(drivers.id, booking.driverId))
-        .limit(1);
-      if (d?.userId) {
-        const [u] = await db
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, d.userId))
-          .limit(1);
-        driverName = u?.name ?? null;
-      }
-    }
-
-    // Last message (excluding admin notes for non-admin)
-    const msgConditions = [eq(bookingMessages.conversationId, conv.id)];
-    if (role !== 'admin') {
-      msgConditions.push(sql`${bookingMessages.messageType} != 'admin_note'`);
-    }
-    const [lastMsg] = await db
-      .select({
-        body: bookingMessages.body,
-        messageType: bookingMessages.messageType,
-        createdAt: bookingMessages.createdAt,
-        senderRole: bookingMessages.senderRole,
-      })
-      .from(bookingMessages)
-      .where(and(...msgConditions))
-      .orderBy(desc(bookingMessages.createdAt))
-      .limit(1);
-
-    // Unread count
-    const [readState] = await db
-      .select({ unreadCount: messageReadState.unreadCount })
-      .from(messageReadState)
-      .where(
-        and(
-          eq(messageReadState.conversationId, conv.id),
-          eq(messageReadState.userId, userId),
-        ),
-      )
-      .limit(1);
-
-    let unreadCount = readState?.unreadCount ?? 0;
-    if (!readState && conv.channel === 'customer_admin') {
-      // A new guest thread has no staff participants yet. A claimed guest
-      // booking also has no account read state until its owner first opens it.
-      const unreadConditions = [eq(bookingMessages.conversationId, conv.id),
-        sql`${bookingMessages.senderId} IS DISTINCT FROM ${userId}::uuid`];
-      if (role === 'customer') unreadConditions.push(sql`${bookingMessages.senderRole} != 'customer'`);
-      if (role !== 'admin') unreadConditions.push(sql`${bookingMessages.messageType} != 'admin_note'`);
-      const [unread] = await db.select({ count: sql<number>`count(*)::int` }).from(bookingMessages).where(and(...unreadConditions));
-      unreadCount = unread?.count ?? 0;
-    }
-
-    result.push({
-      id: conv.id,
-      bookingId: conv.bookingId,
-      scope: conv.bookingId ? 'booking' : 'direct_driver',
-      bookingRef: conv.bookingId ? booking?.refNumber ?? '' : 'Direct chat',
-      channel: conv.channel as ConversationSummary['channel'],
-      status: conv.status as ConversationSummary['status'],
-      locked: conv.locked ?? false,
-      muted: conv.muted ?? false,
-      customerName: booking?.customerName ?? '',
-      driverId,
-      driverName,
-      lastMessageBody:
-        lastMsg?.body ??
-        (lastMsg?.messageType === 'audio' ? 'Voice message' : lastMsg?.messageType === 'image' ? 'Photo' : null),
-      lastMessageAt: lastMsg?.createdAt?.toISOString() ?? null,
-      lastMessageSenderRole: (lastMsg?.senderRole as ChatRole) ?? null,
-      unreadCount,
-      createdAt: conv.createdAt?.toISOString() ?? '',
-    });
-  }
-
-  return result;
+  return (await listInbox(userId, role, filters)).conversations;
 }
 
 /* ─── Get conversation detail ──────────────────────────────────── */
@@ -504,55 +280,72 @@ export async function deleteMessage(
 
 /* ─── Mark conversation as read ────────────────────────────────── */
 
+/**
+ * Advance the viewer's read marker to `upToMessageId` (the newest message the
+ * client actually showed) or, without one, to the newest visible message.
+ * The marker never moves backwards, and an unknown or hidden message ID leaves
+ * it unchanged. unread_count is recomputed from the marker for legacy readers.
+ * Callers without the viewer role (older call sites) get it from the user row.
+ */
 export async function markConversationRead(
   conversationId: string,
   userId: string,
-): Promise<void> {
-  // Get the latest message ID
-  const [latest] = await db
-    .select({ id: bookingMessages.id })
-    .from(bookingMessages)
-    .where(eq(bookingMessages.conversationId, conversationId))
-    .orderBy(desc(bookingMessages.createdAt))
-    .limit(1);
-
-  const [existing] = await db
-    .select({ id: messageReadState.id })
-    .from(messageReadState)
-    .where(
-      and(
-        eq(messageReadState.conversationId, conversationId),
-        eq(messageReadState.userId, userId),
-      ),
+  role?: ChatRole,
+  upToMessageId?: string,
+): Promise<{ lastReadMessageId: string | null }> {
+  const viewerRole: ChatRole = role ?? await (async () => {
+    const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+    return user?.role === 'admin' || user?.role === 'driver' ? user.role : 'customer';
+  })();
+  const isAdmin = viewerRole === 'admin';
+  const target = upToMessageId ? sql`m.id = ${upToMessageId}::uuid` : sql`TRUE`;
+  const statement = sql`
+    WITH target AS (
+      SELECT m.id, m.created_at FROM booking_messages m
+      WHERE m.conversation_id = ${conversationId}::uuid AND (${isAdmin}::boolean OR m.message_type <> 'admin_note') AND ${target}
+      ORDER BY m.created_at DESC, m.id DESC LIMIT 1
+    ), current_marker AS (
+      SELECT cm.id, cm.created_at FROM message_read_state r JOIN booking_messages cm ON cm.id = r.last_read_message_id
+      WHERE r.conversation_id = ${conversationId}::uuid AND r.user_id = ${userId}::uuid
+      ORDER BY cm.created_at DESC, cm.id DESC LIMIT 1
+    ), chosen AS (
+      SELECT id, created_at FROM (SELECT * FROM target UNION ALL SELECT * FROM current_marker) candidates
+      ORDER BY created_at DESC, id DESC LIMIT 1
+    ), remaining AS (
+      SELECT count(*)::int AS n FROM booking_messages u CROSS JOIN chosen
+      WHERE u.conversation_id = ${conversationId}::uuid
+        AND u.sender_id IS DISTINCT FROM ${userId}::uuid
+        AND (${isAdmin}::boolean OR u.message_type <> 'admin_note')
+        AND (${viewerRole} <> 'customer' OR u.sender_role <> 'customer')
+        AND (u.created_at, u.id) > (chosen.created_at, chosen.id)
+    ), updated AS (
+      UPDATE message_read_state SET last_read_message_id = (SELECT id FROM chosen),
+        unread_count = COALESCE((SELECT n FROM remaining), 0), updated_at = NOW()
+      WHERE conversation_id = ${conversationId}::uuid AND user_id = ${userId}::uuid
+      RETURNING last_read_message_id
+    ), inserted AS (
+      INSERT INTO message_read_state (conversation_id, user_id, last_read_message_id, unread_count)
+      SELECT ${conversationId}::uuid, ${userId}::uuid, (SELECT id FROM chosen), COALESCE((SELECT n FROM remaining), 0)
+      WHERE NOT EXISTS (SELECT 1 FROM updated)
+      RETURNING last_read_message_id
     )
-    .limit(1);
-
-  if (existing) {
-    await db
-      .update(messageReadState)
-      .set({
-        lastReadMessageId: latest?.id ?? null,
-        unreadCount: 0,
-        updatedAt: new Date(),
-      })
-      .where(eq(messageReadState.id, existing.id));
-  } else {
-    await db.insert(messageReadState).values({
-      conversationId,
-      userId,
-      lastReadMessageId: latest?.id ?? null,
-      unreadCount: 0,
-    });
+    SELECT last_read_message_id FROM updated UNION ALL SELECT last_read_message_id FROM inserted LIMIT 1`;
+  let result;
+  try {
+    result = await db.execute(statement);
+  } catch (error) {
+    // Two first reads can race to insert; once the unique index exists the
+    // loser retries and updates the winner's row instead.
+    if ((error as { code?: string } | null)?.code !== '23505') throw error;
+    result = await db.execute(statement);
   }
+  const rows = Array.isArray(result) ? result : (result as { rows?: unknown[] }).rows ?? [];
+  const marker = (rows[0] as { last_read_message_id?: string | null } | undefined)?.last_read_message_id ?? null;
+  return { lastReadMessageId: marker };
 }
 
 /* ─── Get total unread count for a user ────────────────────────── */
 
-export async function getTotalUnread(userId: string): Promise<number> {
-  const rows = await db
-    .select({ unreadCount: messageReadState.unreadCount })
-    .from(messageReadState)
-    .where(eq(messageReadState.userId, userId));
-
-  return rows.reduce((sum, r) => sum + (r.unreadCount ?? 0), 0);
+export async function getTotalUnread(userId: string, role: ChatRole): Promise<number> {
+  return countInboxUnread(userId, role);
 }

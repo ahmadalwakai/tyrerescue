@@ -264,8 +264,10 @@ describe('direct driver chat with real isolated PostgreSQL', () => {
       const { conversationId } = await response.json();
       expect(await canAccessConversation({ id: customer, role: 'customer' }, conversationId)).toBe(true);
       expect(await getConversationDetail(conversationId)).toMatchObject({ bookingId, scope: 'booking', bookingRef: 'ISOLATED-LEGACY' });
-      expect((await listConversations(customer, 'customer'))[0]).toMatchObject({ bookingId, scope: 'booking' });
     } finally { await pg.exec('ALTER TABLE booking_conversations RENAME COLUMN isolated_hidden_column TO direct_driver_id'); }
+    // The single-statement inbox reads direct_driver_id, which migration 0034
+    // added and production already has; listing is checked once it exists.
+    expect((await listConversations(customer, 'customer'))[0]).toMatchObject({ bookingId, scope: 'booking' });
   });
 
   async function guestFixture() {

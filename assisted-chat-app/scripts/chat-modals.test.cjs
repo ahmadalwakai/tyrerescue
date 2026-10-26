@@ -55,7 +55,7 @@ function createChatHarness(kind = 'hub') {
   };
   const dependencies = {
     react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
-    'react-native': { ActivityIndicator: 'ActivityIndicator', Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View', StyleSheet: { create: (value) => value }, Platform: { OS: 'ios' } },
+    'react-native': { ActivityIndicator: 'ActivityIndicator', Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View', StyleSheet: { create: (value) => value }, Platform: { OS: 'ios' }, AppState: { currentState: 'active' } },
     'expo-image-picker': { requestMediaLibraryPermissionsAsync: async () => ({ granted: true }), launchImageLibraryAsync: async () => state.picker ? state.picker.promise : ({ canceled: true }), requestCameraPermissionsAsync: async () => ({ granted: true }), launchCameraAsync: async () => ({ canceled: true }), CameraType: { back: 'back' } },
     '@/hooks/useChatVoiceRecorder': { useChatVoiceRecorder: () => voice },
     '@/lib/api': { api, ApiError: class ApiError extends Error { constructor(message, status, details) { super(message); this.status = status; this.details = details; } }, getAdminToken: () => state.token, getApiContextRevision: () => state.apiRevision },
@@ -67,9 +67,12 @@ function createChatHarness(kind = 'hub') {
     '@/lib/chat-download': { saveChatAttachmentToDevice: async () => {} },
     './ui': { AppButton: 'AppButton', StatusBanner: 'StatusBanner' }, './theme': theme,
     './chat/ChatScreenLayout': { ChatScreenLayout: 'ChatScreenLayout', useChatBottomPadding: () => 34 },
+    // Each enabled poll registers a manual tick, like the setInterval stub above.
+    '@/hooks/usePolling': { usePolling: (task, options) => { react.useEffect(() => { if (!options.enabled) return undefined; if (options.immediate !== false) void task(); state.timers.push(() => task()); return undefined; }, [task, options.enabled, options.key]); return async () => task(); } },
+    '@/lib/chat-sync': loadSource('lib/chat-sync.ts', {}),
     './ChatComposerIconButton': { ChatComposerIconButton: 'ChatComposerIconButton' }, './ChatImageBubble': { ChatImageBubble: 'ChatImageBubble', ChatPhotoPreview: 'ChatPhotoPreview' }, './VoiceMessageBubble': { VoiceMessageBubble: 'VoiceMessageBubble' },
   };
-  const component = loadSource(`components/${kind === 'hub' ? 'ChatHubModal' : 'DriverChatModal'}.tsx`, dependencies, { setInterval: (fn) => { state.timers.push(fn); return fn; }, clearInterval: () => {} });
+  const component = loadSource(`components/${kind === 'hub' ? 'ChatHubModal' : 'DriverChatModal'}.tsx`, dependencies, { setInterval: (fn) => { state.timers.push(fn); return fn; }, clearInterval: () => {}, setTimeout: (fn) => { fn(); return 0; }, clearTimeout: () => {} });
   const renderer = { hooks: [], effects: [], layoutEffects: [], cursor: 0 };
   function read() { renderer.cursor = 0; renderer.effects = []; renderer.layoutEffects = []; rendering = renderer; const tree = kind === 'hub' ? component.ChatHubModal({ visible: state.visible, initialConversationId: state.initialConversationId, entryMode: state.entryMode, onClose: () => { state.closes += 1; } }) : component.DriverChatModal({ visible: state.visible, bookingId: state.bookingId, bookingRef: state.bookingRef, onClose: () => { state.closes += 1; } }); for (const effect of renderer.layoutEffects) effect(); for (const effect of renderer.effects) effect(); return tree; }
   function findNodes(predicate, tree) { if (!tree || typeof tree !== 'object') return []; if (Array.isArray(tree)) return tree.flatMap((child) => findNodes(predicate, child)); const matches = predicate(tree) ? [tree] : []; if (typeof tree.type === 'function') return matches.concat(findNodes(predicate, tree.type(tree.props))); return matches.concat(findNodes(predicate, tree.props?.children)); }
@@ -127,5 +130,29 @@ if (require.main === module) {
   test(`${kind}: late polling result after closure or project switch neither renders nor marks messages read`, async () => { const h = createChatHarness(kind); h.read(); await settle(); if (kind === 'hub') { h.press('Chat with Hassan'); await settle(); } const id = kind === 'hub' ? 'direct-one' : 'one'; const pending = deferred(); h.state.handlers[`/api/chat/conversations/${id}/messages?limit=${kind === 'hub' ? 60 : 50}`] = () => pending.promise; h.read(); h.state.timers.at(-1)(); await settle(); const before = h.state.posts.filter((call) => call.url.endsWith('/read')).length; h.state.apiRevision += 1; h.state.visible = false; h.read(); pending.resolve({ messages: [message('private-late-poll')], nextCursor: null }); await settle(); assert.doesNotMatch(JSON.stringify(h.read()), /private-late-poll/); assert.equal(h.state.posts.filter((call) => call.url.endsWith('/read')).length, before); h.unmount(); });
  }
  test('direct conversation creation from a previous account cannot open in a later account', async () => { const h = createChatHarness(); h.read(); await settle(); const pending = deferred(); h.state.handlers['/api/chat/conversations/direct-driver'] = () => pending.promise; h.press('Chat with Hassan'); h.state.revision += 1; h.state.token = 'another-test-only-session'; pending.resolve({ conversationId: 'private-old-account' }); await settle(); assert.doesNotMatch(JSON.stringify(h.read()), /private-old-account/); assert.equal(h.find((node) => node.type === 'ChatScreenLayout').props.onBack, undefined); h.unmount(); });
+ test('hub: a failed text send stays visible and its retry reuses the client ID, so it is stored once', async () => {
+  const h = createChatHarness('hub'); h.read(); await settle();
+  h.press('Chat with Hassan'); await settle();
+  const url = '/api/chat/conversations/direct-one/messages';
+  let attempts = 0;
+  h.state.handlers[url] = (body) => { attempts += 1; if (attempts === 1) throw new Error('Request timed out.'); return { ...message(body.clientMessageId, body.body, 'admin') }; };
+  h.find((node) => node.props?.accessibilityLabel === 'Message text').props.onChangeText('Where are you?');
+  h.press('Send'); await settle();
+  const first = h.state.posts.filter((call) => call.url === url);
+  assert.equal(first.length, 1);
+  const clientMessageId = first[0].body.clientMessageId;
+  assert.match(clientMessageId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.match(JSON.stringify(h.read()), /Not sent/);
+  h.press('Message not sent. Double tap to try again.'); await settle();
+  const all = h.state.posts.filter((call) => call.url === url);
+  assert.equal(all.length, 2);
+  assert.equal(all[1].body.clientMessageId, clientMessageId);
+  const tree = JSON.stringify(h.read());
+  assert.doesNotMatch(tree, /Not sent/);
+  assert.equal((tree.match(/Where are you?/g) ?? []).length, 1);
+  const marker = h.state.posts.filter((call) => call.url.endsWith('/read')).at(-1);
+  assert.equal(marker.body.lastReadMessageId, clientMessageId);
+  h.unmount();
+ });
 }
 module.exports = { createChatHarness, loadSource, theme, message, conversation, deferred, settle };

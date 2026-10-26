@@ -18,7 +18,8 @@ interface SessionUser {
  * Check whether a user can access a specific conversation.
  * - Admin: always allowed
  * - Customer: only if they are the booking owner
- * - Driver: assigned booking / explicit booking participant, or the direct chat's driver
+ * - Driver: customer threads of bookings currently assigned to them; staff threads
+ *   they are assigned to or take part in; or their own direct chat
  */
 export async function canAccessConversation(
   user: SessionUser,
@@ -65,6 +66,16 @@ export async function canAccessConversation(
       .where(eq(drivers.userId, user.id))
       .limit(1);
     if (!driver) return false;
+    const [booking] = await db
+      .select({ driverId: bookings.driverId })
+      .from(bookings)
+      .where(eq(bookings.id, conv.bookingId))
+      .limit(1);
+    if (booking?.driverId === driver.id) return true;
+    // The customer thread holds customer contact details: it follows the
+    // booking's current assignment only, so a reassigned driver loses it. A
+    // staff thread about the booking may include a driver who is not assigned.
+    if (conv.channel === 'customer_driver') return false;
     const [participant] = await db
       .select({ id: conversationParticipants.id })
       .from(conversationParticipants)
@@ -75,13 +86,7 @@ export async function canAccessConversation(
         ),
       )
       .limit(1);
-    if (participant) return true;
-    const [booking] = await db
-      .select({ driverId: bookings.driverId })
-      .from(bookings)
-      .where(eq(bookings.id, conv.bookingId))
-      .limit(1);
-    return booking?.driverId === driver.id;
+    return Boolean(participant);
   }
 
   return false;

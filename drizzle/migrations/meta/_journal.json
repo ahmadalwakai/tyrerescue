@@ -260,6 +260,13 @@
       "when": 1792627202000,
       "tag": "0036_customer_guest_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792627203000,
+      "tag": "0037_chat_reliability",
+      "breakpoints": true
     }
   ]
 }

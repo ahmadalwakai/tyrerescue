@@ -4,7 +4,8 @@ import { db } from '@/lib/db';
 import { bookings, drivers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { listConversations, getOrCreateConversation } from '@/lib/chat/queries';
+import { getOrCreateConversation } from '@/lib/chat/queries';
+import { decodeInboxCursor, listInbox } from '@/lib/chat/inbox';
 import { ensureParticipant } from '@/lib/chat/permissions';
 import type { ChatChannel, ChatRole } from '@/lib/chat/types';
 import { authorizeCustomerBooking } from '@/lib/customer-booking-access';
@@ -15,25 +16,40 @@ const createSchema = z.object({
   driverId: z.string().uuid().optional(),
 });
 
-/** GET /api/chat/conversations — list conversations for the current user */
+const listSchema = z.object({
+  bookingRef: z.string().trim().min(1).max(50).optional(),
+  status: z.enum(['open', 'closed', 'archived']).optional(),
+  channel: z.enum(['customer_admin', 'customer_driver', 'admin_driver']).optional(),
+  driverId: z.string().uuid().optional(),
+  box: z.enum(['customers', 'drivers', 'closed']).optional(),
+  q: z.string().trim().max(100).optional(),
+  before: z.string().max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
+/** GET /api/chat/conversations — list conversations for the current user (newest activity first) */
 export async function GET(req: NextRequest) {
   const session = await authMobile(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const url = req.nextUrl;
-  const filters = {
-    bookingRef: url.searchParams.get('bookingRef') ?? undefined,
-    status: url.searchParams.get('status') ?? undefined,
-    channel: url.searchParams.get('channel') ?? undefined,
-    driverId: url.searchParams.get('driverId') ?? undefined,
-  };
+  const parsed = listSchema.safeParse(Object.fromEntries([...url.searchParams].filter(([, value]) => value !== '')));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid filters', details: parsed.error.issues }, { status: 400 });
+  const { before, ...filters } = parsed.data;
+  if (before && !decodeInboxCursor(before)) return NextResponse.json({ error: 'Invalid cursor' }, { status: 400 });
 
   const role = session.user.role as ChatRole;
   if (!['customer', 'admin', 'driver'].includes(role)) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
-  const conversations = await listConversations(session.user.id, role, filters);
+  // Free-text search and the driver filter are staff tools.
+  const page = await listInbox(session.user.id, role, {
+    ...filters,
+    before,
+    q: role === 'admin' ? filters.q : undefined,
+    driverId: role === 'admin' ? filters.driverId : undefined,
+  });
 
-  return NextResponse.json({ conversations });
+  return NextResponse.json(page);
 }
 
 /** POST /api/chat/conversations — create or get a conversation for a booking */

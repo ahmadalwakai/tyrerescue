@@ -112,8 +112,8 @@ import {
   type NotificationSubscription,
 } from '@/lib/notifications';
 import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
-import { callbackNotificationDisposition, parseCallbackNotificationOpenRequest, parseCustomerChatNotificationOpenRequest,
-  type PendingCallbackNotification } from '@/lib/notification-safety';
+import { callbackNotificationDisposition, parseCallbackNotificationOpenRequest, parseChatNotificationOpenRequest,
+  type ChatNotificationChannel, type PendingCallbackNotification } from '@/lib/notification-safety';
 import {
   ensureUrgentAlertsArmed,
   type UrgentAlertsReadinessState,
@@ -245,6 +245,7 @@ function DeferredVirtualLandlineModal(props: {
 function DeferredChatHubModal(props: {
   visible: boolean;
   initialConversationId?: string | null;
+  initialConversationChannel?: ChatNotificationChannel;
   onClose: () => void;
   onDismiss: () => void;
 }) {
@@ -775,8 +776,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [activeJobsInitialSource, setActiveJobsInitialSource] = useState<string | null>(null);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
-  const [chatNotificationTarget, setChatNotificationTarget] = useState<{ conversationId: string; apiRevision: number; sessionRevision: number } | null>(null);
-  const [pendingChatNotification, setPendingChatNotification] = useState<{ conversationId: string; apiRevision: number; sessionRevision: number } | null>(null);
+  const [chatNotificationTarget, setChatNotificationTarget] = useState<{ conversationId: string; channel: ChatNotificationChannel; apiRevision: number; sessionRevision: number } | null>(null);
+  const [pendingChatNotification, setPendingChatNotification] = useState<{ conversationId: string; channel: ChatNotificationChannel; apiRevision: number; sessionRevision: number } | null>(null);
   const [messageSenderOpen, setMessageSenderOpen] = useState(false);
   const [virtualLandlineOpen, setVirtualLandlineOpen] = useState(false);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
@@ -821,10 +822,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       if (lastCallbackNotificationRef.current !== `${request.apiRevision}:${request.sessionRevision}:${request.callbackId}`) setPendingCallbackNotification(request);
       return;
     }
-    const customerChatRequest = parseCustomerChatNotificationOpenRequest(data);
-    if (customerChatRequest) {
+    const chatRequest = parseChatNotificationOpenRequest(data);
+    if (chatRequest) {
       if (!api.hasAdminToken) return;
-      setPendingChatNotification({ ...customerChatRequest, apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() });
+      setPendingChatNotification({ ...chatRequest, apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() });
       return;
     }
     const journeyRequest = getDriverJourneyNotificationOpenRequest(data);
@@ -2909,6 +2910,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       <DeferredTrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
       <DeferredChatHubModal visible={chatHubOpen}
         initialConversationId={chatNotificationTarget?.apiRevision === getApiContextRevision() && chatNotificationTarget.sessionRevision === getAdminSessionRevision() ? chatNotificationTarget.conversationId : null}
+        initialConversationChannel={chatNotificationTarget?.channel}
         onClose={handleCloseChatHub} onDismiss={() => modalPresentation.didDismiss('chat')} />
       <MessageSenderModal
         visible={messageSenderOpen}

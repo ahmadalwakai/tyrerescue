@@ -92,6 +92,21 @@ export function parseCustomerChatNotificationOpenRequest(data: unknown): { conve
     ? { conversationId } : null;
 }
 
+export type ChatNotificationChannel = 'customer_admin' | 'admin_driver';
+
+/**
+ * Each notification type may open only its own kind of thread: a customer
+ * message notification never opens a private driver thread and vice versa.
+ */
+export function parseChatNotificationOpenRequest(data: unknown): { conversationId: string; channel: ChatNotificationChannel } | null {
+  if (!isRecord(data)) return null;
+  const channel: ChatNotificationChannel | null = data.type === 'chat_message' ? 'customer_admin'
+    : data.type === 'driver_chat_message' ? 'admin_driver' : null;
+  const conversationId = readNonEmptyString(data.conversationId);
+  return channel && conversationId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
+    ? { conversationId, channel } : null;
+}
+
 export function parseCallbackNotificationOpenRequest(data: unknown): { callbackId: string } | null {
   if (!isRecord(data) || data.type !== 'callback_request') return null;
   const callbackId = readNonEmptyString(data.callbackId);

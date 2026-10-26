@@ -208,6 +208,13 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
       platforms: ['ios'], channelId: 'messages_v2', ttl: 600,
       data: { type: 'chat_message', conversationId, bookingId: convContext.bookingId, refNumber: convContext.bookingRef },
     }));
+    // Staff/driver threads previously reached only web push and email, so the
+    // iOS inbox missed driver messages. The payload carries no message text.
+    if (role === 'driver' && convContext?.channel === 'admin_driver') notificationTasks.push(sendAdminExpoPush({
+      title: 'Driver message', body: 'A driver has sent a message to Tyre Rescue.',
+      platforms: ['ios'], channelId: 'messages_v2', ttl: 600,
+      data: { type: 'driver_chat_message', conversationId, bookingId: convContext.bookingId, refNumber: convContext.bookingRef },
+    }));
   }
 
   if (role === 'admin' && messageType !== 'admin_note' && convContext?.channel === 'customer_admin' && convContext.bookingId) {

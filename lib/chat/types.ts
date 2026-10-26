@@ -23,7 +23,16 @@ export interface ConversationSummary {
   lastMessageSenderRole: ChatRole | null;
   unreadCount: number;
   createdAt: string;
+  /** Newest visible message time, or the conversation's creation time. Drives inbox order. */
+  lastActivityAt?: string;
+  /** Admin viewers only. */
+  customerPhone?: string | null;
+  /** Admin viewers only. */
+  bookingStatus?: string | null;
 }
+
+/** Inbox sections: open customer threads, open driver threads, or closed/archived threads. */
+export type InboxBox = 'customers' | 'drivers' | 'closed';
 
 export interface MessageView {
   id: string;

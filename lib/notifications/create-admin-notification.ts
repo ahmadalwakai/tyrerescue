@@ -79,7 +79,8 @@ export async function createAdminNotification(
     if (shouldPush) {
       sendWebPushToAll({
         title: input.title,
-        body: input.body,
+        // Push banners can show on a locked screen: chat text stays in the app.
+        body: input.type === 'chat.message.received' ? 'Open Tyre Rescue to read the message.' : input.body,
         url: input.link,
         tag: `${input.entityType}-${input.entityId}`,
         icon: '/icon.png',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Modal,
   Platform,
   Pressable,
@@ -24,6 +25,7 @@ import { saveChatAttachmentToDevice } from '@/lib/chat-download';
 import { ChatComposerIconButton } from './ChatComposerIconButton';
 import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
+import { createClientMessageId, mergeMessages, newestServerMessageId } from '@/lib/chat-sync';
 
 type ChatRole = 'customer' | 'admin' | 'driver';
 type MessageType = 'text' | 'image' | 'audio' | 'admin_note';
@@ -148,8 +150,20 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     onClose();
   }, [onClose, cancelRecording]);
 
-  const markRead = useCallback((id: string) => {
-    api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`).catch(() => undefined);
+  // Marks read only up to the newest message actually shown, and only in the foreground.
+  const markRead = useCallback((id: string, lastReadMessageId: string | null) => {
+    if (!lastReadMessageId || AppState.currentState !== 'active') return;
+    api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`, { lastReadMessageId }).catch(() => undefined);
+  }, []);
+  // One client ID per pending text or captured file: a retry of the same
+  // content repeats the identical request and the server stores it once.
+  const pendingSendsRef = useRef(new Map<string, { id: string; attachment?: object }>());
+  const pendingSend = useCallback((key: string) => {
+    const existing = pendingSendsRef.current.get(key);
+    if (existing) return existing;
+    const created: { id: string; attachment?: object } = { id: createClientMessageId() };
+    pendingSendsRef.current.set(key, created);
+    return created;
   }, []);
 
   const fetchMessages = useCallback(async (id: string) => {
@@ -159,10 +173,11 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
       `/api/chat/conversations/${encodeURIComponent(id)}/messages?limit=50`,
     );
     if (!isCurrent(scope, id) || request !== messageFetchRef.current) return;
-    acceptedMessagesRef.current = { id: id, messages: data.messages ?? [] };
-    setMessages(data.messages ?? []);
-    observeMessages(data.messages ?? [], id);
-    markRead(id);
+    const latest = data.messages ?? [];
+    acceptedMessagesRef.current = { id: id, messages: latest };
+    setMessages((items) => mergeMessages(items, latest));
+    observeMessages(latest, id);
+    markRead(id, newestServerMessageId(latest));
   }, [captureScope, isCurrent, markRead, observeMessages]);
 
   // A fast response can finish before the new chat's layout effect installs its sound scope.
@@ -248,23 +263,25 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     setSending(true);
     setError(null);
     try {
+      const pending = pendingSend(`text:${conversationId}:${body}`);
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
-        { body, messageType: 'text' },
+        { body, messageType: 'text', clientMessageId: pending.id },
       );
+      pendingSendsRef.current.delete(`text:${conversationId}:${body}`);
       if (!isCurrent(scope, conversationId)) return;
       messageFetchRef.current += 1;
-      setMessages((prev) => prev.some((item) => item.id === sent.id) ? prev : [...prev, sent]);
+      setMessages((prev) => mergeMessages(prev, [sent]));
       playSent(sent.id);
       setText('');
-      markRead(conversationId);
+      markRead(conversationId, sent.id);
     } catch (err) {
       if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not send message');
     } finally {
       if (sendRequestRef.current === request) sendRequestRef.current = null;
       if (isCurrent(scope, conversationId)) setSending(false);
     }
-  }, [captureScope, conversationId, getRecordingState, isCurrent, markRead, playSent, sending, text]);
+  }, [captureScope, conversationId, getRecordingState, isCurrent, markRead, pendingSend, playSent, sending, text]);
 
   const inputDisabled =
     loading ||
@@ -302,17 +319,20 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     try {
       const uri = await finishRecording();
       if (!uri || !isCurrent(scope, conversationId)) return;
-      const attachment = await uploadChatVoiceAttachment(uri);
+      const pending = pendingSend(`voice:${conversationId}:${uri}`);
+      const attachment = pending.attachment ?? await uploadChatVoiceAttachment(uri);
+      pending.attachment = attachment;
       if (!isCurrent(scope, conversationId) || getRecordingState().phase !== 'ready') return;
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
-        { body: null, messageType: 'audio', attachment },
+        { body: null, messageType: 'audio', attachment, clientMessageId: pending.id },
       );
+      pendingSendsRef.current.delete(`voice:${conversationId}:${uri}`);
       if (!isCurrent(scope, conversationId)) return;
       messageFetchRef.current += 1;
-      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      setMessages((items) => mergeMessages(items, [sent]));
       playSent(sent.id);
-      markRead(conversationId);
+      markRead(conversationId, sent.id);
       await cancelRecording();
     } catch (err) {
       if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not send voice message. Tap Send voice to retry.');
@@ -320,7 +340,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
       if (sendRequestRef.current === request) sendRequestRef.current = null;
       if (isCurrent(scope, conversationId)) setVoiceBusy(false);
     }
-  }, [captureScope, getRecordingState, isCurrent, markRead, playSent, conversationId, sending, voiceBusy, cancelRecording, finishRecording]);
+  }, [captureScope, getRecordingState, isCurrent, markRead, pendingSend, playSent, conversationId, sending, voiceBusy, cancelRecording, finishRecording]);
 
   const sendImageAsset = useCallback(async (asset: ChatLocalAsset) => {
     if (!conversationId || mediaBusy || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
@@ -332,24 +352,27 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     setSending(true);
     setError(null);
     try {
-      const attachment = await uploadChatImageAttachment(asset);
+      const pending = pendingSend(`image:${conversationId}:${asset.uri}`);
+      const attachment = pending.attachment ?? await uploadChatImageAttachment(asset);
+      pending.attachment = attachment;
       if (!isCurrent(scope, conversationId)) return;
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
-        { body: null, messageType: 'image', attachment },
+        { body: null, messageType: 'image', attachment, clientMessageId: pending.id },
       );
+      pendingSendsRef.current.delete(`image:${conversationId}:${asset.uri}`);
       if (!isCurrent(scope, conversationId)) return;
       messageFetchRef.current += 1;
-      setMessages((prev) => prev.some((item) => item.id === sent.id) ? prev : [...prev, sent]);
+      setMessages((prev) => mergeMessages(prev, [sent]));
       playSent(sent.id);
-      markRead(conversationId);
+      markRead(conversationId, sent.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send photo');
     } finally {
       if (sendRequestRef.current === request) sendRequestRef.current = null;
       if (isCurrent(scope, conversationId)) { setSending(false); setMediaBusy(false); }
     }
-  }, [captureScope, conversationId, getRecordingState, isCurrent, markRead, mediaBusy, playSent, sending]);
+  }, [captureScope, conversationId, getRecordingState, isCurrent, markRead, mediaBusy, pendingSend, playSent, sending]);
 
   const pickImageFromLibrary = useCallback(async () => {
     if (inputDisabled || !conversationId) return;

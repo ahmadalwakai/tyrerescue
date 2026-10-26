@@ -7,6 +7,8 @@ export async function GET(req: NextRequest) {
   const session = await authMobile(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const count = await getTotalUnread(session.user.id);
+  const role = session.user.role;
+  if (role !== 'admin' && role !== 'customer' && role !== 'driver') return NextResponse.json({ unread: 0 });
+  const count = await getTotalUnread(session.user.id, role);
   return NextResponse.json({ unread: count });
 }

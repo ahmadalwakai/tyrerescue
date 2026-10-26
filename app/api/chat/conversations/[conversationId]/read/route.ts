@@ -13,15 +13,18 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   if (!z.string().uuid().safeParse(conversationId).success) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 });
   const actor = await resolveChatActor(req, conversationId);
   if (!actor) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  const body = await req.json().catch(() => null);
   if (actor.id) {
+    // Optional: the newest message the client actually displayed. Older clients
+    // send no body and keep the previous "read everything" behaviour.
+    const marker = z.object({ lastReadMessageId: z.string().uuid().optional() }).nullable().safeParse(body);
+    if (!marker.success) return NextResponse.json({ error: 'Invalid read marker' }, { status: 400 });
     await ensureParticipant(conversationId, actor.id, actor.role);
-    await markConversationRead(conversationId, actor.id);
+    const { lastReadMessageId } = await markConversationRead(conversationId, actor.id, actor.role, marker.data?.lastReadMessageId);
+    return NextResponse.json({ success: true, lastReadMessageId });
   }
-  else {
-    const body = await req.json().catch(() => null);
-    const parsed = z.object({ lastReadMessageId: z.string().uuid() }).safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: 'Invalid read marker' }, { status: 400 });
-    await markGuestConversationRead(conversationId, parsed.data.lastReadMessageId);
-  }
+  const parsed = z.object({ lastReadMessageId: z.string().uuid() }).safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid read marker' }, { status: 400 });
+  await markGuestConversationRead(conversationId, parsed.data.lastReadMessageId);
   return NextResponse.json({ success: true });
 }

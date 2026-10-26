@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Modal,
   Platform,
   Pressable,
@@ -25,6 +26,17 @@ import { saveChatAttachmentToDevice } from '@/lib/chat-download';
 import { ChatComposerIconButton } from './ChatComposerIconButton';
 import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
+import { usePolling } from '@/hooks/usePolling';
+import {
+  appendConversationPage,
+  createClientMessageId,
+  mergeConversationPages,
+  mergeMessages,
+  newestServerMessageId,
+  replaceMessage,
+  setLocalState,
+  type LocalSendState,
+} from '@/lib/chat-sync';
 
 type ChatChannel = 'customer_admin' | 'customer_driver' | 'admin_driver';
 type ChatRole = 'customer' | 'admin' | 'driver';
@@ -49,6 +61,7 @@ interface ConversationSummary {
   lastMessageSenderRole: ChatRole | null;
   unreadCount: number;
   createdAt: string;
+  lastActivityAt?: string;
 }
 
 interface ConversationDetail {
@@ -72,6 +85,8 @@ interface MessageView {
   attachments: AttachmentView[];
   deleted?: boolean;
   createdAt: string;
+  /** Present only on a message this device is sending or failed to send. */
+  localState?: LocalSendState;
 }
 
 interface AttachmentView {
@@ -85,6 +100,7 @@ interface AttachmentView {
 
 interface ConversationsResponse {
   conversations: ConversationSummary[];
+  nextCursor?: string | null;
 }
 
 interface CreateConversationResponse {
@@ -99,6 +115,8 @@ interface MessagesResponse {
 interface Props {
   visible: boolean;
   initialConversationId?: string | null;
+  /** The only kind of thread the notification may open (default: customer). */
+  initialConversationChannel?: 'customer_admin' | 'admin_driver';
   entryMode?: 'all' | 'drivers';
   onClose: () => void;
   onDismiss?: () => void;
@@ -110,12 +128,20 @@ const CHANNEL_LABELS: Record<ChatChannel, string> = {
   admin_driver: 'Driver / Admin',
 };
 
-const CHANNEL_FILTERS: Array<{ value: 'all' | ChatChannel; label: string }> = [
+type InboxTab = 'all' | 'customers' | 'drivers' | 'closed';
+
+// Customers holds open customer/admin and customer/driver threads; Closed holds
+// closed and archived threads of every kind. A message never reopens a thread.
+const INBOX_TABS: Array<{ value: InboxTab; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'admin_driver', label: 'Drivers' },
-  { value: 'customer_admin', label: 'Customers' },
-  { value: 'customer_driver', label: 'Customer/Driver' },
+  { value: 'customers', label: 'Customers' },
+  { value: 'drivers', label: 'Drivers' },
+  { value: 'closed', label: 'Closed' },
 ];
+
+const LIST_PAGE_SIZE = 100;
+const MESSAGE_PAGE_SIZE = 60;
+const SEARCH_DEBOUNCE_MS = 350;
 
 function formatRelative(dateStr: string | null): string {
   if (!dateStr) return 'No messages';
@@ -163,14 +189,19 @@ function getDriverChatBooking(driver: DriverListItem | null): { id: string; ref:
   return null;
 }
 
-export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', initialConversationId }: Props) {
+export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', initialConversationId, initialConversationChannel = 'customer_admin' }: Props) {
   const { drivers, loading: driversLoading, error: driversError, reload: reloadDrivers } = useDriverList(visible);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selected, setSelected] = useState<ConversationSummary | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [query, setQuery] = useState('');
-  const [channel, setChannel] = useState<'all' | ChatChannel>('all');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [channel, setChannel] = useState<InboxTab>('all');
+  const [listCursor, setListCursor] = useState<string | null>(null);
+  const [loadingMoreList, setLoadingMoreList] = useState(false);
+  const [olderCursor, setOlderCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
   const [openingDriverChat, setOpeningDriverChat] = useState(false);
@@ -186,6 +217,12 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const [actionBusy, setActionBusy] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  // Prepending older messages must not jump the view to the bottom.
+  const keepScrollPositionRef = useRef(false);
+  const scrollMetricsRef = useRef({ offset: 0, height: 0, content: 0 });
+  // Media sends keep one client ID and one uploaded attachment per captured
+  // file, so a retry repeats the identical request and the server stores it once.
+  const mediaSendIdsRef = useRef(new Map<string, { id: string; attachment?: object }>());
   const sendRequestRef = useRef<object | null>(null);
   const messageFetchRef = useRef(0);
   const acceptedMessagesRef = useRef<{ id: string; messages: MessageView[] } | null>(null);
@@ -268,46 +305,110 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     [selectedDriverId, sortedDrivers],
   );
 
-  const markRead = useCallback((id: string) => {
-    api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`).catch(() => undefined);
+  // The marker is the newest message actually shown, and is sent only while the
+  // app is in the foreground, so nothing that arrives unseen is marked read.
+  const markRead = useCallback((id: string, lastReadMessageId: string | null) => {
+    if (!lastReadMessageId || AppState.currentState !== 'active') return;
+    api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`, { lastReadMessageId }).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const listParams = useCallback((before?: string | null) => {
+    const params = new URLSearchParams({ limit: String(LIST_PAGE_SIZE) });
+    if (entryMode === 'drivers') {
+      // Driver search is matched locally against the driver list below.
+      params.set('channel', 'admin_driver');
+    } else {
+      if (debouncedQuery) params.set('q', debouncedQuery);
+      if (channel !== 'all') params.set('box', channel);
+    }
+    if (before) params.set('before', before);
+    return params;
+  }, [channel, debouncedQuery, entryMode]);
+  const listKey = listParams().toString();
+  const listKeyRef = useRef(listKey);
 
   const fetchConversations = useCallback(async () => {
     if (!visible) return;
     const scope = captureScope();
     const request = ++listRequestRef.current;
-    setLoadingList((value) => value || conversations.length === 0);
+    const key = listKey;
+    const filtersChanged = listKeyRef.current !== key;
+    setLoadingList((value) => value || conversations.length === 0 || filtersChanged);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      const trimmed = query.trim();
-      if (trimmed && entryMode !== 'drivers') params.set('bookingRef', trimmed);
-      if (entryMode === 'drivers') {
-        params.set('channel', 'admin_driver');
-      } else if (channel !== 'all') {
-        params.set('channel', channel);
-      }
-      const data = await api.get<ConversationsResponse>(`/api/chat/conversations?${params.toString()}`);
-      if (isCurrent(scope) && request === listRequestRef.current) setConversations(data.conversations ?? []);
+      const data = await api.get<ConversationsResponse>(`/api/chat/conversations?${listParams().toString()}`);
+      if (!isCurrent(scope) || request !== listRequestRef.current) return;
+      const page = data.conversations ?? [];
+      const complete = !data.nextCursor;
+      // A refresh keeps older pages the operator already loaded; new filters start over.
+      const sameFilters = listKeyRef.current === key;
+      listKeyRef.current = key;
+      setConversations((items) => (sameFilters ? mergeConversationPages(items, page, complete) : page));
+      setListCursor((cursor) => (sameFilters && cursor && !complete ? cursor : data.nextCursor ?? null));
     } catch (err) {
       if (isCurrent(scope) && request === listRequestRef.current) setError(err instanceof Error ? err.message : 'Could not load chat hub.');
     } finally {
       if (isCurrent(scope) && request === listRequestRef.current) setLoadingList(false);
     }
-  }, [captureScope, channel, conversations.length, entryMode, isCurrent, query, visible]);
+  }, [captureScope, conversations.length, isCurrent, listKey, listParams, visible]);
 
-  const fetchMessages = useCallback(async (conversationId: string) => {
+  const loadMoreConversations = useCallback(async () => {
+    if (!listCursor || loadingMoreList) return;
+    const scope = captureScope();
+    const key = listKeyRef.current;
+    setLoadingMoreList(true);
+    try {
+      const data = await api.get<ConversationsResponse>(`/api/chat/conversations?${listParams(listCursor).toString()}`);
+      if (!isCurrent(scope) || listKeyRef.current !== key) return;
+      setConversations((items) => appendConversationPage(items, data.conversations ?? []));
+      setListCursor(data.nextCursor ?? null);
+    } catch (err) {
+      if (isCurrent(scope)) setError(err instanceof Error ? err.message : 'Could not load older conversations.');
+    } finally {
+      if (isCurrent(scope)) setLoadingMoreList(false);
+    }
+  }, [captureScope, isCurrent, listCursor, listParams, loadingMoreList]);
+
+  const fetchMessages = useCallback(async (conversationId: string, options?: { initial?: boolean }) => {
     const scope = captureScope();
     const request = ++messageFetchRef.current;
     const data = await api.get<MessagesResponse>(
-      `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=60`,
+      `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=${MESSAGE_PAGE_SIZE}`,
     );
     if (!isCurrent(scope, conversationId) || request !== messageFetchRef.current) return;
-    acceptedMessagesRef.current = { id: conversationId, messages: data.messages ?? [] };
-    setMessages(data.messages ?? []);
-    observeMessages(data.messages ?? [], conversationId);
-    markRead(conversationId);
+    const latest = data.messages ?? [];
+    acceptedMessagesRef.current = { id: conversationId, messages: latest };
+    // Merge rather than replace: older pages and unsent local messages stay.
+    setMessages((items) => mergeMessages(items, latest));
+    if (options?.initial) setOlderCursor(data.nextCursor ?? null);
+    observeMessages(latest, conversationId);
+    markRead(conversationId, newestServerMessageId(latest));
   }, [captureScope, isCurrent, markRead, observeMessages]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selected || !olderCursor || loadingOlder) return;
+    const conversationId = selected.id;
+    const scope = captureScope();
+    setLoadingOlder(true);
+    try {
+      const data = await api.get<MessagesResponse>(
+        `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=${MESSAGE_PAGE_SIZE}&cursor=${encodeURIComponent(olderCursor)}`,
+      );
+      if (!isCurrent(scope, conversationId)) return;
+      keepScrollPositionRef.current = true;
+      setMessages((items) => mergeMessages(items, data.messages ?? []));
+      setOlderCursor(data.nextCursor ?? null);
+    } catch (err) {
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not load earlier messages.');
+    } finally {
+      if (isCurrent(scope, conversationId)) setLoadingOlder(false);
+    }
+  }, [captureScope, isCurrent, loadingOlder, olderCursor, selected]);
 
   // A fast response can finish before the new chat's layout effect installs its sound scope.
   // Replay only the accepted snapshot after commit; the tracker suppresses duplicate observations.
@@ -326,13 +427,16 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setSelected(conversation);
     setDetail(null);
     setMessages([]);
+    setOlderCursor(null);
+    setLoadingOlder(false);
+    scrollMetricsRef.current = { offset: 0, height: 0, content: 0 };
     setText('');
     setError(null);
     setLoadingChat(true);
     try {
       const [nextDetail] = await Promise.all([
         api.get<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(conversation.id)}`),
-        fetchMessages(conversation.id),
+        fetchMessages(conversation.id, { initial: true }),
       ]);
       if (!isCurrent(scope, conversation.id)) return;
       setDetail(nextDetail);
@@ -381,15 +485,15 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     }
   }, [captureScope, isCurrent, openConversation]);
 
-  useEffect(() => {
-    if (!visible) return;
-    void fetchConversations();
-    const timer = setInterval(() => {
-      void fetchConversations();
-      if (selected) fetchMessages(selected.id).catch(() => undefined);
-    }, 10_000);
-    return () => clearInterval(timer);
-  }, [fetchConversations, fetchMessages, scopeKey, selected, visible]);
+  // Never overlapping, paused in the background, and re-run on return to the
+  // foreground so anything missed while away is reconciled from the server.
+  // Requests already discard stale responses through the scope fences.
+  usePolling(fetchConversations, { enabled: visible, intervalMs: 10_000, key: `${scopeKey}|${listKey}` });
+  const selectedId = selected?.id ?? null;
+  const pollMessages = useCallback(async () => {
+    if (selectedId) await fetchMessages(selectedId).catch(() => undefined);
+  }, [fetchMessages, selectedId]);
+  usePolling(pollMessages, { enabled: visible && Boolean(selectedId), intervalMs: 10_000, key: `${scopeKey}|${selectedId}`, immediate: false });
 
   useLayoutEffect(() => {
     scopeRef.current.visible = visible;
@@ -413,7 +517,9 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setActionTarget(null);
     setEditTarget(null);
     setEditText('');
-    if (visible) setChannel(entryMode === 'drivers' ? 'admin_driver' : 'all');
+    setListCursor(null); setLoadingMoreList(false); setOlderCursor(null); setLoadingOlder(false);
+    mediaSendIdsRef.current.clear();
+    if (visible) setChannel('all');
     return () => { scopeRef.current.visible = false; scopeRef.current.generation += 1; };
   }, [entryMode, scopeKey, visible]);
 
@@ -425,45 +531,69 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     const scope = captureScope();
     void api.get<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(initialConversationId)}`)
       .then(async (target) => {
-        if (!active || !isCurrent(scope) || target.channel !== 'customer_admin') return;
-        await openConversation({ ...target, scope: 'booking', customerName: '', driverId: null, driverName: null,
+        if (!active || !isCurrent(scope) || target.channel !== initialConversationChannel) return;
+        await openConversation({ ...target, scope: target.bookingId ? 'booking' : 'direct_driver', customerName: '', driverId: null, driverName: null,
           lastMessageBody: null, lastMessageAt: null, lastMessageSenderRole: null, unreadCount: 0, createdAt: '' });
-      }).catch((reason) => { if (active && isCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Could not open customer chat.'); });
+      }).catch((reason) => { if (active && isCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Could not open this chat.'); });
     return () => { active = false; };
-  }, [captureScope, initialConversationId, isCurrent, openConversation, scopeKey, visible]);
+  }, [captureScope, initialConversationChannel, initialConversationId, isCurrent, openConversation, scopeKey, visible]);
 
   const updateMessage = useCallback((updated: MessageView) => {
     setMessages((items) => items.map((item) => (item.id === updated.id ? updated : item)));
   }, []);
 
-  const handleSend = useCallback(async () => {
-    const body = text.trim();
-    if (!selected || !body || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
+  // Delivers one text message under its client ID. Retrying the same message
+  // reuses the ID, so the server stores it once even if an earlier attempt
+  // succeeded but its response was lost.
+  const deliverText = useCallback(async (message: MessageView) => {
+    if (!selected || sendRequestRef.current) return;
+    const conversationId = selected.id;
     const scope = captureScope();
-    if (!isCurrent(scope, selected.id)) return;
+    if (!isCurrent(scope, conversationId)) return;
     const request = {};
     sendRequestRef.current = request;
     setSending(true);
     setError(null);
+    setMessages((items) => setLocalState(items, message.id, 'sending'));
     try {
       const sent = await api.post<MessageView>(
-        `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
-        { body, messageType: 'text' },
+        `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+        { body: message.body, messageType: 'text', clientMessageId: message.id },
       );
-      if (!isCurrent(scope, selected.id)) return;
+      if (!isCurrent(scope, conversationId)) return;
       messageFetchRef.current += 1;
-      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      setMessages((items) => replaceMessage(items, message.id, sent));
       playSent(sent.id);
-      setText('');
-      markRead(selected.id);
+      markRead(conversationId, sent.id);
       void fetchConversations();
     } catch (err) {
-      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not send message.');
+      if (!isCurrent(scope, conversationId)) return;
+      setMessages((items) => setLocalState(items, message.id, 'failed'));
+      setError(err instanceof Error ? `${err.message} Tap the message to try again.` : 'Could not send message. Tap it to try again.');
     } finally {
       if (sendRequestRef.current === request) sendRequestRef.current = null;
-      if (isCurrent(scope, selected.id)) setSending(false);
+      if (isCurrent(scope, conversationId)) setSending(false);
     }
-  }, [captureScope, fetchConversations, getRecordingState, isCurrent, markRead, playSent, selected, sending, text]);
+  }, [captureScope, fetchConversations, isCurrent, markRead, playSent, selected]);
+
+  const handleSend = useCallback(async () => {
+    const body = text.trim();
+    if (!selected || !body || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
+    const optimistic: MessageView = {
+      id: createClientMessageId(), senderId: '', senderName: 'Admin', senderRole: 'admin', body,
+      messageType: 'text', deliveryStatus: 'sending', attachments: [], createdAt: new Date().toISOString(), localState: 'sending',
+    };
+    setMessages((items) => mergeMessages(items, []).concat(optimistic));
+    setText('');
+    await deliverText(optimistic);
+  }, [deliverText, getRecordingState, selected, sending, text]);
+
+  const discardFailed = useCallback((message: MessageView) => {
+    if (message.localState !== 'failed') return;
+    setMessages((items) => items.filter((item) => item.id !== message.id));
+    // Give the text back so nothing typed is lost.
+    if (message.body) setText((current) => current || message.body || '');
+  }, []);
 
   const inputDisabled =
     sending ||
@@ -501,17 +631,22 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     try {
       const uri = await finishRecording();
       if (!uri || !isCurrent(scope, selected.id)) return;
-      const attachment = await uploadChatVoiceAttachment(uri);
+      const pending = mediaSendIdsRef.current.get(uri) ?? { id: createClientMessageId() };
+      mediaSendIdsRef.current.set(uri, pending);
+      const clientMessageId = pending.id;
+      const attachment = pending.attachment ?? await uploadChatVoiceAttachment(uri);
+      pending.attachment = attachment;
       if (!isCurrent(scope, selected.id) || getRecordingState().phase !== 'ready') return;
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
-        { body: null, messageType: 'audio', attachment },
+        { body: null, messageType: 'audio', attachment, clientMessageId },
       );
       if (!isCurrent(scope, selected.id)) return;
+      mediaSendIdsRef.current.delete(uri);
       messageFetchRef.current += 1;
-      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      setMessages((items) => mergeMessages(items, [sent]));
       playSent(sent.id);
-      markRead(selected.id);
+      markRead(selected.id, sent.id);
       void fetchConversations();
       await cancelRecording();
     } catch (err) {
@@ -532,17 +667,22 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setSending(true);
     setError(null);
     try {
-      const attachment = await uploadChatImageAttachment(asset);
+      const pending = mediaSendIdsRef.current.get(asset.uri) ?? { id: createClientMessageId() };
+      mediaSendIdsRef.current.set(asset.uri, pending);
+      const clientMessageId = pending.id;
+      const attachment = pending.attachment ?? await uploadChatImageAttachment(asset);
+      pending.attachment = attachment;
       if (!isCurrent(scope, selected.id)) return;
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
-        { body: null, messageType: 'image', attachment },
+        { body: null, messageType: 'image', attachment, clientMessageId },
       );
       if (!isCurrent(scope, selected.id)) return;
+      mediaSendIdsRef.current.delete(asset.uri);
       messageFetchRef.current += 1;
-      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      setMessages((items) => mergeMessages(items, [sent]));
       playSent(sent.id);
-      markRead(selected.id);
+      markRead(selected.id, sent.id);
       void fetchConversations();
     } catch (err) {
       if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not send photo.');
@@ -719,8 +859,40 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                 contentContainerStyle={styles.messagesContent}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+                scrollEventThrottle={32}
+                onScroll={(event) => {
+                  const { contentOffset, layoutMeasurement } = event.nativeEvent;
+                  scrollMetricsRef.current.offset = contentOffset.y;
+                  scrollMetricsRef.current.height = layoutMeasurement.height;
+                }}
+                onContentSizeChange={(_, contentHeight) => {
+                  const metrics = scrollMetricsRef.current;
+                  const previous = metrics.content;
+                  metrics.content = contentHeight;
+                  if (keepScrollPositionRef.current) {
+                    // Older messages were prepended: keep the same message in view.
+                    keepScrollPositionRef.current = false;
+                    scrollRef.current?.scrollTo({ y: metrics.offset + (contentHeight - previous), animated: false });
+                    return;
+                  }
+                  // Follow new messages only when already at the bottom, so reading
+                  // history is never interrupted by an incoming message.
+                  if (previous === 0 || metrics.offset + metrics.height >= previous - 120) {
+                    scrollRef.current?.scrollToEnd({ animated: previous !== 0 });
+                  }
+                }}
               >
+                {olderCursor ? (
+                  <Pressable
+                    onPress={() => { void loadOlderMessages(); }}
+                    disabled={loadingOlder}
+                    accessibilityRole="button"
+                    accessibilityLabel="Load earlier messages"
+                    style={({ pressed }) => [styles.loadEarlier, pressed && styles.pressed]}
+                  >
+                    {loadingOlder ? <ActivityIndicator color={colors.accent} /> : <Text style={styles.loadEarlierText}>Load earlier messages</Text>}
+                  </Pressable>
+                ) : null}
                 {loadingChat && messages.length === 0 ? (
                   <View style={styles.loading}>
                     <ActivityIndicator color={colors.accent} />
@@ -768,11 +940,34 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                             {chatMessageDisplayText(message.body || 'Attachment')}
                           </Text>
                         )}
-                        <Text style={[styles.time, mine ? styles.timeMine : styles.timeOther]}>
-                          {formatTime(message.createdAt)}
+                        <Text
+                          style={[styles.time, mine ? styles.timeMine : styles.timeOther, message.localState === 'failed' && styles.timeFailed]}
+                          accessibilityLiveRegion={message.localState ? 'polite' : 'none'}
+                        >
+                          {message.localState === 'sending'
+                            ? 'Sending…'
+                            : message.localState === 'failed'
+                              ? 'Not sent · Tap to retry · Hold to remove'
+                              : mine ? `${formatTime(message.createdAt)} · Sent` : formatTime(message.createdAt)}
                         </Text>
                       </>
                     );
+                    if (message.localState) {
+                      return (
+                        <View key={message.id} style={[styles.messageRow, styles.messageRowMine]}>
+                          <Pressable
+                            onPress={() => { if (message.localState === 'failed') void deliverText(message); }}
+                            onLongPress={() => discardFailed(message)}
+                            disabled={message.localState !== 'failed'}
+                            accessibilityRole="button"
+                            accessibilityLabel={message.localState === 'failed' ? 'Message not sent. Double tap to try again.' : 'Sending message'}
+                            style={[bubbleStyle, message.localState === 'sending' && styles.bubbleSending, message.localState === 'failed' && styles.bubbleFailed]}
+                          >
+                            {bubbleContent}
+                          </Pressable>
+                        </View>
+                      );
+                    }
                     return (
                       <View
                         key={message.id}
@@ -878,10 +1073,14 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                   value={query}
                   onChangeText={setQuery}
                   onSubmitEditing={() => void fetchConversations()}
-                  placeholder={entryMode === 'drivers' ? 'Search driver name or phone...' : 'Search booking ref...'}
+                  placeholder={entryMode === 'drivers' ? 'Search driver name or phone...' : 'Search ref, name, phone or driver...'}
                   placeholderTextColor={colors.subtle}
                   style={styles.searchInput}
-                  autoCapitalize={entryMode === 'drivers' ? 'none' : 'characters'}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  clearButtonMode="while-editing"
+                  accessibilityLabel={entryMode === 'drivers' ? 'Search drivers' : 'Search conversations'}
                 />
                 <AppButton label="Refresh" variant="secondary" onPress={fetchConversations} style={styles.refreshButton} />
               </View>
@@ -927,13 +1126,14 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                 </View>
               </View>
               {entryMode !== 'drivers' ? <View style={styles.channelFilters}>
-                {CHANNEL_FILTERS.map((item) => {
+                {INBOX_TABS.map((item) => {
                   const active = item.value === channel;
                   return (
                     <Pressable
                       key={item.value}
                       onPress={() => setChannel(item.value)}
-                      accessibilityRole="button"
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
                       style={({ pressed }) => [
                         styles.filterPill,
                         active && styles.filterPillActive,
@@ -986,7 +1186,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                       <View style={styles.metaRow}>
                         <Text style={styles.channelLabel}>{CHANNEL_LABELS[conversation.channel]}</Text>
                         <Text style={styles.statusText}>{conversation.status}</Text>
-                        <Text style={styles.timeLabel}>{formatRelative(conversation.lastMessageAt)}</Text>
+                        <Text style={styles.timeLabel}>{formatRelative(conversation.lastMessageAt ?? conversation.lastActivityAt ?? null)}</Text>
                       </View>
                       <Text style={styles.people} numberOfLines={1}>
                         {conversation.scope === 'direct_driver' || !conversation.bookingId ? 'Private driver chat' : conversation.customerName || 'Customer'}
@@ -999,6 +1199,15 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                     </Pressable>
                   ))
                 )}
+                {listCursor && visibleConversations.length > 0 ? (
+                  <AppButton
+                    label="Show older conversations"
+                    variant="secondary"
+                    onPress={() => { void loadMoreConversations(); }}
+                    loading={loadingMoreList}
+                    disabled={loadingMoreList}
+                  />
+                ) : null}
             </ScrollView>
           )}
           <MessageActionsOverlay
@@ -1428,6 +1637,22 @@ const styles = StyleSheet.create({
   deletedBody: { fontStyle: 'italic', opacity: 0.72 },
   time: { fontSize: 10, marginTop: 2, textAlign: 'right' },
   timeMine: { color: 'rgba(9,9,11,0.72)' },
+  // Status text stays dark on the accent bubble; the border carries the state.
+  timeFailed: { color: colors.accentText, fontWeight: '800' },
+  bubbleSending: { opacity: 0.85 },
+  bubbleFailed: { borderColor: colors.danger, borderWidth: 2 },
+  loadEarlier: {
+    alignSelf: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+    marginBottom: space.sm,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  loadEarlierText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
   timeOther: { color: colors.subtle },
   composer: {
     borderTopWidth: 1,
