@@ -1,0 +1,60 @@
+workflows:
+  assisted-ios55-native:
+    name: Assisted Chat 1.0.12 (55) - native build only
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      node: 24.22.1
+      xcode: '26.2'
+      cocoapods: default
+      groups:
+        - assisted_ios49_public
+        - assisted_ios55_signing
+      vars:
+        CI: '1'
+        EXPO_NO_TELEMETRY: '1'
+        EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
+        ASSISTED_APP_DIR: assisted-chat-app
+        ASSISTED_CI_DIR: ci/assisted-ios55-codemagic
+        CM_RECURSIVE_SUBMODULE_INIT: 'false'
+        DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
+    # No automatic trigger, store integration, publish or email section.
+    scripts:
+      - name: Prepare isolated build workspace
+        script: |
+          set -euo pipefail
+          umask 077
+          test "${CM_TRIGGER_SOURCE:-}" = api
+          test -n "${CM_BUILD_DIR:-}" && test -d "$CM_BUILD_DIR"
+          test -n "${CM_BUILD_ID:-}" && test -n "${CM_ENV:-}"
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v24.22.1
+          python3 - <<'PY'
+          import os, subprocess
+          origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
+          assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
+          PY
+          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios55.XXXXXX")"
+          printf 'ASSISTED_CI_TEMP=%s\n' "$assisted_ci_temp" >> "$CM_ENV"
+
+      - name: Verify frozen app, install exact dependencies and native patch
+        script: |
+          set -euo pipefail
+          # Do not pass signing credentials or a Codemagic API token to npm scripts.
+          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+            bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/install-dependencies.sh"
+
+      - name: Generate native iOS project and install CocoaPods
+        script: |
+          set -euo pipefail
+          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+            bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/prepare-native.sh"
+
+      - name: Sign existing app identity, export IPA and verify
+        script: |
+          set -euo pipefail
+          unset CM_API_TOKEN
+          bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/build-native.sh"
+    artifacts:
+      - $ASSISTED_CI_TEMP/assisted-ios55-output/assisted-chat-1.0.12-55.ipa
+      - $ASSISTED_CI_TEMP/assisted-ios55-output/manifest.json

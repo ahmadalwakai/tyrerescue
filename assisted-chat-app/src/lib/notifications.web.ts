@@ -1,0 +1,135 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseDriverJourneyNotificationOpenRequest } from './notification-safety';
+
+export const getDriverJourneyNotificationOpenRequest = parseDriverJourneyNotificationOpenRequest;
+
+export const URGENT_BOOKINGS_CHANNEL_ID = 'urgent-bookings';
+export const URGENT_BOOKINGS_V1_CHANNEL_ID = 'urgent_bookings_v1';
+export const DEFAULT_CHANNEL_ID = 'default';
+export const LEGACY_BOOKINGS_CHANNEL_ID = 'admin_bookings';
+export const PENDING_OPEN_BOOKINGS_KEY = 'assistedChat.pendingOpenBookings.v1';
+export const DISMISSED_URGENT_BOOKING_ID_KEY =
+  'assistedChat.dismissedUrgentBookingId.v1';
+
+export interface NotificationSubscription {
+  remove: () => void;
+}
+
+export async function presentLocalUrgentBookingNotification(_args: {
+  bookingId: string;
+  title?: string;
+  body?: string;
+  isUrgent?: boolean;
+}): Promise<void> {
+  void _args;
+  return undefined;
+}
+
+export function addAdminNotificationReceivedListener(
+  _listener: (data?: unknown) => void,
+): NotificationSubscription | null {
+  void _listener;
+  return null;
+}
+
+export function addAdminNotificationResponseListener(
+  _listener: (data: unknown) => void,
+): NotificationSubscription | null {
+  void _listener;
+  return null;
+}
+
+export async function registerAdminPushNotifications(): Promise<string | null> {
+  return null;
+}
+
+export async function sendAdminNotificationTest(): Promise<void> {
+  throw new Error('Notification testing is available in the installed app only.');
+}
+
+export async function readAdminNotificationPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
+  return 'undetermined';
+}
+
+export async function requestAdminNotificationPermission(): Promise<'granted' | 'denied' | 'undetermined'> {
+  return 'undetermined';
+}
+
+export async function clearAdminBadge(): Promise<void> {
+  return undefined;
+}
+
+export async function unregisterAdminPushNotifications(): Promise<void> {
+  return undefined;
+}
+
+export async function setPendingOpenBookings(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PENDING_OPEN_BOOKINGS_KEY, '1');
+  } catch {
+    // ignore
+  }
+}
+
+export async function consumePendingOpenBookings(): Promise<boolean> {
+  try {
+    const value = await AsyncStorage.getItem(PENDING_OPEN_BOOKINGS_KEY);
+    if (!value) return false;
+    await AsyncStorage.removeItem(PENDING_OPEN_BOOKINGS_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isUrgentBookingNotificationData(data: unknown): boolean {
+  return getUrgentBookingNotificationOpenRequest(data) !== null;
+}
+
+export function getUrgentBookingNotificationOpenRequest(
+  data: unknown,
+): { bookingId: string; refNumber: string | null } | null {
+  if (!data || typeof data !== 'object') return null;
+  const value = data as { type?: unknown; bookingId?: unknown; refNumber?: unknown; jobRef?: unknown };
+  if (value.type !== 'urgent_booking') return null;
+  const bookingId = typeof value.bookingId === 'string' && value.bookingId.trim()
+    ? value.bookingId.trim()
+    : null;
+  if (!bookingId) return null;
+  const refNumber =
+    typeof value.refNumber === 'string' && value.refNumber.trim()
+      ? value.refNumber.trim()
+      : typeof value.jobRef === 'string' && value.jobRef.trim()
+        ? value.jobRef.trim()
+        : null;
+  return { bookingId, refNumber };
+}
+
+export async function getLastAdminNotificationResponseData(): Promise<unknown | null> {
+  return null;
+}
+
+export async function getDismissedUrgentBookingId(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(DISMISSED_URGENT_BOOKING_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function setDismissedUrgentBookingId(bookingId: string): Promise<void> {
+  if (!bookingId) return;
+  try {
+    await AsyncStorage.setItem(DISMISSED_URGENT_BOOKING_ID_KEY, bookingId);
+  } catch {
+    // ignore
+  }
+}
+
+export async function getDeviceFcmToken(): Promise<string | null> {
+  return null;
+}
+
+export async function getUrgentAlertsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
+  return 'undetermined';
+}
