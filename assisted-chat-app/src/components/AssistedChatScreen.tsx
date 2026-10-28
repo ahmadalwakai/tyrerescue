@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useNow } from '@/hooks/useNow';
 import { useIncomingPhoneCall } from '@/hooks/useIncomingPhoneCall';
 import { useIncomingCallerHistory } from '@/hooks/useIncomingCallerHistory';
+import { useBonlineCallAttribution } from '@/hooks/useBonlineCallAttribution';
+import { useBonlineResource } from '@/hooks/useBonlineResource';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import { canAutofillIncomingPhone, type IncomingPhoneCall } from '@/lib/incoming-phone-call';
 import {
@@ -45,7 +47,6 @@ import { useLiveVisitorCount, type LiveVisitorCountState } from '@/hooks/useLive
 import { HeaderLiveVisitorCounter } from './HeaderLiveVisitorCounter';
 import { HeaderIncomingCallPopup } from './HeaderIncomingCallPopup';
 import { IncomingCallerHistoryCard } from './IncomingCallerHistoryCard';
-import type { IncomingCallerHistoryResult } from '@/lib/incoming-caller-history';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
 import { DriverLocationShareActions } from './tracking/DriverLocationShareActions';
 import { DriverAssignSection } from './tracking/DriverAssignSection';
@@ -80,6 +81,8 @@ import { useRouter } from 'expo-router';
 import { MessageSenderModal } from './MessageSenderModal';
 import { AdminTrafficModal } from './AdminTrafficModal';
 import { AdminCallbacksModal } from './AdminCallbacksModal';
+import { BonlineCallManagementModal } from './BonlineCallManagementModal';
+import { BonlineCallButton } from './BonlineCallButton';
 import { AdminRevenueModal } from './AdminRevenueModal';
 import { AdminContactsModal } from './AdminContactsModal';
 import { AdminDemandModal } from './AdminDemandModal';
@@ -778,7 +781,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const phoneFocusedRef = useRef(false);
   const [pendingIncomingCall, setPendingIncomingCall] = useState<IncomingPhoneCall | null>(null);
   const [incomingCallPopup, setIncomingCallPopup] = useState<IncomingPhoneCall | null>(null);
+  const [dismissedCallerHistoryPopupKey, setDismissedCallerHistoryPopupKey] = useState<string | null>(null);
   const incomingCallerScope = `${activeProjectId ?? 'tyrerescue'}:${getApiContextRevision()}:${getAdminSessionRevision()}`;
+  const bonlineProjectEnabled = !activeProjectId || activeProjectId === 'tyrerescue';
+  const callAttributionError = useBonlineCallAttribution(draft, incomingCallerScope, hydrated && bonlineProjectEnabled);
+  const followUpQueue = useBonlineResource<{ enabled: boolean; summary?: { openFollowUps: number; overdueFollowUps: number } }>(
+    hydrated && bonlineProjectEnabled && api.hasAdminToken, '/api/mobile/admin/phone/calls?followUp=open&limit=1');
   const [incomingCaller, setIncomingCaller] = useState<{ call: IncomingPhoneCall; scope: string } | null>(null);
   const incomingCallerRef = useLatestRef(incomingCaller);
   const activeIncomingCaller = incomingCaller?.scope === incomingCallerScope ? incomingCaller.call : null;
@@ -796,6 +804,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [garageOpen, setGarageOpen] = useState(false);
   const [trafficOpen, setTrafficOpen] = useState(false);
   const [callbacksOpen, setCallbacksOpen] = useState(false);
+  const [bonlineCallsOpen, setBonlineCallsOpen] = useState(false);
+  const [bonlineCallsDismissing, setBonlineCallsDismissing] = useState(false);
   const [callbacksDismissing, setCallbacksDismissing] = useState(false);
   const [pendingCallbackNotification, setPendingCallbackNotification] = useState<PendingCallbackNotification | null>(null);
   const lastCallbackNotificationRef = useRef<string | null>(null);
@@ -1853,6 +1863,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           chargeGbp: quote.lockingWheelNutChargePence ? quote.lockingWheelNutChargePence / 100 : null,
         },
         quickBookingId: quote.quickBookingId,
+        incomingCallSource: null,
         savedQuoteId: quote.id,
         savedQuoteRef: quote.quoteRef,
         note: quote.internalNotes ?? '',
@@ -2413,6 +2424,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       onPress: () => setCallbacksOpen(true),
     });
 
+    if (!activeProjectId || activeProjectId === 'tyrerescue') actions.push({
+      id: 'bonline-calls',
+      label: 'bOnline Calls',
+      description: 'Missed-call follow-ups, caller activity and booking conversion.',
+      disabledReason: noToken,
+      onPress: () => setBonlineCallsOpen(true),
+    });
+
     actions.push({
       id: 'admin-contacts',
       label: 'Contact Messages',
@@ -2653,15 +2672,21 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // controller over a screen the operator is opening, using or dismissing.
   const operatorModalActive = Boolean(primaryPresentation.owner || historyOpen || recentOpen || quotesOpen || bookingsOpen
     || projectSourcesOpen || visitorsOpen || invoicesOpen || stockOpen || garageOpen || trafficOpen || callbacksOpen || callbacksDismissing
+    || bonlineCallsOpen || bonlineCallsDismissing
     || revenueOpen || contactsOpen || demandOpen || addAdminOpen || devicesOpen || activeJobsOpen || driverTrackingOpen
     || messageSenderOpen || virtualLandlineOpen || trackingMapOpen || moreOpen || moreDismissing || reviewOpen || editPriceOpen || notifSetupOpen);
   const incomingCallHasSavedBooking = Boolean(draft.quickBookingId || draft.savedQuoteId || draft.savedQuoteRef
     || draft.paymentLink || draft.dispatchedBookingId || draft.dispatchedRefNumber);
-  const incomingCallScreenReady = hydrated && activeStage === 'CUSTOMER' && !operatorModalActive
+  const incomingCallNoticesVisible = hydrated && !operatorModalActive
     && !urgentPopupOpen && !driverJourneys.visible;
+  const incomingCallScreenReady = incomingCallNoticesVisible && activeStage === 'CUSTOMER';
+  const callerHistoryPopupKey = activeIncomingCaller ? `${incomingCallerScope}:${activeIncomingCaller.callId}` : null;
   const handleDismissIncomingCallPopup = useCallback((callId: string) => {
     setIncomingCallPopup((current) => current?.callId === callId ? null : current);
   }, []);
+  const handleDismissCallerHistoryPopup = useCallback((callId: string) => {
+    setDismissedCallerHistoryPopupKey(`${incomingCallerScope}:${callId}`);
+  }, [incomingCallerScope]);
   const handleDismissIncomingCaller = useCallback(() => {
     incomingCallerRef.current = null;
     setIncomingCaller(null);
@@ -2701,7 +2726,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     setIncomingCaller(caller);
     setIncomingCallPopup(call);
     setPendingIncomingCall(null);
-    if (!canAutofillIncomingPhone({
+    if (!incomingCallScreenReady || !canAutofillIncomingPhone({
       phoneInput: phoneInputRef.current,
       customerPhone: draft.customer.phone,
       phoneFocused: phoneFocusedRef.current,
@@ -2715,12 +2740,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     phoneInputRef.current = call.phone;
     setPhoneInput(call.phone);
     setPhoneSynced(true);
-    update({ customer: { ...draft.customer, phone: call.phone } });
+    update({ customer: { ...draft.customer, phone: call.phone },
+      incomingCallSource: call.ledgerId ? { ledgerId: call.ledgerId, phone: call.phone, scope: incomingCallerScope } : null });
     setEditingStage('CUSTOMER');
     setPendingIncomingCall(null);
-  }, [draft.customer, incomingCallHasSavedBooking, incomingCallerRef, incomingCallerScope, phoneInputRef, update]);
+  }, [draft.customer, incomingCallHasSavedBooking, incomingCallScreenReady, incomingCallerRef, incomingCallerScope, phoneInputRef, update]);
   useIncomingPhoneCall({
-    enabled: incomingCallScreenReady && (!activeProjectId || activeProjectId === 'tyrerescue'),
+    // Listen across booking steps; only an available CUSTOMER form may autofill.
+    enabled: hydrated && (!activeProjectId || activeProjectId === 'tyrerescue'),
     projectId: activeProjectId,
     onCall: handleIncomingCall,
     onReset: handleDismissIncomingCaller,
@@ -2741,7 +2768,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     phoneInputRef.current = pendingIncomingCall.phone;
     setPhoneInput(pendingIncomingCall.phone);
     setPhoneSynced(true);
-    update({ customer: { ...currentDraft.customer, phone: pendingIncomingCall.phone } });
+    update({ customer: { ...currentDraft.customer, phone: pendingIncomingCall.phone },
+      incomingCallSource: pendingIncomingCall.ledgerId
+        ? { ledgerId: pendingIncomingCall.ledgerId, phone: pendingIncomingCall.phone, scope: liveScope } : null });
     setPendingIncomingCall(null);
   }, [activeProjectId, draftRef, incomingCallerRef, incomingCallScreenReady, pendingIncomingCall, phoneInputRef, update]);
   useEffect(() => {
@@ -2796,9 +2825,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           <PremiumAppHeader
             customerName={customerName}
             customerPhone={customerPhone || 'Add customer phone to call or WhatsApp'}
-            incomingCall={activeIncomingCaller?.callId === incomingCallPopup?.callId ? incomingCallPopup : null}
-            incomingCallerHistory={incomingCallerHistory}
-            onDismissIncomingCall={handleDismissIncomingCallPopup}
             heroTitle={heroCopy.title}
             heroHelper={heroCopy.helper}
             onMore={() => setMoreOpen(true)}
@@ -2818,6 +2844,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
 
           {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
           {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
+          {callAttributionError ? <InlineNotice kind="warn">{callAttributionError}</InlineNotice> : null}
+          {followUpQueue.data?.enabled && (followUpQueue.data.summary?.openFollowUps ?? 0) > 0 ? (
+            <AppButton label={`${followUpQueue.data.summary!.openFollowUps} missed-call follow-ups${followUpQueue.data.summary!.overdueFollowUps
+              ? ` · ${followUpQueue.data.summary!.overdueFollowUps} overdue` : ''}`}
+              variant={followUpQueue.data.summary!.overdueFollowUps ? 'primary' : 'secondary'}
+              onPress={() => setBonlineCallsOpen(true)} fullWidth />
+          ) : null}
           {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
           {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
           {dispatch.canRetryPaymentLink ? (
@@ -2853,6 +2886,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             unreadCount={driverJourneys.unreadCount}
             onPress={() => { void driverJourneys.open(); }}
           />
+
+          {bonlineProjectEnabled && customerDialNumber ? <BonlineCallButton
+            phone={customerDialNumber}
+            bookingId={draft.dispatchedBookingId || draft.paymentLink?.bookingId || undefined}
+            callId={activeIncomingCaller && normalizePhoneForWhatsApp(activeIncomingCaller.phone) === normalizePhoneForWhatsApp(customerDialNumber)
+              ? activeIncomingCaller.callId : undefined}
+            visible={hydrated && api.hasAdminToken && !operatorModalActive && !urgentPopupOpen && !driverJourneys.visible}
+          /> : null}
 
           <OperatorStepProgress
             steps={operatorSteps}
@@ -3073,6 +3114,33 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         </View>
       </KeyboardAvoidingView>
 
+      <View
+        pointerEvents="none"
+        testID="incoming-call-notification-layer"
+        style={[styles.incomingCallNotificationLayer, { top: insets.top + 64, left: insets.left + 16, right: insets.right + 16 }]}
+      >
+        {incomingCallPopup && activeIncomingCaller?.callId === incomingCallPopup.callId ? (
+          <HeaderIncomingCallPopup
+            key={`${incomingCallerScope}:${incomingCallPopup.callId}:call`}
+            call={incomingCallPopup}
+            history={incomingCallerHistory}
+            visible={incomingCallNoticesVisible}
+            onDismiss={handleDismissIncomingCallPopup}
+          />
+        ) : null}
+        {activeIncomingCaller && callerHistoryPopupKey !== dismissedCallerHistoryPopupKey
+          && ['found', 'not_found', 'unavailable'].includes(incomingCallerHistory.status) ? (
+          <HeaderIncomingCallPopup
+            key={`${callerHistoryPopupKey}:history`}
+            variant="history"
+            call={activeIncomingCaller}
+            history={incomingCallerHistory}
+            visible={incomingCallNoticesVisible}
+            onDismiss={handleDismissCallerHistoryPopup}
+          />
+        ) : null}
+      </View>
+
       <GuidedActionSheet visible={moreOpen} title="More" actions={sheetActions}
         onClose={() => { setMoreOpen(false); setMoreDismissing(Platform.OS === 'ios'); }}
         onDismiss={() => setMoreDismissing(false)} />
@@ -3137,6 +3205,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       <AdminCallbacksModal visible={callbacksOpen}
         onClose={() => { setCallbacksOpen(false); setCallbacksDismissing(Platform.OS === 'ios'); }}
         onDismiss={() => setCallbacksDismissing(false)} />
+      <BonlineCallManagementModal visible={bonlineCallsOpen && bonlineProjectEnabled}
+        onClose={() => { setBonlineCallsOpen(false); setBonlineCallsDismissing(Platform.OS === 'ios'); }}
+        onDismiss={() => setBonlineCallsDismissing(false)}
+        attributionContext={{ phone: draft.customer.phone,
+          quoteId: draft.savedQuoteId || undefined,
+          bookingId: draft.dispatchedBookingId || draft.paymentLink?.bookingId || undefined }} />
       <AdminRevenueModal visible={revenueOpen} onClose={() => setRevenueOpen(false)} />
       <AdminContactsModal visible={contactsOpen} onClose={() => setContactsOpen(false)} />
       <AdminDemandModal visible={demandOpen} onClose={() => setDemandOpen(false)} />
@@ -3941,9 +4015,6 @@ function IconBadge({
 function PremiumAppHeader({
   customerName,
   customerPhone,
-  incomingCall,
-  incomingCallerHistory,
-  onDismissIncomingCall,
   heroTitle,
   heroHelper,
   onMore,
@@ -3956,9 +4027,6 @@ function PremiumAppHeader({
 }: {
   customerName: string;
   customerPhone: string;
-  incomingCall: IncomingPhoneCall | null;
-  incomingCallerHistory: IncomingCallerHistoryResult;
-  onDismissIncomingCall: (callId: string) => void;
   heroTitle: string;
   heroHelper: string;
   onMore: () => void;
@@ -4041,14 +4109,6 @@ function PremiumAppHeader({
           {heroAccent ? <Text style={styles.heroTitleAccent}> {heroAccent}</Text> : null}
         </Text>
         <Text style={styles.heroHelper} numberOfLines={2}>{heroHelper}</Text>
-        {incomingCall ? (
-          <HeaderIncomingCallPopup
-            key={incomingCall.callId}
-            call={incomingCall}
-            history={incomingCallerHistory}
-            onDismiss={onDismissIncomingCall}
-          />
-        ) : null}
       </View>
     </View>
   );
@@ -5042,6 +5102,9 @@ const coolActionShadow = (
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#000000', overflow: 'hidden' },
   keyboardAvoider: { flex: 1, zIndex: 1, backgroundColor: colors.bg },
+  // Screen-level notifications stay below the top utility/call-banner area even
+  // when the booking form is scrolled. Native modals pause their visible time.
+  incomingCallNotificationLayer: { position: 'absolute', zIndex: 20, elevation: 20, gap: 8 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: {
     // Aligns with the page gutter like the cards below (a second inset left

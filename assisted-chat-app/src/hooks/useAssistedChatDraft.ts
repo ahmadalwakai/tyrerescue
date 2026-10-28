@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { normalizePhoneForWhatsApp } from '@/lib/money';
 import {
   createBookingTyreLine,
   ensureBookingTyreLines,
@@ -186,6 +187,7 @@ function normalizePaymentLink(value: unknown): AssistedChatDraft['paymentLink'] 
 }
 
 export const EMPTY_DRAFT: AssistedChatDraft = {
+  incomingCallSource: null,
   customer: { phone: '', name: '', email: '' },
   location: {
     method: 'address',
@@ -344,6 +346,9 @@ export function useAssistedChatDraft() {
     (patch: Partial<AssistedChatDraft>) => {
       setDraft((prev) => {
         const next: AssistedChatDraft = { ...prev, ...patch, updatedAt: Date.now() };
+        if (next.incomingCallSource && normalizePhoneForWhatsApp(next.customer.phone) !== normalizePhoneForWhatsApp(next.incomingCallSource.phone)) {
+          next.incomingCallSource = null;
+        }
         persist(next);
         return next;
       });

@@ -205,6 +205,8 @@ export interface AssistedChatQuoteBreakdown {
 }
 
 export interface AssistedChatDraft {
+  /** Session-scoped provenance only when an incoming call supplied this draft's number. */
+  incomingCallSource?: { ledgerId: string; phone: string; scope: string } | null;
   customer: AssistedChatCustomer;
   location: AssistedChatLocation;
   serviceType: AssistedChatServiceType;

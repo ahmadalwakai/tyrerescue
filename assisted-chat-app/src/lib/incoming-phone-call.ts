@@ -1,4 +1,5 @@
 export interface IncomingPhoneCall {
+  ledgerId?: string;
   id: string;
   callId: string;
   phone: string;
@@ -26,7 +27,8 @@ function validTimestamp(value: unknown): value is string {
 
 function validEvent(value: unknown): value is IncomingPhoneCall {
   if (!isRecord(value)) return false;
-  return typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200
+  return (value.ledgerId === undefined || (typeof value.ledgerId === 'string' && /^[a-f0-9]{64}$/.test(value.ledgerId)))
+    && typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200
     && typeof value.callId === 'string' && value.callId.length > 0 && value.callId.length <= 200
     && typeof value.phone === 'string' && /^\+?[0-9]{7,15}$/.test(value.phone)
     && validTimestamp(value.createdAt) && validTimestamp(value.receivedAt);

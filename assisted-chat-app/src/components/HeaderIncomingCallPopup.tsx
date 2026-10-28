@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Animated, AppState, Easing, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import type { IncomingPhoneCall } from '@/lib/incoming-phone-call';
 import type { IncomingCallerHistoryResult } from '@/lib/incoming-caller-history';
 import { AppIcon } from './icons/AppIcon';
@@ -8,45 +8,106 @@ import { colors, radius } from './theme';
 
 const DISPLAY_DURATION_MS = 4_000;
 const TRANSITION_DURATION_MS = 180;
+const MAX_CALL_AGE_MS = 90_000;
 
-/** Mount with a callId key so every new call gets its own four-second lifetime. */
-export function HeaderIncomingCallPopup({ call, history, onDismiss }: {
+/** Mount with a callId/variant key; each popup gets four visible foreground seconds. */
+export function HeaderIncomingCallPopup({ call, history, onDismiss, visible = true, variant = 'call' }: {
   call: IncomingPhoneCall;
   history: IncomingCallerHistoryResult;
   onDismiss: (callId: string) => void;
+  visible?: boolean;
+  variant?: 'call' | 'history';
 }) {
-  const [expiresAt] = useState(() => Date.now() + DISPLAY_DURATION_MS);
+  const staleAt = Date.parse(call.receivedAt) + MAX_CALL_AGE_MS;
+  const [foreground, setForeground] = useState(() => Platform.OS === 'web' || AppState.currentState === 'active');
+  const [foregroundCycle, setForegroundCycle] = useState(0);
+  const [dismissed, setDismissed] = useState(() => !Number.isFinite(staleAt) || Date.now() >= staleAt);
   const [visibility] = useState(() => new Animated.Value(0));
+  const remainingMs = useRef(DISPLAY_DURATION_MS);
+  const startedAt = useRef<number | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animation = useRef<Animated.CompositeAnimation | null>(null);
+  const dismissedRef = useRef(false);
+  const onDismissRef = useRef(onDismiss);
   const reducedMotion = useReducedMotion();
-  const label = history.status === 'found' ? 'Returning customer'
+  const show = visible && foreground && !dismissed;
+  const label = variant === 'call' ? 'Incoming call'
+    : history.status === 'found' ? 'Returning customer'
     : history.status === 'not_found' ? 'No previous bookings'
     : history.status === 'unavailable' ? 'History unavailable'
     : 'Checking customer history…';
-  const detail = history.status === 'found'
+  const detail = variant === 'history' && history.status === 'found'
     ? history.matches.length > 1 ? `${history.matches.length} records · confirm customer`
       : history.matches[0]?.customer.name || 'Previous bookings with this number'
     : null;
-  const statusColor = history.status === 'found' ? colors.success
+  const previousAmount = variant === 'history' && history.status === 'found' && history.matches.length === 1
+    ? history.matches[0]?.bookings[0]?.totalAmount : null;
+  const previousPrice = typeof previousAmount === 'string' && previousAmount.trim() !== '' && Number.isFinite(Number(previousAmount))
+    ? Number(previousAmount).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' }) : null;
+  const priceDetail = variant === 'history' && history.status === 'found' && history.matches.length === 1
+    ? `Previous booking price: ${previousPrice ?? 'Not recorded'}` : null;
+  const statusColor = variant === 'call' || history.status === 'found' ? colors.success
     : history.status === 'unavailable' ? colors.warning : colors.muted;
 
-  useEffect(() => {
-    const timer = setTimeout(() => onDismiss(call.callId), Math.max(0, expiresAt - Date.now()));
-    const subscription = AppState.addEventListener('change', (state) => {
-      // iOS can suspend JS timers while the native call screen is in front.
-      if (state === 'active' && Date.now() >= expiresAt) onDismiss(call.callId);
-    });
-    return () => {
-      clearTimeout(timer);
-      subscription.remove();
-    };
-  }, [call.callId, expiresAt, onDismiss]);
+  useEffect(() => { onDismissRef.current = onDismiss; }, [onDismiss]);
+
+  const pause = useCallback(() => {
+    if (startedAt.current !== null) {
+      remainingMs.current = Math.max(0, remainingMs.current - (Date.now() - startedAt.current));
+      startedAt.current = null;
+    }
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = null;
+    animation.current?.stop();
+    animation.current = null;
+    visibility.setValue(0);
+  }, [visibility]);
+  const dismiss = useCallback(() => {
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    pause();
+    setDismissed(true);
+    onDismissRef.current(call.callId);
+  }, [call.callId, pause]);
 
   useEffect(() => {
+    if (!Number.isFinite(staleAt) || Date.now() >= staleAt) {
+      dismiss();
+      return undefined;
+    }
+    const staleTimer = setTimeout(dismiss, staleAt - Date.now());
+    const subscription = AppState.addEventListener('change', (state) => {
+      const active = Platform.OS === 'web' || state === 'active';
+      // Pause immediately in the native event, before React can be suspended.
+      if (!active) pause();
+      setForeground(active);
+      // Inactive/active events can be batched before React commits a hidden
+      // render. Still restart the paused clock with its remaining duration.
+      if (active) setForegroundCycle((cycle) => cycle + 1);
+      if (Date.now() >= staleAt) dismiss();
+    });
+    return () => {
+      clearTimeout(staleTimer);
+      subscription.remove();
+    };
+  }, [dismiss, pause, staleAt]);
+
+  useEffect(() => {
+    if (!show) {
+      pause();
+      return undefined;
+    }
+    const remaining = remainingMs.current;
+    if (remaining <= 0) {
+      dismiss();
+      return undefined;
+    }
+    startedAt.current = Date.now();
+    timer.current = setTimeout(dismiss, remaining);
     visibility.setValue(reducedMotion ? 1 : 0);
-    if (reducedMotion) return undefined;
-    const remaining = Math.max(0, expiresAt - Date.now());
+    if (reducedMotion) return pause;
     const transition = Math.min(TRANSITION_DURATION_MS, remaining / 2);
-    const animation = Animated.sequence([
+    animation.current = Animated.sequence([
       Animated.timing(visibility, {
         toValue: 1, duration: transition, easing: Easing.out(Easing.cubic),
         useNativeDriver: USE_NATIVE_DRIVER,
@@ -57,9 +118,11 @@ export function HeaderIncomingCallPopup({ call, history, onDismiss }: {
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]);
-    animation.start();
-    return () => animation.stop();
-  }, [expiresAt, reducedMotion, visibility]);
+    animation.current.start();
+    return pause;
+  }, [dismiss, foregroundCycle, pause, reducedMotion, show, visibility]);
+
+  if (!show) return null;
 
   return (
     <View pointerEvents="none" style={styles.overlay}>
@@ -67,8 +130,8 @@ export function HeaderIncomingCallPopup({ call, history, onDismiss }: {
         accessible
         accessibilityRole="alert"
         accessibilityLiveRegion="polite"
-        accessibilityLabel={`Incoming call from ${call.phone}. ${label}${detail ? `. ${detail}` : ''}`}
-        testID="assisted-chat-header-incoming-call"
+        accessibilityLabel={`${label}. ${call.phone}${detail ? `. ${detail}` : ''}${priceDetail ? `. ${priceDetail}` : ''}`}
+        testID={variant === 'history' ? 'assisted-chat-header-caller-history' : 'assisted-chat-header-incoming-call'}
         style={[
           styles.popup,
           {
@@ -86,6 +149,7 @@ export function HeaderIncomingCallPopup({ call, history, onDismiss }: {
             {call.phone}
           </Text>
           {detail ? <Text style={styles.detail} numberOfLines={1}>{detail}</Text> : null}
+          {priceDetail ? <Text style={styles.detail} numberOfLines={1}>{priceDetail}</Text> : null}
         </View>
       </Animated.View>
     </View>
@@ -93,7 +157,7 @@ export function HeaderIncomingCallPopup({ call, history, onDismiss }: {
 }
 
 const styles = StyleSheet.create({
-  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', zIndex: 6 },
+  overlay: { alignItems: 'center', justifyContent: 'center', width: '100%' },
   popup: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 10,

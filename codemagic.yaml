@@ -1,6 +1,6 @@
 workflows:
-  assisted-ios55-native:
-    name: Assisted Chat 1.0.12 (55) - native build only
+  assisted-ios56-native:
+    name: Assisted Chat 1.0.13 (56) - native build only
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -9,13 +9,13 @@ workflows:
       cocoapods: default
       groups:
         - assisted_ios49_public
-        - assisted_ios55_signing
+        - assisted_ios56_signing
       vars:
         CI: '1'
         EXPO_NO_TELEMETRY: '1'
         EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
         ASSISTED_APP_DIR: assisted-chat-app
-        ASSISTED_CI_DIR: ci/assisted-ios55-codemagic
+        ASSISTED_CI_DIR: ci/assisted-ios56-codemagic
         CM_RECURSIVE_SUBMODULE_INIT: 'false'
         DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
     # No automatic trigger, store integration, publish or email section.
@@ -34,7 +34,7 @@ workflows:
           origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
           assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
           PY
-          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios55.XXXXXX")"
+          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios56.XXXXXX")"
           printf 'ASSISTED_CI_TEMP=%s\n' "$assisted_ci_temp" >> "$CM_ENV"
 
       - name: Verify frozen app, install exact dependencies and native patch
@@ -56,5 +56,5 @@ workflows:
           unset CM_API_TOKEN
           bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/build-native.sh"
     artifacts:
-      - $ASSISTED_CI_TEMP/assisted-ios55-output/assisted-chat-1.0.12-55.ipa
-      - $ASSISTED_CI_TEMP/assisted-ios55-output/manifest.json
+      - $ASSISTED_CI_TEMP/assisted-ios56-output/assisted-chat-1.0.13-56.ipa
+      - $ASSISTED_CI_TEMP/assisted-ios56-output/manifest.json

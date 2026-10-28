@@ -63,9 +63,19 @@ function harness() {
   let nextTimer = 1;
   const timers = new Map();
   const listeners = new Set();
-  const state = { animationStarts: 0, animationStops: 0, reducedMotion: false };
+  const state = { animationStarts: 0, animationStops: 0, reducedMotion: false, appState: 'active' };
   const changed = (before, next) => !before || !next || next.some((value, index) => value !== before[index]);
   const react = {
+    useRef(initial) {
+      const r = rendering; const index = r.cursor++;
+      if (!r.hooks[index]) r.hooks[index] = { current: initial };
+      return r.hooks[index];
+    },
+    useCallback(callback, deps) {
+      const r = rendering; const index = r.cursor++;
+      if (!r.hooks[index] || changed(r.hooks[index].deps, deps)) r.hooks[index] = { deps, value: callback };
+      return r.hooks[index].value;
+    },
     useState(initial) {
       const r = rendering; const index = r.cursor++;
       if (!r.hooks[index]) r.hooks[index] = { value: typeof initial === 'function' ? initial() : initial };
@@ -97,7 +107,7 @@ function harness() {
     Easing: { cubic: (v) => v, in: (v) => v, out: (v) => v },
     View: 'View', Text: 'Text', Pressable: 'Pressable', TextInput: 'TextInput', ActivityIndicator: 'ActivityIndicator',
     StyleSheet: { create: (value) => value, absoluteFillObject: {} }, Platform: { OS: 'ios' },
-    AppState: { currentState: 'active', addEventListener: (_event, callback) => {
+    AppState: { get currentState() { return state.appState; }, addEventListener: (_event, callback) => {
       listeners.add(callback); return { remove: () => listeners.delete(callback) };
     } },
   };
@@ -162,9 +172,13 @@ function harness() {
     }
     now = end;
   }
-  return { state, Popup, Card, element, mount, advance, timers, listeners,
+  function appState(next) {
+    state.appState = next;
+    for (const listener of [...listeners]) listener(next);
+  }
+  return { state, Popup, Card, element, mount, advance, timers, listeners, appState,
     suspend(ms) { now += ms; },
-    foreground() { for (const listener of [...listeners]) listener('active'); },
+    foreground() { appState('active'); },
   };
 }
 
@@ -178,7 +192,7 @@ for (const [result, label, detail] of [
 ]) {
   test(`caller popup accurately renders ${result.status}${detail ? `: ${detail}` : ''}`, () => {
     const h = harness();
-    const r = h.mount(() => h.element(h.Popup, { call: call(), history: result, onDismiss() {} }, 'one'));
+    const r = h.mount(() => h.element(h.Popup, { call: call(), history: result, variant: 'history', onDismiss() {} }, 'one'));
     const tree = r.read();
     const alert = find(tree, (node) => node.props?.accessibilityRole === 'alert');
     assert.match(text(tree), new RegExp(label));
@@ -207,19 +221,92 @@ test('a new keyed caller cleans up the prior timer and receives its own four sec
   const props = { call: call('one'), history: history('checking'), onDismiss: (id) => dismissed.push(id) };
   const r = h.mount(() => h.element(h.Popup, props, props.call.callId)); r.read();
   h.advance(3_000); props.call = call('two'); r.read();
-  assert.equal(h.timers.size, 1); assert.equal(h.listeners.size, 1); assert.equal(h.state.animationStops, 1);
+  assert.equal(h.timers.size, 2); assert.equal(h.listeners.size, 1); assert.equal(h.state.animationStops, 1);
   h.advance(1_000); assert.deepEqual(dismissed, []);
   h.advance(2_999); assert.deepEqual(dismissed, []);
   h.advance(1); assert.deepEqual(dismissed, ['two']); r.unmount();
 });
 
-test('returning from suspended iOS dismisses an expired popup, including Reduce Motion', () => {
+test('iOS native call UI pauses the remaining visible lifetime, including Reduce Motion', () => {
   const h = harness(); h.state.reducedMotion = true; const dismissed = [];
   const r = h.mount(() => h.element(h.Popup, { call: call(), history: history('checking'), onDismiss: (id) => dismissed.push(id) }, 'one'));
   r.read(); assert.equal(h.state.animationStarts, 0);
-  h.suspend(8_000); h.foreground(); assert.deepEqual(dismissed, ['one']);
+  h.advance(1_000); h.appState('inactive');
+  // Do not flush a React render before suspension: native event must pause now.
+  h.suspend(8_000); assert.equal(r.read(), null); assert.deepEqual(dismissed, []);
+  h.foreground(); assert.ok(r.read());
+  h.advance(2_999); assert.deepEqual(dismissed, []);
+  h.advance(1); assert.deepEqual(dismissed, ['one']);
   r.unmount(); assert.equal(h.timers.size, 0); assert.equal(h.listeners.size, 0);
 });
+
+test('a parent-hidden popup waits and preserves its remaining time across repeated hiding', () => {
+  const h = harness(); const dismissed = [];
+  const props = { call: call(), history: history('checking'), visible: false, onDismiss: (id) => dismissed.push(id) };
+  const r = h.mount(() => h.element(h.Popup, props, 'one'));
+  assert.equal(r.read(), null); h.advance(10_000); assert.deepEqual(dismissed, []);
+  props.visible = true; assert.ok(r.read()); h.advance(1_500);
+  props.visible = false; assert.equal(r.read(), null); h.advance(10_000);
+  props.visible = true; assert.ok(r.read());
+  h.advance(2_499); assert.deepEqual(dismissed, []);
+  h.advance(1); assert.deepEqual(dismissed, ['one']); r.unmount();
+});
+
+test('a popup mounted behind iOS call UI gets its full visible lifetime on foreground return', () => {
+  const h = harness(); h.state.appState = 'background'; const dismissed = [];
+  const r = h.mount(() => h.element(h.Popup, { call: call(), history: history('checking'), onDismiss: (id) => dismissed.push(id) }, 'one'));
+  assert.equal(r.read(), null); h.suspend(8_000); h.foreground(); assert.ok(r.read());
+  h.advance(3_999); assert.deepEqual(dismissed, []);
+  h.advance(1); assert.deepEqual(dismissed, ['one']); r.unmount();
+});
+
+test('batched inactive/active events resume the paused clock even without an intermediate render', () => {
+  const h = harness(); const dismissed = [];
+  const r = h.mount(() => h.element(h.Popup, { call: call(), history: history('checking'), onDismiss: (id) => dismissed.push(id) }, 'one'));
+  r.read(); h.advance(1_000); h.appState('inactive'); h.suspend(8_000); h.foreground();
+  assert.ok(r.read()); h.advance(2_999); assert.deepEqual(dismissed, []);
+  h.advance(1); assert.deepEqual(dismissed, ['one']); r.unmount();
+});
+
+test('a call older than ninety seconds is discarded on return rather than resurfacing hours later', () => {
+  const h = harness(); const dismissed = [];
+  const r = h.mount(() => h.element(h.Popup, { call: call(), history: history('checking'), onDismiss: (id) => dismissed.push(id) }, 'one'));
+  r.read(); h.appState('background'); h.suspend(3_600_000); h.foreground();
+  assert.equal(r.read(), null); assert.deepEqual(dismissed, ['one']);
+  h.advance(0); assert.deepEqual(dismissed, ['one']); r.unmount();
+});
+
+test('call and history variants have independent visible lifetimes and appropriate copy', () => {
+  const h = harness(); const dismissed = []; let showHistory = false;
+  const result = history('found', [match()]);
+  const r = h.mount(() => [
+    h.element(h.Popup, { call: call(), history: result, onDismiss: () => dismissed.push('call') }, 'one:call'),
+    showHistory ? h.element(h.Popup, { call: call(), history: result, variant: 'history', onDismiss: () => dismissed.push('history') }, 'one:history') : null,
+  ]);
+  let tree = r.read(); assert.match(text(tree), /Incoming call/); assert.doesNotMatch(text(tree), /Returning customer|Cara Customer|£/);
+  h.advance(1_000); showHistory = true; tree = r.read();
+  assert.ok(find(tree, (node) => node.props?.testID === 'assisted-chat-header-incoming-call'));
+  assert.ok(find(tree, (node) => node.props?.testID === 'assisted-chat-header-caller-history'));
+  assert.match(text(tree), /Returning customer.*Cara Customer.*Previous booking price: £120\.50/);
+  h.advance(3_000); assert.deepEqual(dismissed, ['call']);
+  h.advance(999); assert.deepEqual(dismissed, ['call']);
+  h.advance(1); assert.deepEqual(dismissed, ['call', 'history']); r.unmount();
+});
+
+test('history popup does not select a name or price from ambiguous customer matches', () => {
+  const h = harness();
+  const r = h.mount(() => h.element(h.Popup, { call: call(), variant: 'history', history: history('found', [match(), match('two', 'Second Customer')]), onDismiss() {} }, 'one'));
+  const shown = text(r.read()); assert.match(shown, /2 records · confirm customer/);
+  assert.doesNotMatch(shown, /Cara Customer|Second Customer|price|£/); r.unmount();
+});
+
+for (const [amount, expected] of [['0', '£0.00'], [null, 'Not recorded'], ['', 'Not recorded'], ['NaN', 'Not recorded']]) {
+  test(`history popup formats previous price ${String(amount)} without inventing a value`, () => {
+    const h = harness(); const record = match(); record.bookings[0].totalAmount = amount;
+    const r = h.mount(() => h.element(h.Popup, { call: call(), variant: 'history', history: history('found', [record]), onDismiss() {} }, 'one'));
+    assert.ok(text(r.read()).includes(`Previous booking price: ${expected}`)); r.unmount();
+  });
+}
 
 test('history stays readable after popup expiry, can finish later, and dismisses independently', () => {
   const h = harness(); let popup = true; let card = true; let result = history('checking'); let retries = 0;
