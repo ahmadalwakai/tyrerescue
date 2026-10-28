@@ -6,5 +6,7 @@ cd "$CM_BUILD_DIR/$CUSTOMER_APP_DIR"
 # A clean CI checkout needs it before the first typecheck.
 printf '/// <reference types="expo/types" />\n' > expo-env.d.ts
 npx --no-install tsc --noEmit
-# Self-contained tests do not load the admin app test harness.
+# Seven customer suites reuse the exact lightweight shared test harness.
+# It resolves TypeScript from this customer's locked install, without installing the admin app.
+export NODE_PATH="$CM_BUILD_DIR/$CUSTOMER_APP_DIR/node_modules"
 node --test "scripts/customer-*.test.cjs"
