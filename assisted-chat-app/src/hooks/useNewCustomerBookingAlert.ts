@@ -1,0 +1,343 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api, ApiError } from '@/lib/api';
+import {
+  addAdminNotificationReceivedListener,
+  presentLocalUrgentBookingNotification,
+} from '@/lib/notifications';
+import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
+import { logStartupModuleFailed } from '@/lib/startup-logging';
+import { getBookingAlertCopy, isUrgentBookingAlert, selectBookingAlertCandidate, shouldTriggerBookingAlert, sourceDisplayFor } from '@/types/new-customer-booking-alerts';
+
+/**
+ * Detects when a NEW booking lands on the system after the operator has
+ * already opened the bookings list at least once. The "All bookings" header
+ * button uses the returned `hasNewCustomerBooking` flag to enter an alert
+ * state (red shimmer + "New" badge).
+ *
+ * Source-of-truth: the existing admin bookings endpoint
+ *   GET /api/mobile/admin/bookings?page=1
+ * (no new endpoint is added). The first item is the most recent booking.
+ *
+ * Storage key: `assistedChat.lastSeenCustomerBooking.v1`
+ *  Stored shape: { id, createdAt }
+ *  - id: latest booking id we've already shown to the operator.
+ *  - createdAt: ISO timestamp of that booking (used to compare).
+ *
+ * IMPORTANT — booking source detection:
+ *   `/api/mobile/admin/bookings` exposes both operator-origin metadata and
+ *   project-source metadata. The popup interrupts for:
+ *   - direct customer emergency and scheduled bookings, and
+ *   - any booking handed off from an integrated external project
+ *     (TyreRepair.uk, FitMyTyre, TyreSOS, etc.).
+ *
+ * Assisted Chat / admin quick bookings from the Tyre Rescue source are
+ * treated as already-seen operational work and never open the urgent popup.
+ */
+
+const STORAGE_KEY = 'assistedChat.lastSeenCustomerBooking.v1';
+const POLL_INTERVAL_MS = 20_000;
+const FOREGROUND_REMINDER_INTERVAL_MS = 60_000;
+
+interface BookingsListItem {
+  id: string;
+  refNumber?: string | null;
+  sourceApp?: string | null;
+  sourceLabel?: string | null;
+  externalReference?: string | null;
+  bookingType?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  bookingOrigin?: string | null;
+  isCustomerOriginated?: boolean | null;
+  scheduledAt?: string | null;
+  createdAt: string | null;
+}
+
+interface BookingsListResponse {
+  items: BookingsListItem[];
+}
+
+interface LastSeen {
+  id: string;
+  createdAt: string | null;
+}
+
+export interface BookingAlertSummary {
+  id: string;
+  refNumber: string | null;
+  sourceApp: string | null;
+  sourceLabel: string | null;
+  externalReference: string | null;
+  sourceDisplay: string | null;
+  bookingType: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  /** May not be exposed on the list endpoint — caller renders fallback. */
+  addressLine: string | null;
+  /** May not be exposed on the list endpoint — caller renders fallback. */
+  tyreSize: string | null;
+  scheduledAt: string | null;
+  createdAt: string | null;
+  /**
+   * `true` when this booking should use the urgent popup/sound path.
+   * This includes direct customer emergencies and every integrated project
+   * handoff, because project bookings must interrupt the operator exactly
+   * like the Tyre Rescue urgent alert.
+   */
+  isUrgent: boolean;
+}
+
+function isBookingsListResponse(value: unknown): value is BookingsListResponse {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as { items?: unknown };
+  if (!Array.isArray(v.items)) return false;
+  return v.items.every((item) => {
+    if (!item || typeof item !== 'object') return false;
+    const it = item as { id?: unknown; createdAt?: unknown };
+    return typeof it.id === 'string' && (it.createdAt === null || typeof it.createdAt === 'string');
+  });
+}
+
+function isLastSeen(value: unknown): value is LastSeen {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as { id?: unknown; createdAt?: unknown };
+  return typeof v.id === 'string' && (v.createdAt === null || typeof v.createdAt === 'string');
+}
+
+function isNewerThanSeen(latest: BookingsListItem, seen: LastSeen | null): boolean {
+  if (!seen) return false;
+  if (latest.id === seen.id) return false;
+  if (latest.createdAt && seen.createdAt) {
+    const a = Date.parse(latest.createdAt);
+    const b = Date.parse(seen.createdAt);
+    if (Number.isFinite(a) && Number.isFinite(b)) return a > b;
+  }
+  return latest.id !== seen.id;
+}
+
+function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
+  return {
+    id: item.id,
+    refNumber: item.refNumber ?? null,
+    sourceApp: item.sourceApp ?? null,
+    sourceLabel: item.sourceLabel ?? null,
+    externalReference: item.externalReference ?? null,
+    sourceDisplay: sourceDisplayFor(item),
+    bookingType: item.bookingType ?? null,
+    customerName: item.customerName ?? null,
+    customerPhone: item.customerPhone ?? null,
+    // Not surfaced by the list endpoint today — UrgentBookingPopup must
+    // render a "Unknown" fallback rather than fabricating data.
+    addressLine: null,
+    tyreSize: null,
+    scheduledAt: item.scheduledAt ?? null,
+    createdAt: item.createdAt ?? null,
+    isUrgent: isUrgentBookingAlert(item),
+  };
+}
+
+export interface NewCustomerBookingAlertState {
+  hasNewCustomerBooking: boolean;
+  latestNewBooking: BookingAlertSummary | null;
+  /** Clear the alert and persist the current latest booking as "seen". */
+  markBookingsSeen: () => Promise<void>;
+  /**
+   * Present the local notification once for a scheduled customer booking.
+   * Urgent bookings may remind at most every 60s while unresolved.
+   */
+  triggerForegroundUrgentAlert: () => Promise<void>;
+}
+
+export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
+  const [hasNewCustomerBooking, setHasNewCustomerBooking] = useState(false);
+  const [latestNewBooking, setLatestNewBooking] = useState<BookingAlertSummary | null>(null);
+  const lastSeenRef = useRef<LastSeen | null>(null);
+  const latestKnownRef = useRef<BookingsListItem | null>(null);
+  const hydratedRef = useRef(false);
+  const mountedRef = useRef(true);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inFlightRef = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  // Per-booking dedupe: id of the booking whose sound has already played
+  // at least once, plus the timestamp of the last reminder so we can
+  // honour a 60s reminder cadence while the operator hasn't opened the
+  // bookings modal yet.
+  const lastAlertedBookingIdRef = useRef<string | null>(null);
+  const lastAlertedAtRef = useRef<number>(0);
+
+  const persistSeen = useCallback(async (item: BookingsListItem) => {
+    const next: LastSeen = { id: item.id, createdAt: item.createdAt };
+    lastSeenRef.current = next;
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Best-effort; ignore storage failures.
+    }
+  }, []);
+
+  const fetchOnce = useCallback(async () => {
+    if (!api.hasAdminToken) return;
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      const res = await api.get<unknown>('/api/mobile/admin/bookings?page=1');
+      if (!mountedRef.current) return;
+      if (!isBookingsListResponse(res)) return;
+      const latest = res.items[0];
+      if (!latest) return;
+      latestKnownRef.current = latest;
+      if (!hydratedRef.current) return;
+
+      // First run after hydration with no stored value: mark current latest
+      // as seen so old bookings don't trigger the alert on first install.
+      if (!lastSeenRef.current) {
+        await persistSeen(latest);
+        return;
+      }
+
+      if (isNewerThanSeen(latest, lastSeenRef.current)) {
+        // Keep an older unseen emergency/project visible when a newer normal
+        // scheduled booking arrives in the same polling batch.
+        const alertCandidate = selectBookingAlertCandidate(
+          res.items.filter((item) => isNewerThanSeen(item, lastSeenRef.current)),
+        );
+        if (!alertCandidate) {
+          await persistSeen(latest);
+          setHasNewCustomerBooking(false);
+          setLatestNewBooking(null);
+          return;
+        }
+        latestKnownRef.current = alertCandidate;
+        setHasNewCustomerBooking(true);
+        setLatestNewBooking(toAlertSummary(alertCandidate));
+      }
+    } catch (err) {
+      // Silent: never surface a false alert on transient network failure.
+      // Auth errors are handled globally by the api client.
+      if (err instanceof ApiError && err.status === 401) return;
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [persistSeen]);
+
+  // Hydrate last seen and run an initial fetch.
+  useEffect(() => {
+    mountedRef.current = true;
+    void (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed: unknown = JSON.parse(raw);
+          if (isLastSeen(parsed)) {
+            lastSeenRef.current = parsed;
+          }
+        }
+      } catch (error) {
+        logStartupModuleFailed('notifications.booking-alert.storage-read.failed', error);
+      }
+      hydratedRef.current = true;
+      await fetchOnce();
+    })().catch((error) => {
+      hydratedRef.current = true;
+      logStartupModuleFailed('notifications.booking-alert.hydration.failed', error);
+    });
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchOnce]);
+
+  // Poll while app is active. Pauses in background to save battery/data.
+  // Single interval — `inFlightRef` prevents overlapping requests.
+  useEffect(() => {
+    const start = () => {
+      if (timerRef.current) return;
+      timerRef.current = setInterval(() => {
+        void fetchOnce().catch((error) => {
+          logStartupModuleFailed('notifications.booking-alert.poll.failed', error);
+        });
+      }, POLL_INTERVAL_MS);
+    };
+    const stop = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+    if (appStateRef.current === 'active') start();
+    const sub = AppState.addEventListener('change', (state) => {
+      appStateRef.current = state;
+      if (state === 'active') {
+        start();
+        void fetchOnce().catch((error) => {
+          logStartupModuleFailed('notifications.booking-alert.fetch.failed', error);
+        });
+      } else {
+        stop();
+      }
+    });
+    return () => {
+      stop();
+      sub.remove();
+    };
+  }, [fetchOnce]);
+
+  // Reuse existing push notification stream as an instant signal: any
+  // notification received while the app is foregrounded flips the alert
+  // immediately. Polling stays as the safety net for missed pushes.
+  // Web has no expo-notifications push surface, so skip the listener there.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    if (isNotificationStartupDisabled()) return;
+    const sub = addAdminNotificationReceivedListener(() => {
+      if (!mountedRef.current) return;
+      void fetchOnce().catch((error) => {
+        logStartupModuleFailed('notifications.booking-alert.push-fetch.failed', error);
+      });
+    });
+    return () => sub?.remove();
+  }, [fetchOnce]);
+
+  const markBookingsSeen = useCallback(async () => {
+    setHasNewCustomerBooking(false);
+    setLatestNewBooking(null);
+    lastAlertedBookingIdRef.current = null;
+    lastAlertedAtRef.current = 0;
+    const latest = latestKnownRef.current;
+    if (latest) {
+      await persistSeen(latest);
+    }
+  }, [persistSeen]);
+
+  const triggerForegroundUrgentAlert = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    const booking = latestKnownRef.current;
+    if (!booking) return;
+    if (!shouldTriggerBookingAlert(booking)) return;
+
+    const now = Date.now();
+    const sameBooking = lastAlertedBookingIdRef.current === booking.id;
+    const cooldownActive =
+      sameBooking && now - lastAlertedAtRef.current < FOREGROUND_REMINDER_INTERVAL_MS;
+    if (cooldownActive || (sameBooking && !isUrgentBookingAlert(booking))) return;
+
+    lastAlertedBookingIdRef.current = booking.id;
+    lastAlertedAtRef.current = now;
+    const copy = getBookingAlertCopy(booking);
+    await presentLocalUrgentBookingNotification({
+      bookingId: booking.id,
+      title: copy.title,
+      body: copy.body,
+      isUrgent: isUrgentBookingAlert(booking),
+    });
+  }, []);
+
+  return {
+    hasNewCustomerBooking,
+    latestNewBooking,
+    markBookingsSeen,
+    triggerForegroundUrgentAlert,
+  };
+}

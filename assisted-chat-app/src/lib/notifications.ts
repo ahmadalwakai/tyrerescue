@@ -1,0 +1,923 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, Platform } from 'react-native';
+import type * as ExpoNotifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { api, getAdminToken, getApiBaseUrl, getApiContextRevision } from './api';
+import { isNotificationStartupDisabled } from './notification-startup-config';
+import {
+  extractNotificationResponseData,
+  isOkResponse,
+  normalizeDevicePushToken,
+  normalizeExpoPushToken,
+  normalizePermissionResponse,
+  parseUrgentBookingNotificationOpenRequest,
+  parseDriverJourneyNotificationOpenRequest,
+  type NotificationPermissionStatus,
+} from './notification-safety';
+import {
+  logStartupCheckpoint,
+  logStartupModuleCompleted,
+  logStartupModuleFailed,
+  logStartupModuleStarted,
+} from './startup-logging';
+
+type NotificationsModule = typeof ExpoNotifications;
+
+logStartupModuleStarted('Notifications facade module');
+logStartupModuleCompleted('Notifications facade module', {
+  expoNotificationsImported: false,
+});
+logStartupCheckpoint('NOTIFICATIONS_IMPORT_READY', { expoNotificationsImported: false });
+
+let notificationsModulePromise: Promise<NotificationsModule | null> | null = null;
+let notificationHandlerConfigured = false;
+const pendingChatSounds = new Map<string, { isCurrent: () => boolean; expiresAt: number }>();
+let chatSoundSequence = 0;
+
+function isForegroundChatSoundData(data: unknown): boolean {
+  return Boolean(data && typeof data === 'object'
+    && (data as Record<string, unknown>).type === 'assisted_chat_sound'
+    && (data as Record<string, unknown>).version === 1);
+}
+
+async function loadNotificationsModule(context: string): Promise<NotificationsModule | null> {
+  if (Platform.OS === 'web') return null;
+  if (!notificationsModulePromise) {
+    logStartupModuleStarted('Expo Notifications module load', { context });
+    notificationsModulePromise = import('expo-notifications')
+      .then((module) => {
+        logStartupModuleCompleted('Expo Notifications module load', { context });
+        return module;
+      })
+      .catch((error: unknown) => {
+        notificationsModulePromise = null;
+        logStartupModuleFailed('Expo Notifications module load', error, { context });
+        console.error('[notif] failed to load expo-notifications:', error);
+        return null;
+      });
+  }
+  return notificationsModulePromise;
+}
+
+async function getConfiguredNotifications(context: string): Promise<NotificationsModule | null> {
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.startup.disabled', { context });
+    return null;
+  }
+  const Notifications = await loadNotificationsModule(context);
+  if (!Notifications) return null;
+  if (notificationHandlerConfigured) return Notifications;
+  logStartupModuleStarted('Notifications handler configuration', { context });
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        if (isForegroundChatSoundData(notification.request.content.data)) {
+          const pending = pendingChatSounds.get(notification.request.identifier);
+          const active = Boolean(pending && pending.expiresAt >= Date.now()
+            && AppState.currentState === 'active' && pending.isCurrent());
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: active,
+            shouldSetBadge: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+          };
+        }
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        };
+      },
+    });
+    notificationHandlerConfigured = true;
+    logStartupModuleCompleted('Notifications handler configuration', {
+      context,
+      platform: Platform.OS,
+    });
+  } catch (error) {
+    logStartupModuleFailed('Notifications handler configuration', error, {
+      context,
+      platform: Platform.OS,
+    });
+    console.error('[notif] failed to configure notification handler:', error);
+    return null;
+  }
+  return Notifications;
+}
+
+/**
+ * Reuses the existing iOS notification sound engine. No audio module is loaded,
+ * no permission prompt is shown, and no banner/list/badge or navigation is used.
+ * Native sound assets are included by the existing notification config plugin.
+ */
+export function createForegroundChatSoundSession(isCurrent: () => boolean) {
+  let disposed = false;
+  const requests = new Map<string, ReturnType<typeof setTimeout>>();
+  const active = () => !disposed && isCurrent() && AppState.currentState === 'active';
+  const cancel = async (Notifications: NotificationsModule, identifier: string) => {
+    pendingChatSounds.delete(identifier);
+    const timer = requests.get(identifier);
+    if (timer) clearTimeout(timer);
+    requests.delete(identifier);
+    await Promise.allSettled([
+      Notifications.cancelScheduledNotificationAsync(identifier),
+      Notifications.dismissNotificationAsync(identifier),
+    ]);
+  };
+  return {
+    async play(kind: 'send' | 'receive'): Promise<boolean> {
+      // Android cannot guarantee a sound-only request without a tray entry.
+      if (Platform.OS !== 'ios' || !active() || isNotificationStartupDisabled()) return false;
+      try {
+        const Notifications = await getConfiguredNotifications('foreground-chat-sound');
+        if (!Notifications || !active()) return false;
+        const permissions = await Notifications.getPermissionsAsync();
+        if (!active() || normalizePermissionResponse(permissions) !== 'granted'
+          || permissions.ios?.allowsSound === false) return false;
+        const identifier = `assisted-chat-sound-${Date.now()}-${++chatSoundSequence}`;
+        pendingChatSounds.set(identifier, { isCurrent: active, expiresAt: Date.now() + 2_000 });
+        // Bookkeeping exists before scheduling, including if the native promise
+        // resolves after the chat/project/session has already been closed.
+        requests.set(identifier, setTimeout(() => { void cancel(Notifications, identifier); }, 2_000));
+        try {
+          await Notifications.scheduleNotificationAsync({
+            identifier,
+            content: {
+              sound: kind === 'send' ? 'chat-send.wav' : 'chat-receive.wav',
+              data: { type: 'assisted_chat_sound', version: 1 },
+              interruptionLevel: 'active',
+            },
+            trigger: null,
+          });
+          if (!active()) { await cancel(Notifications, identifier); return false; }
+          return true;
+        } catch {
+          await cancel(Notifications, identifier);
+          return false;
+        }
+      } catch {
+        // Missing native support or denied sound permission must never break chat.
+        return false;
+      }
+    },
+    dispose() {
+      disposed = true;
+      for (const [identifier, timer] of requests) {
+        pendingChatSounds.delete(identifier);
+        clearTimeout(timer);
+        void loadNotificationsModule('chat-sound-cleanup').then((Notifications) => {
+          if (Notifications) return cancel(Notifications, identifier);
+        }).catch(() => undefined);
+      }
+      requests.clear();
+    },
+  };
+}
+
+function logNotificationFailure(stage: string, error: unknown, details?: Record<string, unknown>): void {
+  logStartupModuleFailed(stage, error, details);
+  console.error(`[notif] ${stage}:`, error);
+}
+
+function removeNotificationSubscription(
+  subscription: NotificationSubscription | null,
+  context: string,
+): void {
+  if (!subscription) return;
+  try {
+    subscription.remove();
+  } catch (error) {
+    logNotificationFailure('notifications.subscription.remove.failed', error, { context });
+  }
+}
+
+// ─── Channel IDs ─────────────────────────────────────────────────────────────
+
+export const URGENT_BOOKINGS_CHANNEL_ID = 'urgent-bookings';
+// v1 channel matches the channel ID used by the backend FCM topic send.
+// Both channels share the same settings — v1 is targeted by FCM-delivered
+// messages, while urgent-bookings is used for Expo relay and local alerts.
+export const URGENT_BOOKINGS_V1_CHANNEL_ID = 'urgent_bookings_v1';
+// v2 channel kept for migration reference only — no active code targets it.
+// Channels are sticky on Android; if v2 was created with a bad sound, the only
+// way to recover is to bump the id (or have the user uninstall).
+export const URGENT_BOOKINGS_V2_CHANNEL_ID = 'urgent_bookings_v2';
+// v3 channel is the CURRENT urgent channel used by both the backend FCM
+// push helper and the in-app local notification scheduler. We bump the id
+// because Android notification channel settings are sticky: once a channel
+// is created on a device, code changes to sound/importance do not apply
+// until the user uninstalls the app OR the channel id changes. v2 shipped
+// to some Samsung devices without a working sound, so we move forward to
+// v3 to guarantee a fresh, audible channel on the next APK install.
+export const URGENT_BOOKINGS_V3_CHANNEL_ID = 'urgent_bookings_v3';
+export const DEFAULT_CHANNEL_ID = 'default';
+// Legacy channel kept for backward compatibility with the app.json
+// `defaultChannel` and any push tokens already registered on the backend.
+export const LEGACY_BOOKINGS_CHANNEL_ID = 'admin_bookings';
+
+export interface NotificationSubscription {
+  remove: () => void;
+}
+
+// AsyncStorage key consumed by AssistedChatScreen on mount: when the user
+// taps a push notification while the app is killed/background, expo-router
+// may not be ready to navigate yet, so we persist a "please open bookings"
+// flag and the screen clears it once handled.
+export const PENDING_OPEN_BOOKINGS_KEY = 'assistedChat.pendingOpenBookings.v1';
+
+// AsyncStorage key for the last urgent booking id the operator has
+// acknowledged (either by tapping "Open bookings" or "Dismiss for now").
+// Persisted so the popup + sound do not come back when the app is closed
+// and reopened on the SAME booking.
+export const DISMISSED_URGENT_BOOKING_ID_KEY =
+  'assistedChat.dismissedUrgentBookingId.v1';
+
+// ─── Android Channels ────────────────────────────────────────────────────────
+
+// Helper to read enum values defensively in case a future expo-notifications
+// version renames or drops a member. We never want a missing enum to crash
+// the registration flow on production devices.
+function getImportance(
+  Notifications: NotificationsModule,
+  preferred: 'MAX' | 'HIGH' | 'DEFAULT',
+): ExpoNotifications.AndroidImportance {
+  const enumRef = Notifications.AndroidImportance as unknown as
+    | Record<string, ExpoNotifications.AndroidImportance | undefined>
+    | undefined;
+  const max = enumRef?.MAX;
+  const high = enumRef?.HIGH;
+  const def = enumRef?.DEFAULT;
+  if (preferred === 'MAX' && typeof max === 'number') return max;
+  if ((preferred === 'MAX' || preferred === 'HIGH') && typeof high === 'number') return high;
+  if (typeof def === 'number') return def;
+  // Fallback to numeric Android value (DEFAULT = 3) — safe last resort.
+  return 3 as ExpoNotifications.AndroidImportance;
+}
+
+function getPublicVisibility(
+  Notifications: NotificationsModule,
+): ExpoNotifications.AndroidNotificationVisibility | undefined {
+  const enumRef = Notifications.AndroidNotificationVisibility as unknown as
+    | Record<string, ExpoNotifications.AndroidNotificationVisibility | undefined>
+    | undefined;
+  const v = enumRef?.PUBLIC;
+  return typeof v === 'number' ? v : undefined;
+}
+
+// Custom alert sound bundled at `assets/sounds/urgent-booking.mp3`. Normal
+// notification-enabled builds must register it through the expo-notifications
+// config plugin so Android copies it into `res/raw/` at build time.
+//
+// IMPORTANT (Android channel semantics):
+//   Once a channel is created on a device with a given sound, the sound
+//   CANNOT be changed for that channel id without the user uninstalling
+//   the app (or you bumping the channel id). The `urgent-bookings` channel
+//   id below is new, so a fresh APK install picks up this sound.
+//
+// IMPORTANT (web/Expo Go):
+//   Expo Go and web preview cannot bundle custom Android raw resources
+//   from the managed workflow. The notification will silently fall back
+//   to the system default sound in those environments. Real APK builds
+//   are the only place this custom sound is guaranteed to play.
+const URGENT_SOUND: string = 'urgent_booking.mp3';
+
+async function setupAndroidChannels(Notifications: NotificationsModule): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  const publicVisibility = getPublicVisibility(Notifications);
+
+  try {
+    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_CHANNEL_ID, {
+      name: 'Urgent bookings',
+      importance: getImportance(Notifications, 'MAX'),
+      sound: URGENT_SOUND,
+      vibrationPattern: [0, 500, 250, 500, 250, 900],
+      enableVibrate: true,
+      lightColor: '#F97316',
+      bypassDnd: false,
+      ...(publicVisibility !== undefined ? { lockscreenVisibility: publicVisibility } : {}),
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up urgent-bookings channel:', err);
+  }
+
+  try {
+    await Notifications.setNotificationChannelAsync(DEFAULT_CHANNEL_ID, {
+      name: 'General',
+      importance: getImportance(Notifications, 'DEFAULT'),
+      sound: 'default',
+      enableVibrate: true,
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up default channel:', err);
+  }
+
+  // urgent_bookings_v1: targeted by FCM topic messages from the backend.
+  // Same sound/vibration settings as urgent-bookings — exists so the two
+  // delivery paths (Expo relay + FCM topic) both land on a high-importance
+  // channel without duplicating configuration.
+  try {
+    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V1_CHANNEL_ID, {
+      name: 'Urgent bookings (native)',
+      importance: getImportance(Notifications, 'MAX'),
+      sound: URGENT_SOUND,
+      vibrationPattern: [0, 500, 250, 500, 250, 900],
+      enableVibrate: true,
+      lightColor: '#F97316',
+      bypassDnd: false,
+      ...(publicVisibility !== undefined ? { lockscreenVisibility: publicVisibility } : {}),
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up urgent_bookings_v1 channel:', err);
+  }
+
+  // urgent_bookings_v3: CURRENT urgent channel. Created with a fresh id so
+  // Android picks up the bundled raw sound on first install. The backend
+  // FCM push helper and the in-app local notification scheduler both
+  // target this channel.
+  try {
+    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V3_CHANNEL_ID, {
+      name: 'Urgent bookings',
+      importance: getImportance(Notifications, 'MAX'),
+      sound: URGENT_SOUND,
+      vibrationPattern: [0, 500, 250, 500, 250, 900],
+      enableVibrate: true,
+      lightColor: '#F97316',
+      bypassDnd: false,
+      ...(publicVisibility !== undefined ? { lockscreenVisibility: publicVisibility } : {}),
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up urgent_bookings_v3 channel:', err);
+  }
+
+  // Keep the legacy channel in sync so any push payload still targeting
+  // `admin_bookings` keeps working at MAX importance.
+  try {
+    await Notifications.setNotificationChannelAsync(LEGACY_BOOKINGS_CHANNEL_ID, {
+      name: 'Booking Alerts',
+      importance: getImportance(Notifications, 'MAX'),
+      vibrationPattern: [0, 300, 150, 300],
+      lightColor: '#F97316',
+      sound: 'default',
+      enableVibrate: true,
+      bypassDnd: false,
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up legacy admin_bookings channel:', err);
+  }
+}
+
+/**
+ * Trigger a local high-importance notification while the app is in the
+ * foreground. Used as a belt-and-braces audible cue when the urgent
+ * in-app popup is displayed (the popup itself is the primary signal —
+ * this only adds sound + vibration through the Android channel).
+ */
+export async function presentLocalUrgentBookingNotification(args: {
+  bookingId: string;
+  title?: string;
+  body?: string;
+  isUrgent?: boolean;
+}): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const Notifications = await getConfiguredNotifications('local-urgent-notification');
+    if (!Notifications) return;
+    await scheduleNotificationSafe(Notifications, {
+      title: args.title ?? 'Emergency booking received',
+      body: args.body ?? 'Open Assisted Chat now',
+      bookingId: args.bookingId,
+      isUrgent: args.isUrgent,
+    });
+  } catch (err) {
+    console.warn('[notif] failed to present local urgent notification:', err);
+  }
+}
+
+export function addAdminNotificationReceivedListener(
+  listener: (data?: unknown) => void,
+): NotificationSubscription | null {
+  if (Platform.OS === 'web') return null;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.received-listener.skipped', { reason: 'startup-disabled' });
+    return null;
+  }
+  let removed = false;
+  let subscription: NotificationSubscription | null = null;
+  logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACH_START', { listener: 'received' });
+  void getConfiguredNotifications('notification-received-listener')
+    .then((Notifications) => {
+      if (removed || !Notifications) return;
+      subscription = Notifications.addNotificationReceivedListener((notification) => {
+        if (isForegroundChatSoundData(notification.request.content.data)) return;
+        try {
+          listener(notification.request.content.data);
+        } catch (error) {
+          logNotificationFailure('notifications.received-listener.callback.failed', error);
+        }
+      });
+      logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACHED', { listener: 'received' });
+      if (removed) {
+        removeNotificationSubscription(subscription, 'received-late-remove');
+        subscription = null;
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('[notif] failed to attach notification received listener:', error);
+    });
+  return {
+    remove: () => {
+      removed = true;
+      removeNotificationSubscription(subscription, 'received');
+      subscription = null;
+    },
+  };
+}
+
+export function addAdminNotificationResponseListener(
+  listener: (data: unknown) => void,
+): NotificationSubscription | null {
+  if (Platform.OS === 'web') return null;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.response-listener.skipped', { reason: 'startup-disabled' });
+    return null;
+  }
+  let removed = false;
+  let subscription: NotificationSubscription | null = null;
+  logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACH_START', { listener: 'response' });
+  void getConfiguredNotifications('notification-response-listener')
+    .then((Notifications) => {
+      if (removed || !Notifications) return;
+      subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = extractNotificationResponseData(response);
+        if (isForegroundChatSoundData(data)) return;
+        if (!data) {
+          logStartupCheckpoint('notifications.response-listener.payload.ignored', {
+            reason: 'missing-or-malformed-data',
+          });
+          return;
+        }
+        try {
+          listener(data);
+        } catch (error) {
+          logNotificationFailure('notifications.response-listener.callback.failed', error);
+        }
+      });
+      logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACHED', { listener: 'response' });
+      if (removed) {
+        removeNotificationSubscription(subscription, 'response-late-remove');
+        subscription = null;
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('[notif] failed to attach notification response listener:', error);
+    });
+  return {
+    remove: () => {
+      removed = true;
+      removeNotificationSubscription(subscription, 'response');
+      subscription = null;
+    },
+  };
+}
+
+export async function getLastAdminNotificationResponseData(): Promise<unknown | null> {
+  if (Platform.OS === 'web') return null;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.last-response.skipped', { reason: 'startup-disabled' });
+    return null;
+  }
+  try {
+    const Notifications = await getConfiguredNotifications('last-notification-response');
+    if (!Notifications) return null;
+    const response = await Notifications.getLastNotificationResponseAsync();
+    const data = extractNotificationResponseData(response);
+    if (isForegroundChatSoundData(data)) return null;
+    if (!data) {
+      logStartupCheckpoint('notifications.last-response.ignored', {
+        reason: 'missing-or-malformed-data',
+      });
+      return null;
+    }
+    return data;
+  } catch (error) {
+    logNotificationFailure('notifications.last-response.failed', error);
+    return null;
+  }
+}
+
+async function scheduleNotificationSafe(
+  Notifications: NotificationsModule,
+  args: {
+    title: string;
+    body: string;
+    bookingId: string;
+    isUrgent?: boolean;
+  },
+): Promise<void> {
+  try {
+    const isUrgent = args.isUrgent !== false;
+    const androidPriority = Notifications.AndroidNotificationPriority as
+      | Record<string, ExpoNotifications.AndroidNotificationPriority | undefined>
+      | undefined;
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: args.title,
+        body: args.body,
+        sound: isUrgent ? URGENT_SOUND : 'default',
+        ...(isUrgent && (typeof androidPriority?.MAX === 'string' || typeof androidPriority?.MAX === 'number')
+          ? { priority: androidPriority.MAX }
+          : {}),
+        ...(isUrgent ? { vibrate: [0, 500, 250, 500, 250, 900] } : {}),
+        data: { type: 'urgent_booking', bookingId: args.bookingId, isUrgent, urgency: isUrgent ? 'urgent' : 'normal' },
+        ...(Platform.OS === 'android'
+          ? { channelId: isUrgent ? URGENT_BOOKINGS_V3_CHANNEL_ID : LEGACY_BOOKINGS_CHANNEL_ID }
+          : {}),
+      },
+      trigger: null,
+    });
+  } catch (error) {
+    logNotificationFailure('notifications.schedule.failed', error);
+  }
+}
+
+// ─── Registration ─────────────────────────────────────────────────────────────
+
+let registrationInFlight: Promise<string | null> | null = null;
+let registrationContext: { adminToken: string; baseUrl: string; revision: number } | null = null;
+let unregistrationInFlight: Promise<void> | null = null;
+// Keep this device's observed token in memory even if the server sync fails,
+// so logout removes only this device, preserving this admin's other phones.
+let observedExpoToken: { token: string; adminToken: string; baseUrl: string } | null = null;
+
+export async function readAdminNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
+  if (Platform.OS === 'web') return 'undetermined';
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.permission-read.skipped', { reason: 'startup-disabled' });
+    return 'undetermined';
+  }
+  const Notifications = await getConfiguredNotifications('permission-read');
+  if (!Notifications) return 'undetermined';
+
+  logStartupCheckpoint('NOTIFICATIONS_PERMISSION_READ_START');
+  try {
+    const response = await Notifications.getPermissionsAsync();
+    const status = normalizePermissionResponse(response);
+    if (!status) {
+      throw new Error('Malformed notification permission response');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_PERMISSION_READ_SUCCESS', { status });
+    return status;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_PERMISSION_READ_FAILED', error);
+    console.error('[notif] failed to read notification permission:', error);
+    return 'undetermined';
+  }
+}
+
+export async function requestAdminNotificationPermission(): Promise<NotificationPermissionStatus> {
+  if (Platform.OS === 'web') return 'undetermined';
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.permission-request.unavailable', {
+      reason: 'startup-disabled',
+    });
+    return 'undetermined';
+  }
+  const Notifications = await getConfiguredNotifications('permission-request');
+  if (!Notifications) return 'undetermined';
+
+  logStartupCheckpoint('NOTIFICATIONS_PERMISSION_REQUEST_START');
+  try {
+    const response = await Notifications.requestPermissionsAsync();
+    const status = normalizePermissionResponse(response);
+    if (!status) {
+      throw new Error('Malformed notification permission request response');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_PERMISSION_REQUEST_SUCCESS', { status });
+    return status;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_PERMISSION_REQUEST_FAILED', error);
+    console.error('[notif] failed to request notification permission:', error);
+    return 'undetermined';
+  }
+}
+
+async function getAdminExpoPushToken(Notifications: NotificationsModule): Promise<string | null> {
+  logStartupCheckpoint('NOTIFICATIONS_TOKEN_START', { tokenKind: 'expo' });
+  try {
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const token = normalizeExpoPushToken(tokenData);
+    if (!token) {
+      throw new Error('Malformed Expo push token response');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_TOKEN_SUCCESS', {
+      tokenKind: 'expo',
+    });
+    return token;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_TOKEN_FAILED', error, { tokenKind: 'expo' });
+    console.error('[notif] failed to get Expo push token');
+    return null;
+  }
+}
+
+async function syncAdminExpoPushToken(token: string, isCurrent: () => boolean): Promise<boolean> {
+  if (!getAdminToken() || !isCurrent()) {
+    logStartupCheckpoint('NOTIFICATIONS_API_SYNC_FAILED', { reason: 'missing-admin-token' });
+    return false;
+  }
+
+  logStartupCheckpoint('NOTIFICATIONS_API_SYNC_START', { tokenKind: 'expo' });
+  try {
+    const response = await api.post('/api/mobile/admin/push-token', {
+      token,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    });
+    if (!isOkResponse(response)) {
+      throw new Error('Backend did not confirm Expo push-token sync');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_API_SYNC_SUCCESS', { tokenKind: 'expo' });
+    return isCurrent();
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_API_SYNC_FAILED', error, { tokenKind: 'expo' });
+    console.error('[notif] failed to upload push token');
+    return false;
+  }
+}
+
+/**
+ * Inspect push notification permissions, register the Expo push token when
+ * already authorized, and upload it to the server. It never prompts on startup.
+ */
+export async function registerAdminPushNotifications(): Promise<string | null> {
+  if (unregistrationInFlight) return null;
+  if (Platform.OS === 'web' || isNotificationStartupDisabled() || !Device.isDevice) return null;
+  const adminToken = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  const revision = getApiContextRevision();
+  if (!adminToken) return null;
+  if (registrationInFlight && registrationContext?.adminToken === adminToken
+    && registrationContext.baseUrl === baseUrl && registrationContext.revision === revision) return registrationInFlight;
+
+  const context = { adminToken, baseUrl, revision };
+  const isCurrent = () => getAdminToken() === adminToken && getApiBaseUrl() === baseUrl && getApiContextRevision() === revision
+    && registrationContext === context;
+  registrationContext = context;
+
+  const registration = (async () => {
+    try {
+      if (isNotificationStartupDisabled()) {
+        logStartupCheckpoint('notifications.registration.skipped', { reason: 'startup-disabled' });
+        return null;
+      }
+
+      // Physical device required for push tokens.
+      if (!Device.isDevice) {
+        console.log('[notif] push not available on simulator');
+        return null;
+      }
+
+      // Always set up channels first so any push that arrives between this
+      // call and token registration already targets the right channel.
+      const Notifications = await getConfiguredNotifications('push-registration');
+      if (!Notifications) {
+        console.log('[notif] push registration unavailable — notifications module not loaded');
+        return null;
+      }
+
+      await setupAndroidChannels(Notifications);
+
+      const permission = await readAdminNotificationPermissionStatus();
+
+      if (permission !== 'granted') {
+        console.log(`[notif] push permission not granted status=${permission}`);
+        return null;
+      }
+
+      const token = await getAdminExpoPushToken(Notifications);
+      if (!token || !isCurrent()) return null;
+      observedExpoToken = { token, adminToken, baseUrl };
+
+      const synced = await syncAdminExpoPushToken(token, isCurrent);
+      if (!synced || !isCurrent()) return null;
+      if (await readAdminNotificationPermissionStatus() !== 'granted' || !isCurrent()) return null;
+
+      console.log('[notif] Expo push token registration confirmed');
+
+      return token;
+    } catch (error) {
+      logStartupModuleFailed('notifications.registration.failed', error);
+      console.error('[notif] push registration failed');
+      return null;
+    }
+  })().finally(() => {
+    if (registrationInFlight === registration) {
+      registrationInFlight = null;
+      registrationContext = null;
+    }
+  });
+
+  registrationInFlight = registration;
+  return registration;
+}
+
+/** Explicit user action only. The server resolves this session's own device. */
+export async function sendAdminNotificationTest(): Promise<void> {
+  if (Platform.OS === 'web' || isNotificationStartupDisabled() || !Device.isDevice || !getAdminToken()) {
+    throw new Error('Notification testing is available on a signed-in physical device only.');
+  }
+  const revision = getApiContextRevision();
+  const result: unknown = await api.post('/api/mobile/admin/notifications/test', {});
+  if (revision !== getApiContextRevision()) throw new Error('The active account or project changed.');
+  if (!result || typeof result !== 'object' || Array.isArray(result)
+    || (result as { ok?: unknown }).ok !== true || (result as { status?: unknown }).status !== 'accepted') {
+    throw new Error('The push service did not confirm acceptance.');
+  }
+}
+
+/**
+ * Clear the app icon badge count. Call when the app becomes active or
+ * the admin opens the bookings list.
+ */
+export async function clearAdminBadge(): Promise<void> {
+  if (isNotificationStartupDisabled()) return;
+  try {
+    const Notifications = await getConfiguredNotifications('clear-badge');
+    if (!Notifications) return;
+    await Notifications.setBadgeCountAsync(0);
+  } catch (error) {
+    logStartupModuleFailed('notifications.clear-badge.failed', error);
+    console.warn('[notif] failed to clear badge:', error);
+  }
+}
+
+/**
+ * Unregister push notifications and remove the token from the server.
+ * Call on admin logout.
+ */
+export async function unregisterAdminPushNotifications(): Promise<void> {
+  if (unregistrationInFlight) return unregistrationInFlight;
+  const operation = unregisterCurrentDevicePushNotifications();
+  unregistrationInFlight = operation;
+  try {
+    await operation;
+  } finally {
+    if (unregistrationInFlight === operation) unregistrationInFlight = null;
+  }
+}
+
+async function unregisterCurrentDevicePushNotifications(): Promise<void> {
+  const adminToken = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  const revision = getApiContextRevision();
+  const pending = registrationContext?.adminToken === adminToken && registrationContext.baseUrl === baseUrl
+    ? registrationInFlight : null;
+  const observed = observedExpoToken;
+  observedExpoToken = null;
+  registrationInFlight = null;
+  registrationContext = null;
+  if (!adminToken) return;
+  const isCurrent = () => getAdminToken() === adminToken && getApiBaseUrl() === baseUrl && getApiContextRevision() === revision;
+  try {
+    // A POST already in progress must finish before DELETE, otherwise it could
+    // recreate the device row after logout removed it. Its readiness is invalidated above.
+    if (pending) await pending;
+    if (!isCurrent()) return;
+    let token = observed?.adminToken === adminToken && observed.baseUrl === baseUrl ? observed.token : null;
+    // A restarted app may not have observed its token in this JS process yet.
+    // Ask the native facade for this device's token without registering it.
+    if (!token && Platform.OS !== 'web' && Device.isDevice && !isNotificationStartupDisabled()) {
+      const Notifications = await getConfiguredNotifications('logout-device-token');
+      if (Notifications && isCurrent()) token = await getAdminExpoPushToken(Notifications);
+    }
+    if (!isCurrent()) return;
+    const requests: Promise<unknown>[] = [];
+    if (token) requests.push(api.del('/api/mobile/admin/push-token', { body: { token } }));
+    // Never send a bodyless Expo DELETE: older endpoints interpret it as
+    // removing every Expo device for this admin. Keep Android's native cleanup.
+    if (Platform.OS === 'android') requests.push(api.del('/api/mobile/admin/native-alert-token'));
+    await Promise.allSettled(requests);
+  } catch (error) {
+    logStartupModuleFailed('notifications.unregister.failed', error);
+  }
+}
+
+// ─── Pending Open-Bookings Flag (notification tap → modal open) ─────────────
+
+/** Persist the "open bookings on next app focus" request. */
+export async function setPendingOpenBookings(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PENDING_OPEN_BOOKINGS_KEY, '1');
+  } catch (error) {
+    logStartupModuleFailed('notifications.pending-open.persist.failed', error);
+  }
+}
+
+/** Consume the pending flag and clear it. Returns true if a request was set. */
+export async function consumePendingOpenBookings(): Promise<boolean> {
+  try {
+    const v = await AsyncStorage.getItem(PENDING_OPEN_BOOKINGS_KEY);
+    if (!v) return false;
+    await AsyncStorage.removeItem(PENDING_OPEN_BOOKINGS_KEY);
+    return true;
+  } catch (error) {
+    logStartupModuleFailed('notifications.pending-open.consume.failed', error);
+    return false;
+  }
+}
+
+/**
+ * Detect whether a notification response payload describes an urgent
+ * booking. Backend should send `data: { type: "urgent_booking", ... }`.
+ */
+export function isUrgentBookingNotificationData(data: unknown): boolean {
+  return parseUrgentBookingNotificationOpenRequest(data) !== null;
+}
+
+export function getUrgentBookingNotificationOpenRequest(data: unknown) {
+  return parseUrgentBookingNotificationOpenRequest(data);
+}
+
+export function getDriverJourneyNotificationOpenRequest(data: unknown) {
+  return parseDriverJourneyNotificationOpenRequest(data);
+}
+
+// ─── Dismissed Urgent Booking Memory (survives app restart) ─────────────────
+
+/** Read the last acknowledged urgent booking id, if any. */
+export async function getDismissedUrgentBookingId(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(DISMISSED_URGENT_BOOKING_ID_KEY);
+  } catch (error) {
+    logStartupModuleFailed('notifications.dismissed-booking.read.failed', error);
+    return null;
+  }
+}
+
+/** Persist the urgent booking id the operator has acknowledged. */
+export async function setDismissedUrgentBookingId(bookingId: string): Promise<void> {
+  if (!bookingId) return;
+  try {
+    await AsyncStorage.setItem(DISMISSED_URGENT_BOOKING_ID_KEY, bookingId);
+  } catch (error) {
+    logStartupModuleFailed('notifications.dismissed-booking.persist.failed', error);
+  }
+}
+
+// ─── Raw FCM Device Token (for topic subscription) ───────────────────────────
+
+/**
+ * Get the raw Android FCM device token (not the Expo push token).
+ *
+ * This is the native token required by the FCM Instance ID API for topic
+ * subscription. The app posts it to the backend once, which subscribes it
+ * to the `urgent_bookings` topic. After that, the backend sends one topic
+ * message and FCM delivers it to all subscribed devices.
+ *
+ * Returns null on web, iOS simulator, or if token retrieval fails.
+ * The token is never shown to the admin.
+ */
+export async function getDeviceFcmToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+  if (!Device.isDevice) return null;
+  if (isNotificationStartupDisabled()) return null;
+  logStartupCheckpoint('NOTIFICATIONS_TOKEN_START', { tokenKind: 'native-device' });
+  try {
+    const Notifications = await getConfiguredNotifications('device-fcm-token');
+    if (!Notifications) return null;
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    const token = normalizeDevicePushToken(tokenData, 'android');
+    if (token) {
+      logStartupCheckpoint('NOTIFICATIONS_TOKEN_SUCCESS', {
+        tokenKind: 'native-device',
+      });
+      return token;
+    }
+    if (__DEV__) {
+      console.warn('[notif] unexpected device push token payload');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_TOKEN_FAILED', {
+      tokenKind: 'native-device',
+      reason: 'malformed-or-non-android-token',
+    });
+    return null;
+  } catch (err) {
+    // Without a valid Firebase Android app config (google-services.json
+    // matching this package), raw FCM token retrieval fails and the device
+    // cannot subscribe to urgent_bookings topic for background delivery.
+    logStartupModuleFailed('NOTIFICATIONS_TOKEN_FAILED', err, { tokenKind: 'native-device' });
+    console.warn('[notif] failed to get raw Android FCM token');
+    return null;
+  }
+}
+
+/**
+ * Get the current notification permission status without triggering a
+ * permission request. Used by urgent-alerts.ts for status display.
+ */
+export async function getUrgentAlertsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
+  return readAdminNotificationPermissionStatus();
+}

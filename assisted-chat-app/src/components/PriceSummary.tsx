@@ -1,0 +1,347 @@
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
+import type {
+  AssistedChatPaymentChoice,
+  AssistedChatQuoteBreakdown,
+  AssistedChatServiceType,
+  StripePaymentLinkState,
+} from '@/types/assisted-chat';
+import { AppButton, SectionCard, StatusBanner } from './ui';
+import { colors, fontSize, radius } from './theme';
+import { formatGbp } from '@/lib/money';
+
+interface Props {
+  quote: AssistedChatQuoteBreakdown | null;
+  lockingNutCharge: number;
+  loading: boolean;
+  stageIdx: number;
+  stageLabels: readonly string[];
+  error: string | null;
+  onGetPrice: () => void;
+  onChoosePayment: (choice: AssistedChatPaymentChoice) => void;
+  paymentChoice: AssistedChatPaymentChoice | null;
+  paymentBusy: boolean;
+  paymentError: string | null;
+  paymentLink: StripePaymentLinkState | null;
+  dispatchedRefNumber: string | null;
+  /** Disable Get price for blocking client-side issues (e.g. insufficient stock). */
+  pricingBlocked?: boolean;
+  /** Optional inline slot rendered above Get price (e.g. duplicate warning). */
+  beforeGetPriceSlot?: ReactNode;
+  /** True when a priced field changed after the last quote. */
+  priceNeedsRefresh?: boolean;
+  /** Optional slot rendered after Get price when pricing failed (recovery). */
+  afterGetPriceSlot?: ReactNode;
+  /** Optional slot rendered after the payment buttons (e.g. customer message card / payment recovery). */
+  afterPaymentSlot?: ReactNode;
+  /** Guided screens use the sticky primary CTA instead of an inline Get price button. */
+  showGetPriceAction?: boolean;
+  /** Guided screens render exactly one payment selector elsewhere. */
+  showPaymentOptions?: boolean;
+  /**
+   * Manual admin price override in GBP. When set, the breakdown is
+   * relabelled as a calculated reference ("Calculated breakdown") and the
+   * final highlighted row shows the manual price instead.
+   */
+  manualPriceGbp?: number | null;
+  serviceType?: AssistedChatServiceType;
+}
+
+export function PriceSummary({
+  quote,
+  lockingNutCharge,
+  loading,
+  stageIdx,
+  stageLabels,
+  error,
+  onGetPrice,
+  onChoosePayment,
+  paymentChoice,
+  paymentBusy,
+  paymentError,
+  paymentLink,
+  dispatchedRefNumber,
+  pricingBlocked,
+  beforeGetPriceSlot,
+  priceNeedsRefresh,
+  afterGetPriceSlot,
+  afterPaymentSlot,
+  showGetPriceAction = true,
+  showPaymentOptions = true,
+  manualPriceGbp = null,
+  serviceType = 'fit',
+}: Props) {
+  const baseTotal = quote?.total ?? 0;
+  const calculatedTotal = baseTotal;
+  const hasManualOverride =
+    typeof manualPriceGbp === 'number' && Number.isFinite(manualPriceGbp);
+  // The customer-payable figure used for deposit/cash/full button labels and
+  // the customer-facing sentence. Manual override wins, and is persisted as a
+  // backend admin adjustment before quote save/finalize.
+  const effectiveTotal = hasManualOverride ? (manualPriceGbp as number) : calculatedTotal;
+  const depositPercent = 0.20;
+  const deposit = effectiveTotal * depositPercent;
+  const priceLines = quote?.lineItems.filter((line) => line.type !== 'subtotal' && line.type !== 'total') ?? [];
+  const pricingDistanceMiles =
+    quote?.distanceMiles ?? (quote?.distanceKm != null ? quote.distanceKm * 0.621371 : null);
+  const pricingDistanceKm = pricingDistanceMiles != null ? pricingDistanceMiles * 1.60934 : quote?.distanceKm ?? null;
+  const pricingSource =
+    quote?.pricingDistanceSource === 'garage_floor'
+      ? 'garage route'
+      : quote?.pricingDistanceSource === 'garage'
+      ? 'garage'
+      : quote?.pricingDistanceSource === 'driver'
+      ? 'nearest driver'
+      : quote?.serviceOrigin?.source === 'driver'
+      ? 'nearest driver'
+      : quote?.serviceOrigin?.source === 'garage'
+      ? 'garage'
+      : null;
+  const hasDistanceCharge = priceLines.some((line) => /callout|rural|distance/i.test(line.label));
+  const hasRuralSurcharge = priceLines.some((line) => /rural/i.test(line.label));
+  const customerPriceSentence = quote
+    ? serviceType === 'assess'
+      ? `Tell customer: total is ${formatGbp(effectiveTotal)} for call-out, inspection and labour. Final tyre cost will be confirmed after inspection.`
+      : serviceType === 'locking_nut'
+      ? `Tell customer: total is ${formatGbp(effectiveTotal)} for locking wheel nut removal, call-out and labour.`
+      : serviceType === 'repair'
+      ? `Tell customer: total is ${formatGbp(effectiveTotal)} for tyre repair, call-out and labour.`
+      : `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
+    : null;
+  const smartWarnings = [
+    quote && serviceType === 'assess'
+      ? 'Final tyre cost will be confirmed after inspection.'
+      : null,
+    quote && serviceType === 'locking_nut'
+      ? 'No tyre replacement or repair is included in this quote.'
+      : null,
+    pricingDistanceMiles != null && pricingDistanceMiles >= 30
+      ? 'Long-distance job. The price includes extra travel distance.'
+      : null,
+    hasRuralSurcharge ? 'Rural surcharge is included in this quote. Mention this if the customer asks why the total is higher.' : null,
+    quote &&
+    lockingNutCharge > 0 &&
+    quote.adminAdjustmentReason !== 'Locking wheel nut removal'
+      ? 'Refresh the price so locking wheel nut removal is included in the backend quote.'
+      : null,
+  ].filter(Boolean) as string[];
+
+  return (
+    <SectionCard title={hasManualOverride ? 'Calculated breakdown' : 'Price'}>
+      {beforeGetPriceSlot}
+      {priceNeedsRefresh ? (
+        <View style={{ marginBottom: 10 }}>
+          <StatusBanner kind="warn" message="Price needs refresh. Address or tyre details changed after the last quote." />
+        </View>
+      ) : null}
+      {showGetPriceAction ? (
+        <AppButton
+          label={loading ? stageLabels[Math.max(0, stageIdx)] + '…' : 'Get price'}
+          onPress={onGetPrice}
+          loading={loading}
+          disabled={loading || pricingBlocked === true}
+          fullWidth
+        />
+      ) : null}
+
+      {error ? (
+        <View style={{ marginTop: 10 }}>
+          <StatusBanner kind="err" message={error} />
+        </View>
+      ) : null}
+      {afterGetPriceSlot}
+
+      {!quote && !loading && !error ? (
+        <Text style={styles.emptyHint}>
+          Price will appear after location and tyre details are ready.
+        </Text>
+      ) : null}
+
+      {quote ? (
+        <View style={styles.breakdown}>
+          {priceLines.map((line, i) => (
+            <View key={`${line.type}-${i}`} style={styles.row}>
+              <Text style={styles.rowLabel} numberOfLines={2}>
+                {line.label}
+                {line.quantity && line.quantity > 1
+                  ? `  × ${line.quantity}`
+                  : ''}
+              </Text>
+              <Text style={styles.rowValue}>{formatGbp(line.amount)}</Text>
+            </View>
+          ))}
+
+          {quote.vatAmount > 0 ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>VAT (incl.)</Text>
+              <Text style={styles.rowValue}>{formatGbp(quote.vatAmount)}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.totalLabel}>
+              {hasManualOverride ? 'Calculated total' : 'Total'}
+            </Text>
+            <Text style={styles.totalValue}>{formatGbp(calculatedTotal)}</Text>
+          </View>
+
+          {hasManualOverride ? (
+            <>
+              <View style={styles.divider} />
+              <View style={[styles.row, styles.finalRow]}>
+                <Text style={styles.finalLabel}>Final quote price</Text>
+                <Text style={styles.finalValue}>{formatGbp(effectiveTotal)}</Text>
+              </View>
+              <Text style={styles.manualNoteText}>Manual override applied</Text>
+            </>
+          ) : null}
+
+          {customerPriceSentence ? (
+            <View style={styles.sayBox}>
+              <Text style={styles.sayText}>{customerPriceSentence}</Text>
+            </View>
+          ) : null}
+
+          {pricingDistanceMiles != null ? (
+            <Text style={styles.meta}>
+              Distance used for pricing: {pricingDistanceMiles.toFixed(1)} mi
+              {pricingDistanceKm != null ? ` (${pricingDistanceKm.toFixed(1)} km)` : ''}
+              {pricingSource ? ` from ${pricingSource}` : ''}
+            </Text>
+          ) : (
+            <Text style={styles.warnMeta}>Pricing distance unavailable. Price used the fallback distance.</Text>
+          )}
+
+          {smartWarnings.length > 0 ? (
+            <View style={styles.warningStack}>
+              {smartWarnings.map((warning) => (
+                <StatusBanner key={warning} kind="warn" message={warning} />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {quote && showPaymentOptions ? (
+        <View style={{ marginTop: 14, gap: 8 }}>
+          <Text style={styles.payLabel}>Choose payment</Text>
+          <View style={{ gap: 8 }}>
+            <AppButton
+              label={`Pay deposit 20% (${formatGbp(deposit)})`}
+              onPress={() => onChoosePayment('deposit')}
+              variant={paymentChoice === 'deposit' ? 'primary' : 'secondary'}
+              loading={paymentBusy && paymentChoice === 'deposit'}
+              disabled={paymentBusy || dispatchedRefNumber !== null}
+              fullWidth
+            />
+            <AppButton
+              label={`Cash (${formatGbp(effectiveTotal)})`}
+              onPress={() => onChoosePayment('cash')}
+              variant={paymentChoice === 'cash' ? 'primary' : 'secondary'}
+              loading={paymentBusy && paymentChoice === 'cash'}
+              disabled={paymentBusy || dispatchedRefNumber !== null}
+              fullWidth
+            />
+            <AppButton
+              label={`Full payment (${formatGbp(effectiveTotal)})`}
+              onPress={() => onChoosePayment('full')}
+              variant={paymentChoice === 'full' ? 'primary' : 'secondary'}
+              loading={paymentBusy && paymentChoice === 'full'}
+              disabled={paymentBusy || dispatchedRefNumber !== null}
+              fullWidth
+            />
+          </View>
+          {paymentError ? (
+            <View style={{ marginTop: 6 }}>
+              <StatusBanner kind="err" message={paymentError} />
+            </View>
+          ) : null}
+          {dispatchedRefNumber ? (
+            <View style={{ marginTop: 6 }}>
+              <StatusBanner
+                kind="ok"
+                message={
+                  paymentLink
+                    ? `${paymentLink.kind === 'deposit' ? 'Deposit' : 'Full'} payment link ready for ${dispatchedRefNumber}.`
+                    : `Booking ${dispatchedRefNumber} created.`
+                }
+              />
+            </View>
+          ) : null}
+          {afterPaymentSlot}
+        </View>
+      ) : null}
+    </SectionCard>
+  );
+}
+
+const priceCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+});
+
+const styles = StyleSheet.create({
+  breakdown: {
+    marginTop: 12,
+    padding: 12,
+    borderColor: colors.borderStrong,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.glassStrong,
+    gap: 6,
+    ...priceCardShadow,
+  },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  rowLabel: { color: colors.text, fontSize: fontSize.sm, flexShrink: 1, paddingRight: 8 },
+  rowValue: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: 4 },
+  totalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '900' },
+  totalValue: { color: colors.accent, fontSize: fontSize.lg, fontWeight: '900' },
+  finalRow: {
+    backgroundColor: colors.infoBg,
+    borderWidth: 1,
+    borderColor: colors.infoBorder,
+    borderRadius: radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  finalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
+  finalValue: { color: colors.accent, fontSize: fontSize.lg, fontWeight: '900' },
+  manualNoteText: {
+    marginTop: 4,
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 0,
+  },
+  sayBox: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.infoBorder,
+    borderRadius: radius.md,
+    backgroundColor: colors.infoBg,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    ...priceCardShadow,
+  },
+  sayText: { color: colors.info, fontSize: fontSize.sm, fontWeight: '700', lineHeight: 19 },
+  meta: { marginTop: 6, color: colors.subtle, fontSize: fontSize.xs },
+  warnMeta: { marginTop: 6, color: colors.warning, fontSize: fontSize.xs, fontWeight: '700' },
+  emptyHint: {
+    marginTop: 12,
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontStyle: 'italic',
+    lineHeight: 19,
+  },
+  warningStack: { marginTop: 8, gap: 6 },
+  payLabel: { color: colors.muted, fontWeight: '700', fontSize: fontSize.xs, letterSpacing: 0 },
+});

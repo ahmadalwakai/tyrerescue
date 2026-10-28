@@ -1,0 +1,37 @@
+# EAS upload excludes. When present, EAS uses this instead of .gitignore to
+# build the project archive. EAS runs expo prebuild on its own servers so the
+# entire local android/ and ios/ trees are unnecessary — regenerated cleanly
+# from app.json during the build. Excluding them keeps the archive well under
+# the 2 GB upload limit.
+
+# Dependencies (restored on the build server)
+node_modules/
+
+# Expo / bundler caches & outputs
+.expo/
+dist/
+
+# Env & logs
+.env
+.env.local
+.env.*
+credentials.json
+*.p8
+*.p12
+*.mobileprovision
+*.pem
+*.key
+*.log
+*.exit
+*.pid
+*.ps1
+*.zip
+*.tar
+*.tgz
+build-info.json
+.git/
+.vscode/
+
+# Entire local native projects — EAS regenerates these via prebuild.
+android/
+ios/
