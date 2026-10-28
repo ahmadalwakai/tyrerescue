@@ -1,5 +1,11 @@
 import { fetchApi } from './api';
 
+export type CustomerChatChannel = 'customer_admin' | 'customer_driver';
+
+export function isCustomerChatChannel(channel: string): channel is CustomerChatChannel {
+  return channel === 'customer_admin' || channel === 'customer_driver';
+}
+
 export interface CustomerChatConversation {
   id: string;
   bookingId: string | null;

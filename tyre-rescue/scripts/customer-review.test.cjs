@@ -230,7 +230,7 @@ test('double confirmation creates one booking, locks navigation and advances dir
   const first = confirm(); const duplicate = confirm();
   assert.equal(h.requests('create').length, 1);
   let tree = h.read();
-  assert.equal(find(tree.root, (item) => item.props?.accessibilityLabel === 'Previous booking step').props.disabled, true);
+  assert.equal(find(tree.root, (item) => item.props?.backLabel === 'Previous booking step').props.backDisabled, true);
   assert.equal(h.action().props.loading, true);
   create.resolve({ bookingId: 'booking-one', refNumber: 'TYR-ONE', stripeClientSecret: 'pi_one_secret_existing', bookingAccessToken: 'private-one' });
   await first; await duplicate;
@@ -252,7 +252,7 @@ test('editing a previous step unmounts the review and keeps contact details when
   h.field('Email').props.onChangeText('kept@example.invalid');
   h.field('Phone').props.onChangeText('07999 123456');
   const goTo = h.read().quoteProps.goTo;
-  find(h.read().customer, (item) => item.type === 'PrimaryButton' && item.props.children === 'Edit vehicle or tyres').props.onPress();
+  find(h.read().customer, (item) => item.props?.editLabel === 'Edit vehicle or tyres').props.onEdit();
   assert.ok(find(h.read().root, (item) => item.type === h.components.DetailsStep));
   goTo('quote'); h.read();
   assert.equal(h.field('Full name').props.value, 'Kept Customer');
@@ -328,6 +328,6 @@ test('server slot rejection returns to scheduling and server quote rejection kee
   h.read(); await settle(); h.read();
   assert.equal(h.field('Full name').props.value, 'Kept After Expiry');
   assert.equal(h.requests('quote').length, 1);
-  assert.equal(h.action().props.children, 'Confirm details & continue to payment');
+  assert.match(h.action().props.children, /^Continue to payment · £\d+\.\d{2}$/);
   h.unmount();
 });

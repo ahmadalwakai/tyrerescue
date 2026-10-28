@@ -114,25 +114,26 @@ function screenHarness() {
   return { ...h, types, components };
 }
 
-test('home prioritises emergency help and preserves the existing scheduled fitting requirements', async () => {
+test('home starts emergency help in one tap and preserves the existing scheduled fitting requirements', async () => {
   const h = screenHarness(); const home = h.renderer(h.components.ServiceStep);
-  const props = { state: { ...h.types.initialBookingState }, updateState: value => { props.state = { ...props.state, ...value }; }, advances: 0, goNext: () => { props.advances++; } };
+  const props = { state: { ...h.types.initialBookingState }, updateState: value => { props.state = { ...props.state, ...value }; },
+    advances: 0, goNext: () => { props.advances++; }, visited: [], goTo: step => { props.visited.push(step); } };
   let tree = home.render(props); await settle(); tree = home.render(props);
-  assert.equal(find(tree, item => item.type === 'BookingContinueButton').props.disabled, true);
+  assert.equal(find(tree, item => item.type === 'BookingContinueButton'), undefined);
   const emergency = find(tree, item => item.props?.title === 'Emergency tyre help'); assert.equal(emergency.props.emergency, true);
   const accessibleChoice = h.components.ServiceChoice(emergency.props);
-  assert.equal(accessibleChoice.props.accessibilityLabel, 'Emergency tyre help. Flat tyre or a breakdown? Start a callout at your location. Drivers available now');
+  assert.equal(accessibleChoice.props.accessibilityLabel, 'Emergency tyre help. Flat tyre or a puncture right now? We come to you. Drivers available now');
   const problem = h.components.ProblemCard({ option: { title: 'Flat tyre', detail: 'Tyre is flat now.', meta: 'Fast rescue', icon: 'alert-triangle' }, selected: true, onPress: () => {} });
   assert.equal(problem.props.accessibilityLabel, 'Flat tyre. Tyre is flat now. Fast rescue');
   assert.equal(problem.props.accessibilityState.selected, true);
   emergency.props.onPress(); tree = home.render(props);
-  assert.equal(props.state.bookingType, 'emergency'); assert.equal(props.advances, 0);
-  let action = find(tree, item => item.type === 'BookingContinueButton'); assert.equal(action.props.disabled, false); action.props.onPress(); assert.equal(props.advances, 1);
+  assert.equal(props.state.bookingType, 'emergency'); assert.deepEqual(props.visited, ['location']); assert.equal(props.advances, 0);
   find(tree, item => item.props?.title === 'Book a fitting').props.onPress(); tree = home.render(props);
-  action = find(tree, item => item.type === 'BookingContinueButton'); assert.equal(action.props.disabled, true);
+  const action = find(tree, item => item.type === 'BookingContinueButton'); assert.equal(action.props.disabled, true);
   assert.ok(find(tree, item => item.type === 'CustomerFittingChoice'));
   props.state.fittingLocation = 'mobile'; tree = home.render(props);
-  assert.equal(find(tree, item => item.type === 'BookingContinueButton').props.disabled, false);
+  const ready = find(tree, item => item.type === 'BookingContinueButton'); assert.equal(ready.props.disabled, false);
+  ready.props.onPress(); assert.equal(props.advances, 1);
   home.unmount();
 });
 

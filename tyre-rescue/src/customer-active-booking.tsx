@@ -54,23 +54,29 @@ export function CustomerActiveBookingCard() {
           <PrimaryButton icon="refresh-cw" variant="ghost" loading={account.refreshing} onPress={() => void account.refresh()}>Refresh booking</PrimaryButton>
         </View>
       ) : null}
-      <PrimaryButton
-        icon="map-pin"
-        accessibilityLabel={`Track booking ${booking.refNumber}`}
-        onPress={() => router.push({ pathname: '/track', params: { ref: booking.refNumber } })}
-      >Track my booking</PrimaryButton>
-      <PrimaryButton
-        icon="message-circle"
-        variant="secondary"
-        accessibilityLabel={`Chat with our team about booking ${booking.refNumber}`}
-        onPress={() => router.push({ pathname: '/chat', params: { bookingId: booking.bookingId, ref: booking.refNumber } })}
-      >Chat with our team</PrimaryButton>
+      <View style={styles.actions}>
+        <PrimaryButton
+          icon="map-pin"
+          style={styles.action}
+          accessibilityLabel={`Track booking ${booking.refNumber}`}
+          onPress={() => router.push({ pathname: '/track', params: { ref: booking.refNumber } })}
+        >Track</PrimaryButton>
+        <PrimaryButton
+          icon="message-circle"
+          variant="secondary"
+          style={styles.action}
+          accessibilityLabel={`Chat with our team about booking ${booking.refNumber}`}
+          onPress={() => router.push({ pathname: '/chat', params: { bookingId: booking.bookingId, ref: booking.refNumber } })}
+        >Chat</PrimaryButton>
+      </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderColor: colors.accent, gap: spacing.gap },
+  card: { borderColor: colors.accentBorder, gap: spacing.gap },
+  actions: { flexDirection: 'row', gap: 10 },
+  action: { flex: 1 },
   heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.gap },
   headingText: { flexGrow: 1, gap: 4 },
   title: { color: colors.text, fontFamily: typography.heading, fontSize: 18, lineHeight: 26 },

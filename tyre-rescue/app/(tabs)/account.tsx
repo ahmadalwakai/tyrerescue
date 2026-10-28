@@ -11,7 +11,7 @@ import {
 } from '@/src/customer-account';
 import { colors, spacing, typography } from '@/src/theme';
 import { formatPrice } from '@/src/types';
-import { Card, InlineNotice, LoadingState, Logo, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
+import { AppHeader, Card, InlineNotice, LoadingState, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
 
 type AuthMode = 'login' | 'register';
 
@@ -129,9 +129,8 @@ export default function AccountScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.content, safeContentInsets]} keyboardShouldPersistTaps="handled">
-      <Logo />
+      <AppHeader />
       <ScreenHeader
-        eyebrow="Account"
         title={account.profile ? 'Your account' : authMode === 'login' ? 'Sign in' : 'Create account'}
         detail={account.profile ? undefined : 'Create an account or sign in to manage bookings, invoices, and tracking.'}
       />

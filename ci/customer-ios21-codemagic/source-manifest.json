@@ -1,0 +1,554 @@
+{
+  "version": "1.0.6",
+  "buildNumber": "21",
+  "bundleIdentifier": "uk.tyrerescue.customer",
+  "sourceManifestSha256": "252b1b2af2f9835123752b20e02b04db03738bbb1aaed078cc79164268cfbf51",
+  "fileCount": 109,
+  "files": [
+    {
+      "file": ".easignore",
+      "bytes": 260,
+      "sha256": "5f376b9ae244ac19f2831ffaba131b21705907cdd27386e9dcf4f87c008ef7d4"
+    },
+    {
+      "file": ".gitignore",
+      "bytes": 453,
+      "sha256": "adf9eba69e0e560f18cf1f83fc8a5070d18e2e7806cbb57c21bf52a95f9d88c7"
+    },
+    {
+      "file": "app/(tabs)/_layout.tsx",
+      "bytes": 4206,
+      "sha256": "931daad189395867241ebcda38fcdb43cdef93218f900bb8f2f0106381364c5c"
+    },
+    {
+      "file": "app/(tabs)/account.tsx",
+      "bytes": 19613,
+      "sha256": "30beb5e53e08e0630bbb5b98b64b7bdb995ba80a3652acb573b660bbb44b3503"
+    },
+    {
+      "file": "app/(tabs)/chat.tsx",
+      "bytes": 17738,
+      "sha256": "5aa641b1fe5c25e55a675e5758076a9684461d15a2a52e0d45358323d5be5185"
+    },
+    {
+      "file": "app/(tabs)/index.tsx",
+      "bytes": 124,
+      "sha256": "ebab3d1c2eaf2c9ed39aef8498336ddebacc33abf782c876682aa4164f3babbb"
+    },
+    {
+      "file": "app/(tabs)/support.tsx",
+      "bytes": 3055,
+      "sha256": "e7f152481cd5ed681f357de01ffcb225b5cd70d439d5ae5ecca219a1e49d2f4f"
+    },
+    {
+      "file": "app/(tabs)/track.tsx",
+      "bytes": 24418,
+      "sha256": "e65d681dfff3b5079cb3a6a5c52d01b32c7f245ab54e6bc7b9d0456ec1015d52"
+    },
+    {
+      "file": "app/+native-intent.tsx",
+      "bytes": 212,
+      "sha256": "c5d5e056af0895faeb5fe327f9e1696aaaa2ee13e6c95b1501edc6a120279fad"
+    },
+    {
+      "file": "app/_layout.tsx",
+      "bytes": 2451,
+      "sha256": "209d8b10af937fa6fbb4d728dea57a3d6121cc6c4b6c19070d722adc2e19130a"
+    },
+    {
+      "file": "app/stripe-redirect.tsx",
+      "bytes": 286,
+      "sha256": "c5713f520fcd11d9dfe836068004b201ce74473c8a9762540dd251d608149729"
+    },
+    {
+      "file": "app.config.ts",
+      "bytes": 1362,
+      "sha256": "290f91366cf6b03f6a6169114581fa27bdc8ad2afb603bddb81fdf647760263d"
+    },
+    {
+      "file": "app.json",
+      "bytes": 3041,
+      "sha256": "8fbe66a3ed20a5f3328d87ce84038c5568af5bd3383f3723aaa2848434620675"
+    },
+    {
+      "file": "assets/images/android-icon-background.png",
+      "bytes": 4582,
+      "sha256": "b7b3307c8f1eb7a8e96d2fc88ebfd38635288049c3e1d5210efafcde2a19a1af"
+    },
+    {
+      "file": "assets/images/android-icon-foreground.png",
+      "bytes": 48536,
+      "sha256": "b0c28054f2de4bbe70b5c9dac86f3da1ada55b15af7bf2b3fdede0bffd9af884"
+    },
+    {
+      "file": "assets/images/android-icon-monochrome.png",
+      "bytes": 4140,
+      "sha256": "6371fc2c12e33ad2215a86c281db3d682a81bebe7c957a842c13b8bf00cceb83"
+    },
+    {
+      "file": "assets/images/favicon.png",
+      "bytes": 7496,
+      "sha256": "88ebad3f4d3eb7ba19f630f4d525e0018d00d2caa73773071704c7df6a20ef8f"
+    },
+    {
+      "file": "assets/images/icon.png",
+      "bytes": 43610,
+      "sha256": "02d83e5458c4efbf9c88db286ac176f687ee1e4ce9cb8bd81eb62b26196ba0e3"
+    },
+    {
+      "file": "assets/images/partial-react-logo.png",
+      "bytes": 5075,
+      "sha256": "015a72aeb24c1166243ebc185355c9488cc892fbf3aa82f9ae66819a10f3451c"
+    },
+    {
+      "file": "assets/images/react-logo.png",
+      "bytes": 6341,
+      "sha256": "224b7636b15e672801579b5b418077cbc2ca42f0146389062364356b0ecb5c5c"
+    },
+    {
+      "file": "assets/images/react-logo@2x.png",
+      "bytes": 14225,
+      "sha256": "fa600be9ad2f869c7a8dbaffc78bb15af741123e1319c948f0be51753a153cde"
+    },
+    {
+      "file": "assets/images/react-logo@3x.png",
+      "bytes": 21252,
+      "sha256": "cd84e02a5d542a3e71b7fa10a685c1b9fb51db4aff92aca6c0da6461ce17be16"
+    },
+    {
+      "file": "assets/images/splash-icon.png",
+      "bytes": 36969,
+      "sha256": "556c0bf4212ecd6f2be8928fab5538497aa8d765577582ea763368e4f9013982"
+    },
+    {
+      "file": "components/external-link.tsx",
+      "bytes": 794,
+      "sha256": "2838582e2dc21877652b710d4aee5f4ba5a795b17fcf63bd7ac9c25a749c8c26"
+    },
+    {
+      "file": "components/haptic-tab.tsx",
+      "bytes": 564,
+      "sha256": "eeb1860d6e4edb647e1ebeb116ff81393ec50e2d721560c1fe2d686716a518f8"
+    },
+    {
+      "file": "components/hello-wave.tsx",
+      "bytes": 405,
+      "sha256": "2f0b9b1f7740f0de0c1aed071142a2251ceb9936cca0d210f69bc85ce08dd579"
+    },
+    {
+      "file": "components/parallax-scroll-view.tsx",
+      "bytes": 1996,
+      "sha256": "37857f0334e989274920465789c9665327ffaba2688292c26dd484db7d95feb9"
+    },
+    {
+      "file": "components/themed-text.tsx",
+      "bytes": 1285,
+      "sha256": "06d02c5a33dd258563726e8586a4b588e2df7c087ac291be6a225f89bf1ac974"
+    },
+    {
+      "file": "components/themed-view.tsx",
+      "bytes": 470,
+      "sha256": "b95ec1df30abf73d26593db2b6e6280af33b39f3f3b6d960765e99fb6f6843c8"
+    },
+    {
+      "file": "components/ui/collapsible.tsx",
+      "bytes": 1362,
+      "sha256": "edf4096c1dd0b7e2835773ec327a69ab8b333f459710fd3590334daaec41739c"
+    },
+    {
+      "file": "components/ui/icon-symbol.ios.tsx",
+      "bytes": 598,
+      "sha256": "c4e56fc2c481f0964d06ff0c9dda51eeba1ca7f6f554336dfdceb4a75c80eb2c"
+    },
+    {
+      "file": "components/ui/icon-symbol.tsx",
+      "bytes": 1422,
+      "sha256": "5cf33b25a381429479bb5f56e744111bcd8b81f99969e9cb56e14988293e338f"
+    },
+    {
+      "file": "constants/theme.ts",
+      "bytes": 1630,
+      "sha256": "2e62645f6e9f46e520a0c9db49289c3f71b5849b946466b4ba48d3469b6911dc"
+    },
+    {
+      "file": "eas.json",
+      "bytes": 479,
+      "sha256": "2c8b9a3ee0fee24e51f495ddf176d2f5235af08e91b8f55218bee18388f0d4a2"
+    },
+    {
+      "file": "eslint.config.js",
+      "bytes": 237,
+      "sha256": "3b0c823fd936f964905db962e66e92e24773b7085c0c82750a4d4f0b1808c41c"
+    },
+    {
+      "file": "hooks/use-color-scheme.ts",
+      "bytes": 47,
+      "sha256": "33beb965500ae5fdfe5c8699805a6be94c8c126a751fbe2ed7bcae87df394882"
+    },
+    {
+      "file": "hooks/use-color-scheme.web.ts",
+      "bytes": 480,
+      "sha256": "84f19b5c1a8e941ab9868d2e83f6e61db11d3d9bf4fa91fac979bcd0fdc8019b"
+    },
+    {
+      "file": "hooks/use-theme-color.ts",
+      "bytes": 537,
+      "sha256": "49ec7d86e952e315f8172e7994a879d3c63023f2955f667fedba6ab5c89c1710"
+    },
+    {
+      "file": "package-lock.json",
+      "bytes": 509448,
+      "sha256": "554807d6d6eee0623a8152b66f7b60f7ce1ae1a7ad723f9d73bfe07b70df8799"
+    },
+    {
+      "file": "package.json",
+      "bytes": 1895,
+      "sha256": "71f9659fdc50a3fd1479caf8540348aff5514a2ddc9ce871b4d1399ea17c8c17"
+    },
+    {
+      "file": "scripts/customer-account.test.cjs",
+      "bytes": 11109,
+      "sha256": "248ca45ef5b7b8938c1fd5042c688ea6e8de34172f71c876f95e103438e1699e"
+    },
+    {
+      "file": "scripts/customer-active-booking.test.cjs",
+      "bytes": 10356,
+      "sha256": "9a696157b931be18373f19f8fdf2760ebc2a64329d5b5bbb8daffd0ce631e6bd"
+    },
+    {
+      "file": "scripts/customer-apple-pay.test.cjs",
+      "bytes": 7403,
+      "sha256": "fcccd6c70f996258303e3078c6c9816cad44dbb4ad23a22a6e347696e30ce1d5"
+    },
+    {
+      "file": "scripts/customer-assisted-help.test.cjs",
+      "bytes": 8146,
+      "sha256": "3bd742ded1a91ae156c7d5f8ae88653288232fb03c464138093e5169f940513a"
+    },
+    {
+      "file": "scripts/customer-booking-design.test.cjs",
+      "bytes": 11955,
+      "sha256": "9773310fe1fa7a6a04bad776fb1e7412feead57832d9e056bc2a283f9e092704"
+    },
+    {
+      "file": "scripts/customer-chat.test.cjs",
+      "bytes": 11991,
+      "sha256": "67bfd364c62aa15026ef683d2966705521e58f88326b59209363151a5cff8dc9"
+    },
+    {
+      "file": "scripts/customer-location-store.test.cjs",
+      "bytes": 12025,
+      "sha256": "d782befb8f863033dcc80c643c13180609c58bd639758047266ab49857974caf"
+    },
+    {
+      "file": "scripts/customer-location.test.cjs",
+      "bytes": 16269,
+      "sha256": "f1b7b10e54d44c0686014847e8af10eb2c3e331469e27bd04857c067ae12daf1"
+    },
+    {
+      "file": "scripts/customer-motion.test.cjs",
+      "bytes": 3569,
+      "sha256": "3c6ba6007616648134106fd70d9391d35f765645383f53cc7847abcb5e6ce605"
+    },
+    {
+      "file": "scripts/customer-param-access.test.cjs",
+      "bytes": 1675,
+      "sha256": "c084e17c503d3b1a6967e88e19cfb175ffe5410edec4591fc869fc808b03e020"
+    },
+    {
+      "file": "scripts/customer-payment-recovery-native.test.cjs",
+      "bytes": 17376,
+      "sha256": "6963fdbcd0bf287f5cd9b15e77e67ffd263479097c2b92c4a47d7ef48a4bdebf"
+    },
+    {
+      "file": "scripts/customer-payment-recovery.test.cjs",
+      "bytes": 3706,
+      "sha256": "c459aba0ce0cdc4c942bac5304fdcb389daad19ae3e6f3dec190f6f3f3503edf"
+    },
+    {
+      "file": "scripts/customer-payment-redirect.test.cjs",
+      "bytes": 4754,
+      "sha256": "837684721b8347361a8bdfce3bd71368b747151fe7ff3d98bd9ff84258f2ae25"
+    },
+    {
+      "file": "scripts/customer-payment-return-provider.test.cjs",
+      "bytes": 7409,
+      "sha256": "dba58cf5292b181ac95e1e1c8ed1c297f3837112afa57f7f16127df873692555"
+    },
+    {
+      "file": "scripts/customer-payment-step.test.cjs",
+      "bytes": 14851,
+      "sha256": "74703e1559e5e717e3dcffeaee369ad39c065cddaf1f4569c696e507a3921276"
+    },
+    {
+      "file": "scripts/customer-payment.test.cjs",
+      "bytes": 9477,
+      "sha256": "4717edb2e40b803c5615775a8f8040873d68af5f5d8999596873b0590c10d9cd"
+    },
+    {
+      "file": "scripts/customer-review.test.cjs",
+      "bytes": 17780,
+      "sha256": "9841b8ed552028af284b5f5b2cbaf00f208880e1e7a3be011da76f6a56fecc8d"
+    },
+    {
+      "file": "scripts/customer-tracking.test.cjs",
+      "bytes": 13569,
+      "sha256": "b99554b9528d4b76d51af796ea3776fa552302aad51159113509803cb5802c87"
+    },
+    {
+      "file": "scripts/customer-ui-accessibility.test.cjs",
+      "bytes": 5007,
+      "sha256": "8d536237b6efdfe5111c218dc1a14d3c60cee14f73f6b62539b59491d5bb10d5"
+    },
+    {
+      "file": "scripts/prepare-codemagic-ios.cjs",
+      "bytes": 6932,
+      "sha256": "6ce5c6916340be00dc1a17133a074c90d2cea49fc685ce35dc33f7074a27d1f8"
+    },
+    {
+      "file": "scripts/reset-project.js",
+      "bytes": 3608,
+      "sha256": "cdb729cfc560944bfc199c18c638153c6537e507e3e86f50cba0ac6be8543c26"
+    },
+    {
+      "file": "src/api.ts",
+      "bytes": 4943,
+      "sha256": "0c3a2ed83805f41ceb250667cb640d9d8e901d6b5ce8778d21585c2d7e423336"
+    },
+    {
+      "file": "src/booking-draft-storage.ts",
+      "bytes": 778,
+      "sha256": "855588b54d8a36a2fade780bc76823eda3631f808b04028fe4c7a303b3ace471"
+    },
+    {
+      "file": "src/booking-footer.tsx",
+      "bytes": 3311,
+      "sha256": "c8fd2af774213be8b51c4e13b7764b4d70659c929e5e5fbe269e50cf8cd18af2"
+    },
+    {
+      "file": "src/booking-helpers.ts",
+      "bytes": 1136,
+      "sha256": "f358893bd92a38181124455f66a4dfcc70f655552d188f10f13a502165f5ac0a"
+    },
+    {
+      "file": "src/booking-safety.ts",
+      "bytes": 7767,
+      "sha256": "388e18475df907db131a381b81edcfd3cceb598faefd67b071bfd8896deacfd4"
+    },
+    {
+      "file": "src/booking-screen.tsx",
+      "bytes": 91102,
+      "sha256": "cd5eac3722589981d997b5d982f65afdf9625fe14ceefc27c6c1e4197cb91913"
+    },
+    {
+      "file": "src/config.ts",
+      "bytes": 1883,
+      "sha256": "981310972668c02d7ac085535f7775c0422d53573c40dc72bb47053cbb820ae8"
+    },
+    {
+      "file": "src/customer-account-cache.ts",
+      "bytes": 5083,
+      "sha256": "395d48cea511dfd1035ff9d364dc2b75b1410572699f78f8ccc44bc8fa1773f6"
+    },
+    {
+      "file": "src/customer-account.tsx",
+      "bytes": 12257,
+      "sha256": "82d4e1f774ff8f4826044354f34c2bdf7ed7957d3916e23d1e5dca8679ff60d2"
+    },
+    {
+      "file": "src/customer-active-booking-state.ts",
+      "bytes": 2465,
+      "sha256": "d79f76b83098fb5ea2e5b608d259d3b6833a3a7dd020667de94e14c77dfbc36e"
+    },
+    {
+      "file": "src/customer-active-booking.tsx",
+      "bytes": 4407,
+      "sha256": "d36ae28b6946ab56d2cf8067e60c5550d836ad59b2789076721f1ebe034c05e4"
+    },
+    {
+      "file": "src/customer-assisted-help-request.tsx",
+      "bytes": 7874,
+      "sha256": "f045d8980ac52b3d39753b726bc294f6c39c9ba65e5a923905cd2d2460107218"
+    },
+    {
+      "file": "src/customer-assisted-help.ts",
+      "bytes": 8768,
+      "sha256": "1f5e0fd36d4ca5e18f1dfae07257edf23c0fadef75cb6a0f4f11112c50173c8a"
+    },
+    {
+      "file": "src/customer-booking-access.ts",
+      "bytes": 2051,
+      "sha256": "8eebc8abbeb7b614ce86ee119df81f1d15b713236938c152df32c8c03e0cc61b"
+    },
+    {
+      "file": "src/customer-callback.tsx",
+      "bytes": 2823,
+      "sha256": "893d424174e0bd76501c3820c9ee5fd7566764d37a8d36744e3fe73557ccf334"
+    },
+    {
+      "file": "src/customer-chat.ts",
+      "bytes": 2962,
+      "sha256": "8bfc4ab3cd3c1e26c8a82d665746fb39d2d84b9a128b67b48d1ebac73ad8a24c"
+    },
+    {
+      "file": "src/customer-fitting-choice.tsx",
+      "bytes": 3969,
+      "sha256": "81797889fb95f8c9ff7f13dd35906fe997b479db1dcf7d99dc0a683cc169fa99"
+    },
+    {
+      "file": "src/customer-location-step.tsx",
+      "bytes": 9828,
+      "sha256": "7ddb40c1e2d3885173fd42ac32933181a0b7f45c91f211f7d6a15333656a23c5"
+    },
+    {
+      "file": "src/customer-location.ts",
+      "bytes": 5089,
+      "sha256": "eba4f48abb15373e7acf181c4f2ee73c1b4c0c655a95c3f2707cd2edc9d29850"
+    },
+    {
+      "file": "src/customer-notifications.tsx",
+      "bytes": 7882,
+      "sha256": "5145238fa5a562ab88ff286f7452ea78bafd834a4f25744f03293df07ec0f8fb"
+    },
+    {
+      "file": "src/customer-payment-control.native.tsx",
+      "bytes": 9507,
+      "sha256": "4291e1fd4d3ea53e3983f48faefb263dfdcda82a27715f7c2536b0eaa1f195bf"
+    },
+    {
+      "file": "src/customer-payment-control.tsx",
+      "bytes": 112,
+      "sha256": "6bd89c6094af07556fee4f1a9e3bc4a4c49f8b5bba659db5dd159bf6fa094022"
+    },
+    {
+      "file": "src/customer-payment-control.web.tsx",
+      "bytes": 6071,
+      "sha256": "3713ffa124e8f5e70c782769d113ac56df255c5322b0ef863161f8480b34edc3"
+    },
+    {
+      "file": "src/customer-payment-recovery.ts",
+      "bytes": 1265,
+      "sha256": "68fd2011ebb36a4e9234b069c8fc1b52df6d2a1d4088d131e37c26b2f8ca39be"
+    },
+    {
+      "file": "src/customer-payment-redirect.ts",
+      "bytes": 1439,
+      "sha256": "3df7530ea70be8061355d3b21443d1113c9d4a41e881dc962bd573d5c2fc7b33"
+    },
+    {
+      "file": "src/customer-push-device.ts",
+      "bytes": 3093,
+      "sha256": "e7eacb21cc8a4a5edefe98675cd647700cd965d5e87c6c36b3cf2979960efe47"
+    },
+    {
+      "file": "src/customer-vehicles.ts",
+      "bytes": 917,
+      "sha256": "f980fb517a7aeaa436ec89175651f6334f057884349e7cbccb14b88e501ecff4"
+    },
+    {
+      "file": "src/mapbox.ts",
+      "bytes": 9740,
+      "sha256": "a62fcbf153307d4be7c281e38b4715b0a2d12389d2fef94bdf979004ed88594f"
+    },
+    {
+      "file": "src/pulsing-map.tsx",
+      "bytes": 5415,
+      "sha256": "21d3ffcf9f19d39c0628ce9e262f4c9dfd108528a6f721f6766b3283a4cffb4e"
+    },
+    {
+      "file": "src/pulsing-map.web.tsx",
+      "bytes": 9312,
+      "sha256": "948a2c47b1c83481159aa0805ae0188d98b5f8902a685e21340c4742354d3e80"
+    },
+    {
+      "file": "src/secure-storage.native.ts",
+      "bytes": 358,
+      "sha256": "a23bd7dba70f64e2a658b2c5cbad310332c94e1f52dc7a63e190dae38c9597e1"
+    },
+    {
+      "file": "src/secure-storage.ts",
+      "bytes": 519,
+      "sha256": "85073ec1f02de8ad037f917458402e37aad928ea7f0735b18867ebfb0bc1313e"
+    },
+    {
+      "file": "src/secure-storage.web.ts",
+      "bytes": 471,
+      "sha256": "f975fbdd1260afa6295d3f8c388a26fc1f2a4dfccd093fb69a73536b3cf8af27"
+    },
+    {
+      "file": "src/stripe-provider.native.tsx",
+      "bytes": 2031,
+      "sha256": "b63750f45e852e2d7a1352733708665697c855ad70576732e22de0736acb5a8f"
+    },
+    {
+      "file": "src/stripe-provider.tsx",
+      "bytes": 172,
+      "sha256": "272c1c4bbce7655c1e671ce626d97391dc096cca111a7a6858a13523dfccce31"
+    },
+    {
+      "file": "src/stripe-provider.web.tsx",
+      "bytes": 172,
+      "sha256": "272c1c4bbce7655c1e671ce626d97391dc096cca111a7a6858a13523dfccce31"
+    },
+    {
+      "file": "src/theme.ts",
+      "bytes": 1234,
+      "sha256": "667144695e2657dc055980e7c9ddb839771e35cca07d0f436c65a0204ef94b19"
+    },
+    {
+      "file": "src/tracking-presentation.ts",
+      "bytes": 5588,
+      "sha256": "75ebe76ed065beabb14468c308efed98b1fd4530ac20ac6741c815aa958503e0"
+    },
+    {
+      "file": "src/tracking-state.ts",
+      "bytes": 1779,
+      "sha256": "9494a27b01ddfb318278e979ca47a4d1a9890161d6c83ef92cc2c566c1f802b8"
+    },
+    {
+      "file": "src/types.ts",
+      "bytes": 5222,
+      "sha256": "26e1b7fe4b6b1bdaf928421017dc573e8fe72be809f69b67f96396e4a5813ca0"
+    },
+    {
+      "file": "src/ui.tsx",
+      "bytes": 30818,
+      "sha256": "d8e8eb8e904031731f258d0334a0d57b54c703c8bc1e221de5e2c441b6cf5c55"
+    },
+    {
+      "file": "src/use-booking-param-access.ts",
+      "bytes": 674,
+      "sha256": "eb22d5a835e144f1fad54e7affc117fc9dd4652fcec54905dae6cd606f66bf19"
+    },
+    {
+      "file": "src/use-customer-payment.native.ts",
+      "bytes": 4237,
+      "sha256": "7863ca1a957169e16ef79afcd2e637ee5c25ba55c8b1495e207dc3f498ecf8e4"
+    },
+    {
+      "file": "src/use-customer-payment.ts",
+      "bytes": 345,
+      "sha256": "89c7f489d9718247692a7e267181d8683561c8da5ef5b70588a7cc08903dd604"
+    },
+    {
+      "file": "src/use-customer-payment.web.ts",
+      "bytes": 345,
+      "sha256": "89c7f489d9718247692a7e267181d8683561c8da5ef5b70588a7cc08903dd604"
+    },
+    {
+      "file": "src/use-customer-reduced-motion.ts",
+      "bytes": 881,
+      "sha256": "04b00e4b3c5a0e04f05f20f711adb354f6ead0d3ff47c4f4c9350eb45c486fd9"
+    },
+    {
+      "file": "src/use-customer-reduced-motion.web.ts",
+      "bytes": 989,
+      "sha256": "f77d63c747ae6a6a813ceef41ce929e3600c2193671945147016d61cb083a521"
+    },
+    {
+      "file": "tsconfig.json",
+      "bytes": 345,
+      "sha256": "3586b3213bba195c8007d99c4ecc21e24e07d724857e9ac7406679cb4b1edd09"
+    }
+  ]
+}

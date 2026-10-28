@@ -8,7 +8,7 @@ const { execFileSync } = require('node:child_process');
 const root = process.env.CM_BUILD_DIR || path.resolve(__dirname, '../..');
 const appRelative = process.env.CUSTOMER_APP_DIR || 'tyre-rescue';
 const app = path.join(root, appRelative);
-const ciRelative = process.env.CUSTOMER_CI_DIR || 'ci/customer-ios20-codemagic';
+const ciRelative = process.env.CUSTOMER_CI_DIR || 'ci/customer-ios21-codemagic';
 const manifestPath = path.join(root, ciRelative, 'source-manifest.json');
 const check = (condition, label) => { if (!condition) throw new Error(label); };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -63,7 +63,7 @@ if (process.argv.includes('--freeze')) {
   const expo = JSON.parse(fs.readFileSync(path.join(app, 'app.json'), 'utf8')).expo;
   const pkg = JSON.parse(fs.readFileSync(path.join(app, 'package.json'), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(path.join(app, 'package-lock.json'), 'utf8'));
-  check(expo.version === '1.0.5' && pkg.version === expo.version && expo.ios.buildNumber === '20', 'Unexpected customer release version');
+  check(expo.version === '1.0.6' && pkg.version === expo.version && expo.ios.buildNumber === '21', 'Unexpected customer release version');
   check(expo.version === manifest.version && expo.ios.buildNumber === manifest.buildNumber, 'Frozen release metadata mismatch');
   check(expo.ios.bundleIdentifier === 'uk.tyrerescue.customer' && manifest.bundleIdentifier === expo.ios.bundleIdentifier, 'Wrong customer application identity');
   check(expo.extra.eas.projectId === 'c97a7bac-50da-42d8-9aef-3071d6b00925', 'Wrong existing notification project identity');
@@ -72,7 +72,8 @@ if (process.argv.includes('--freeze')) {
   check(process.env.EXPO_PUBLIC_API_BASE_URL === 'https://www.tyrerescue.uk', 'Explicit production customer HTTPS API required');
   check(/^pk\.[A-Za-z0-9_.-]+$/.test(process.env.EXPO_PUBLIC_MAPBOX_TOKEN || ''), 'Explicit public Mapbox token required');
   check(/^pk_live_[A-Za-z0-9]+$/.test(process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''), 'Explicit live Stripe publishable key required');
-  check(!process.env.EXPO_PUBLIC_APPLE_MERCHANT_ID?.trim(), 'Customer build 20 keeps Apple Pay disabled until certificate setup is complete');
+  check(!process.env.EXPO_PUBLIC_APPLE_MERCHANT_ID?.trim(), 'Customer build 21 keeps Apple Pay disabled until certificate setup is complete');
+  check(!process.env.EXPO_PUBLIC_PHONE_NUMBER?.trim(), 'Customer release must use the reviewed support phone number');
   check(!process.env.EXPO_PUBLIC_ADMIN_TOKEN && !process.env.STRIPE_SECRET_KEY && !process.env.EXPO_TOKEN, 'Forbidden privileged runtime credential');
   if (process.argv.includes('--installed')) {
     for (const name of ['expo', 'react-native', 'expo-constants', 'expo-notifications', 'expo-location', 'expo-image-picker', 'expo-secure-store', '@stripe/stripe-react-native', '@rnmapbox/maps']) {

@@ -14,7 +14,7 @@ import { createTrackingRequestScope, isTrackingLocationFresh, isTrackingStatusAc
 import { trackingClock, trackingJourneySteps, trackingPresentation } from '@/src/tracking-presentation';
 import { useBookingParamAccess } from '@/src/use-booking-param-access';
 import { colors, spacing, typography } from '@/src/theme';
-import { Card, InlineNotice, Logo, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
+import { AppHeader, Card, InlineNotice, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
 
 interface TrackingResponse {
   bookingId: string;
@@ -163,8 +163,8 @@ export default function TrackScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.content, safeContentInsets]} keyboardShouldPersistTaps="handled">
-      <View style={styles.brandRow}><Logo compact /><Text style={styles.brandName}>TYRE RESCUE</Text><Feather name="shield" color={colors.muted} size={16} /></View>
-      <ScreenHeader eyebrow="RESCUE TRACKING" title={loaded ? 'Your rescue' : 'Track your rescue'} detail={!loaded ? 'Open your secure confirmation link or enter your booking reference.' : undefined} />
+      <AppHeader />
+      <ScreenHeader title={loaded ? 'Your rescue' : 'Track your rescue'} detail={!loaded ? 'Open your secure confirmation link or enter your booking reference.' : undefined} />
       {loaded ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: lookupExpanded }} onPress={() => setLookupExpanded(value => !value)} style={styles.changeBooking}>
         <Text style={styles.changeBookingText}>Track another booking</Text><Feather name={lookupExpanded ? 'chevron-up' : 'chevron-down'} color={colors.muted} size={16} />
       </Pressable> : null}
@@ -250,8 +250,6 @@ export default function TrackScreen() {
 const styles = StyleSheet.create({
   content: { backgroundColor: colors.bg, gap: 16, minHeight: '100%', padding: spacing.page, paddingBottom: 42 },
   gap: { gap: 16 },
-  brandRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  brandName: { color: colors.text, flex: 1, fontFamily: typography.bodyBold, fontSize: 13, letterSpacing: 2 },
   changeBooking: { alignItems: 'center', flexDirection: 'row', alignSelf: 'flex-start', gap: 6, minHeight: 44, marginTop: -10 },
   changeBookingText: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 13 },
   lookupCard: { gap: 14 },

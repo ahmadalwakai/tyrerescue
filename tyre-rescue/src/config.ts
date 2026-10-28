@@ -38,7 +38,7 @@ export const APPLE_MERCHANT_ID =
     : undefined;
 
 export const PHONE_DISPLAY =
-  process.env.EXPO_PUBLIC_PHONE_NUMBER || '0141 266 0690';
+  process.env.EXPO_PUBLIC_PHONE_NUMBER || '0333 015 2519';
 
 export const PHONE_TEL = PHONE_DISPLAY.replace(/[^\d+]/g, '');
 

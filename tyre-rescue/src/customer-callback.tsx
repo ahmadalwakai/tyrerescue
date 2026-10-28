@@ -3,8 +3,12 @@ import { View } from 'react-native';
 import { API, requestJson } from './api';
 import { Card, InlineNotice, PrimaryButton, ScreenHeader, TextField } from './ui';
 
-export function CustomerCallbackRequest({ name: initialName = '', phone: initialPhone = '', notes = '' }: { name?: string; phone?: string; notes?: string }) {
-  const [open, setOpen] = useState(false);
+export function CustomerCallbackRequest({ name: initialName = '', phone: initialPhone = '', notes = '', startOpen = false, onCancel }: {
+  name?: string; phone?: string; notes?: string;
+  /** Render the form straight away when another control (such as a help tile) opened it. */
+  startOpen?: boolean; onCancel?: () => void;
+}) {
+  const [open, setOpen] = useState(startOpen);
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
   const [busy, setBusy] = useState(false);
@@ -31,7 +35,8 @@ export function CustomerCallbackRequest({ name: initialName = '', phone: initial
       <TextField label="Phone number" value={phone} onChangeText={setPhone} autoComplete="tel" keyboardType="phone-pad" maxLength={30} />
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       <PrimaryButton icon="phone-incoming" loading={busy} onPress={() => { void submit(); }}>Request a callback</PrimaryButton>
-      <PrimaryButton variant="ghost" disabled={busy} onPress={() => setOpen(false)}>Cancel</PrimaryButton>
+      <PrimaryButton variant="ghost" disabled={busy} onPress={() => { setOpen(false); onCancel?.(); }}>Cancel</PrimaryButton>
     </>}
+    {sent && onCancel ? <PrimaryButton variant="ghost" onPress={onCancel}>Close</PrimaryButton> : null}
   </View></Card>;
 }

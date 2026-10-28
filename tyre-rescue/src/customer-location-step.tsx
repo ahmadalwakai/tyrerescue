@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { API, requestJson } from './api';
@@ -5,7 +6,7 @@ import { resetBookingQuote, withDeadline } from './booking-safety';
 import { prepareCustomerLocation } from './customer-location';
 import { liveLocationMarkers, reverseGeocode, searchAddress, type MapCoordinate } from './mapbox';
 import { PulsingMap } from './pulsing-map';
-import { colors } from './theme';
+import { colors, radii, typography } from './theme';
 import type { BookingState } from './types';
 import { Card, InlineNotice, LoadingState, PrimaryButton, Row, ScreenHeader, TextField } from './ui';
 
@@ -100,24 +101,43 @@ export function CustomerLocationStep({ state, updateState, goNext, renderConfirm
   }
 
   return <View style={styles.content}>
-    <ScreenHeader eyebrow="Location" title={selected ? 'Is this where you need us?' : busy ? 'Finding your location' : 'Where do you need us?'} detail="Check that the address and pin are at your vehicle, then confirm with one tap." />
-    {editing ? <>
+    <ScreenHeader title={selected ? 'Is this where you need us?' : busy ? 'Finding your location' : 'Where do you need us?'} detail={selected ? 'Tap the map to move the pin to your vehicle.' : 'Use your current location or search for an address.'} />
+    {!selected ? <PrimaryButton icon="navigation" loading={busy} onPress={() => { void locate(); }}>Use current location</PrimaryButton> : null}
+    {editing ? <View style={styles.search}>
       <TextField label="Address or postcode" value={address} onChangeText={changeAddress} placeholder="Enter your address or postcode" />
-      {suggestions.map(place => <Pressable accessibilityRole="button" accessibilityLabel={place.place_name} key={place.id} style={styles.suggestion} onPress={() => { setAccuracy(null); void applyPlace({ lat: place.center[1], lng: place.center[0], address: place.place_name }, ++generation.current); }}><Text style={styles.text}>{place.place_name}</Text></Pressable>)}
-    </> : null}
-    {selected ? <Card>
-      <Row label="Address / map pin" value={selected.address} />
-      {accuracy !== null ? <Row label="GPS accuracy" value={`Approximately ${Math.ceil(accuracy)} metres`} /> : null}
-      {renderConfirmAction ? renderConfirmAction({ icon: 'check', disabled: !validation?.valid || busy, onPress: confirmLocation, children: 'Yes, use this location' }) : <PrimaryButton icon="check" disabled={!validation?.valid || busy} onPress={confirmLocation}>Yes, use this location</PrimaryButton>}
-      <PrimaryButton variant="ghost" onPress={editAddress}>Change address</PrimaryButton>
+      {suggestions.length > 0 ? <View style={styles.suggestions}>
+        {suggestions.map((place, index) => <Pressable accessibilityRole="button" accessibilityLabel={place.place_name} key={place.id}
+          style={({ pressed }) => [styles.suggestion, index === suggestions.length - 1 ? styles.suggestionLast : null, pressed ? styles.suggestionPressed : null]}
+          onPress={() => { setAccuracy(null); void applyPlace({ lat: place.center[1], lng: place.center[0], address: place.place_name }, ++generation.current); }}>
+          <Feather accessible={false} name="map-pin" size={16} color={colors.subtle} />
+          <Text style={styles.text}>{place.place_name}</Text>
+        </Pressable>)}
+      </View> : null}
+    </View> : null}
+    {selected ? <Card style={styles.selectedCard}>
       <PulsingMap centerCoordinate={[selected.lng, selected.lat]} markers={liveLocationMarkers(selected.lat, selected.lng)} onCoordinateSelected={coordinate => { void chooseCoordinate(coordinate); }} style={styles.map} />
-      <Text style={styles.hint}>Tap the map to move the pin to your vehicle.</Text>
+      <View style={styles.selectedBody}>
+        {!editing ? <Row label="Address" value={selected.address} /> : null}
+        {accuracy !== null ? <Row label="GPS accuracy" value={`About ${Math.ceil(accuracy)} metres`} /> : null}
+        {renderConfirmAction ? renderConfirmAction({ icon: 'check', disabled: !validation?.valid || busy, onPress: confirmLocation, children: 'Yes, use this location' }) : <PrimaryButton icon="check" disabled={!validation?.valid || busy} onPress={confirmLocation}>Yes, use this location</PrimaryButton>}
+        <PrimaryButton variant="ghost" icon="edit-2" onPress={editAddress}>Change address</PrimaryButton>
+      </View>
     </Card> : null}
     {busy ? <LoadingState label="Checking your location..." /> : null}
     {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
-    {!selected && !editing ? <PrimaryButton variant="secondary" onPress={editAddress}>Enter address manually</PrimaryButton> : null}
-    <PrimaryButton icon="navigation" variant="secondary" loading={busy} onPress={() => { void locate(); }}>Use current location</PrimaryButton>
+    {!selected && !editing ? <PrimaryButton variant="secondary" icon="search" onPress={editAddress}>Search for an address</PrimaryButton> : null}
     {settingsNeeded && Platform.OS !== 'web' ? <PrimaryButton variant="secondary" onPress={() => { void Linking.openSettings(); }}>Open location settings</PrimaryButton> : null}
   </View>;
 }
-const styles = StyleSheet.create({ content: { gap: 16 }, suggestion: { padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }, text: { color: colors.text }, hint: { color: colors.muted, marginTop: 8 }, map: { height: 230, marginTop: 12 } });
+const styles = StyleSheet.create({
+  content: { gap: 16 },
+  search: { gap: 8 },
+  suggestions: { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radii.md, borderWidth: 1, overflow: 'hidden' },
+  suggestion: { alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 10, minHeight: 48, paddingHorizontal: 14, paddingVertical: 12 },
+  suggestionLast: { borderBottomWidth: 0 },
+  suggestionPressed: { backgroundColor: colors.surfaceRaised },
+  text: { color: colors.text, flex: 1, fontFamily: typography.body, fontSize: 14, lineHeight: 20 },
+  selectedCard: { overflow: 'hidden', padding: 0 },
+  selectedBody: { gap: 8, padding: 16 },
+  map: { borderRadius: 0, height: 200 },
+});

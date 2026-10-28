@@ -1,80 +1,75 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PHONE_DISPLAY, PHONE_TEL, SMS_PHONE_TEL, SUPPORT_EMAIL, whatsappUrl } from '@/src/config';
-import { colors, spacing, typography } from '@/src/theme';
-import { Card, Logo, PrimaryButton, Row, ScreenHeader, useScreenContentInsets } from '@/src/ui';
+import { colors, radii, spacing, typography } from '@/src/theme';
+import { AppHeader, ListRow, PrimaryButton, ScreenHeader, useScreenContentInsets } from '@/src/ui';
 import { CustomerCallbackRequest } from '@/src/customer-callback';
 
 export default function SupportScreen() {
   const safeContentInsets = useScreenContentInsets();
   const router = useRouter();
+  const [callbackOpen, setCallbackOpen] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={[styles.content, safeContentInsets]}>
-      <Logo />
-      <ScreenHeader eyebrow="Help" title="Contact Tyre Rescue" detail="For urgent changes, call the team directly." />
-      <Card>
-        <Row label="Phone" value={PHONE_DISPLAY} valueStyle={{ color: colors.accent }} />
-        <Row label="Email" value={SUPPORT_EMAIL} valueStyle={{ color: colors.accent }} />
-        <Row label="Coverage" value="Central Scotland" />
-      </Card>
-      <PrimaryButton icon="message-circle" onPress={() => router.push('/(tabs)/chat')}>
-        Chat with us
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, safeContentInsets]}>
+      <AppHeader />
+      <ScreenHeader title="How can we help?" detail="Our team covers Central Scotland. For anything urgent, call us." />
+
+      <PrimaryButton icon="phone" accessibilityLabel={`Call Tyre Rescue on ${PHONE_DISPLAY}`} onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>
+        {`Call ${PHONE_DISPLAY}`}
       </PrimaryButton>
-      <PrimaryButton icon="phone" onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>
-        Call Tyre Rescue
-      </PrimaryButton>
-      <PrimaryButton
-        icon="message-circle"
-        variant="secondary"
-        onPress={() => Linking.openURL(whatsappUrl('Hi, I need help with my Tyre Rescue booking.'))}
-      >
-        WhatsApp Support
-      </PrimaryButton>
-      <PrimaryButton icon="message-circle" variant="secondary" onPress={() => Linking.openURL(`sms:${SMS_PHONE_TEL}`)}>
-        Send SMS
-      </PrimaryButton>
-      <PrimaryButton
-        icon="mail"
-        variant="secondary"
-        onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Tyre Rescue support')}`)}
-      >
-        Email support
-      </PrimaryButton>
-      <CustomerCallbackRequest />
+
+      <View style={styles.list}>
+        <ListRow icon="message-circle" title="Chat with us" detail="Message the team in the app" onPress={() => router.push('/(tabs)/chat')} />
+        <ListRow icon="smartphone" title="WhatsApp" detail="Usually the quickest reply"
+          onPress={() => Linking.openURL(whatsappUrl('Hi, I need help with my Tyre Rescue booking.'))} />
+        <ListRow icon="phone-incoming" title="Request a callback" detail="Leave your number and we'll ring you" onPress={() => setCallbackOpen(value => !value)} />
+        <ListRow icon="message-square" title="Send a text" detail={PHONE_DISPLAY} onPress={() => Linking.openURL(`sms:${SMS_PHONE_TEL}`)} />
+        <ListRow icon="mail" title="Email" detail={SUPPORT_EMAIL} last
+          onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Tyre Rescue support')}`)} />
+      </View>
+
+      {callbackOpen ? <CustomerCallbackRequest startOpen onCancel={() => setCallbackOpen(false)} /> : null}
+
       <View style={styles.notice}>
-        <Feather name="map-pin" size={18} color={colors.accent} />
-        <Text style={styles.noticeText}>Location access is only requested while creating a booking.</Text>
+        <Feather accessible={false} name="shield" size={16} color={colors.subtle} />
+        <Text style={styles.noticeText}>{"We only ask for your location while you're making a booking."}</Text>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    backgroundColor: colors.bg,
+  },
   content: {
     backgroundColor: colors.bg,
-    gap: 16,
+    gap: 20,
     minHeight: '100%',
-    padding: spacing.page,
-    paddingBottom: 42,
+    paddingHorizontal: spacing.page,
+  },
+  list: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   notice: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
     flexDirection: 'row',
-    gap: 10,
-    padding: 14,
+    gap: 8,
+    justifyContent: 'center',
   },
   noticeText: {
-    color: colors.muted,
-    flex: 1,
+    color: colors.subtle,
+    flexShrink: 1,
     fontFamily: typography.body,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });

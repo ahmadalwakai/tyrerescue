@@ -42,14 +42,14 @@ function harness(initial = {}, platform = 'ios') {
   };
   const node = (type, props) => ({ type, props });
   const component = loadSource('customer-location-step.tsx', {
-    react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
+    react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' }, '@expo/vector-icons': { Feather: 'Feather' },
     'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: platform }, Linking: { openSettings: async () => {} }, StyleSheet: { create: (value) => value } },
     './api': { API: { validateLocation: '/isolated/location' }, requestJson: async (url, init) => { const body = JSON.parse(init.body); state.validations.push(body); return state.validate(body); } },
     './booking-safety': { resetBookingQuote: { quoteId: null }, withDeadline: (value) => value },
     './customer-location': { prepareCustomerLocation: async (options) => { state.locations.push(options); return state.prepare(options); } },
     './mapbox': { liveLocationMarkers: (lat, lng) => [{ id: 'pin', coordinate: [lng, lat] }], reverseGeocode: async (lat, lng) => { state.geocodes.push({ lat, lng }); return state.reverse(lat, lng); }, searchAddress: async (value) => { state.searches.push(value); return state.search(value); } },
     './pulsing-map': { PulsingMap: 'PulsingMap' },
-    './theme': { colors: {} },
+    './theme': { colors: {}, radii: {}, typography: {} },
     './ui': { Card: 'Card', InlineNotice: 'InlineNotice', LoadingState: 'LoadingState', PrimaryButton: 'PrimaryButton', Row: 'Row', ScreenHeader: 'ScreenHeader', TextField: 'TextField' },
   }, { setTimeout: (callback) => { const timer = { callback, active: true }; state.timers.push(timer); return timer; }, clearTimeout: (timer) => { if (timer) timer.active = false; } });
   const props = { state: { address: '', lat: null, lng: null, ...initial }, updateState: (value) => state.updates.push(value), goNext: () => { state.advances++; } };
@@ -74,7 +74,7 @@ test('a fresh native location step waits for an explicit location choice without
     assert.equal(h.state.locations.length, 0);
     assert.equal(h.state.validations.length, 0);
     assert.ok(h.button('Use current location'));
-    assert.ok(h.button('Enter address manually'));
+    assert.ok(h.button('Search for an address'));
     assert.equal(h.button('Open location settings'), undefined);
     assert.equal(h.find((value) => value.type === 'LoadingState'), undefined);
     assert.equal(h.find((value) => value.type === 'InlineNotice'), undefined);
@@ -103,7 +103,7 @@ test('explicit GPS proposes an address and only an explicit confirmation advance
 });
 
 test('a fresh customer can choose an address and adjust the map pin without requesting GPS', async () => {
-  const h = harness(); h.read(); h.press('Enter address manually');
+  const h = harness(); h.read(); h.press('Search for an address');
   h.input().props.onChangeText('Manual postcode'); await h.runSearch();
   h.find((value) => value.type === 'Pressable' && value.props.accessibilityLabel === 'Chosen manual address').props.onPress();
   await settle();
@@ -134,7 +134,7 @@ test('pending explicit GPS fills the confirmation card after arrival and service
 
 test('changing the address suppresses a late explicit GPS result and confirms the manual choice', async () => {
   const h = harness(); const gps = deferred(); h.state.prepare = () => gps.promise;
-  h.read(); h.press('Use current location'); await settle(); h.press('Enter address manually');
+  h.read(); h.press('Use current location'); await settle(); h.press('Search for an address');
   h.input().props.onChangeText('New manual address'); await h.runSearch();
   const suggestion = h.find((value) => value.type === 'Pressable' && value.props.accessibilityLabel === 'Chosen manual address');
   assert.ok(suggestion); suggestion.props.onPress(); await settle();

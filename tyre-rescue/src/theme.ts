@@ -1,24 +1,34 @@
 export const colors = {
-  bg: '#0B0E12',
-  surface: '#14181E',
-  card: '#1B2028',
-  surfaceRaised: '#242B35',
-  border: '#3D4653',
+  bg: '#0A0C10',
+  surface: '#12161C',
+  card: '#161B22',
+  surfaceRaised: '#1E242D',
+  border: '#262D37',
+  borderStrong: '#3A4350',
   accent: '#F97316',
   accentHover: '#EA580C',
+  accentSoft: 'rgba(249,115,22,0.12)',
+  accentBorder: 'rgba(249,115,22,0.45)',
+  onAccent: '#1A0D04',
   text: '#F5F7FA',
-  muted: '#B5BDC8',
+  muted: '#AAB3BF',
+  subtle: '#7E8896',
   danger: '#F87171',
+  dangerSoft: 'rgba(239,68,68,0.1)',
+  dangerBorder: 'rgba(239,68,68,0.35)',
   dangerButton: '#B91C1C',
   success: '#22C55E',
+  successSoft: 'rgba(34,197,94,0.1)',
+  successBorder: 'rgba(34,197,94,0.35)',
   warning: '#F59E0B',
-  input: '#10151C',
+  input: '#0F1318',
 } as const;
 
 export const radii = {
   sm: 8,
   md: 12,
   lg: 16,
+  xl: 20,
 } as const;
 
 export const spacing = {
@@ -38,12 +48,14 @@ export const typography = {
 } as const;
 
 export const typeScale = {
-  title: 30,
-  titleLine: 38,
-  section: 20,
-  sectionLine: 28,
+  title: 28,
+  titleLine: 34,
+  section: 17,
+  sectionLine: 24,
   body: 16,
   bodyLine: 24,
   label: 14,
   labelLine: 20,
+  caption: 13,
+  captionLine: 18,
 } as const;

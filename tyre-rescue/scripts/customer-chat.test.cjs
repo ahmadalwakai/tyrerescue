@@ -5,8 +5,9 @@ const { loadSource, deferred, settle } = require('../../assisted-chat-app/script
 const message = (id, body = id) => ({ id, body, senderId: null, senderRole: 'customer', messageType: 'text', attachments: [], createdAt: `2026-10-22T12:0${id.length}:00Z` });
 const detail = { id: 'conversation-a', bookingId: 'booking-a', bookingRef: 'REF-A', channel: 'customer_admin', status: 'open', locked: false };
 
-function harness() {
-  const state = { calls: [], timers: [], writes: 0, handlers: {}, detail: { ...detail }, initialPage: { messages: [message('initial')], nextCursor: null } };
+function harness(options = {}) {
+  const state = { calls: [], routes: [], timers: [], writes: 0, handlers: {}, detail: { ...detail }, initialPage: { messages: [message('initial')], nextCursor: null },
+    params: { bookingId: 'booking-a', bookingAccessToken: 'proof-a', ...options.params }, account: { token: 'account-a', loading: false, sessionRevision: 1, ...options.account } };
   let rendering;
   const changed = (before, after) => !before || after.some((value, index) => value !== before[index]);
   const react = {
@@ -22,17 +23,17 @@ function harness() {
   const component = loadSource('../../tyre-rescue/app/(tabs)/chat.tsx', {
     react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
     '@react-navigation/native': { useIsFocused: () => true },
-    'expo-router': { useLocalSearchParams: () => ({ bookingId: 'booking-a', bookingAccessToken: 'proof-a' }), useRouter: () => ({ push: () => {}, setParams: () => {} }) },
+    'expo-router': { useLocalSearchParams: () => state.params, useRouter: () => ({ push: (route) => state.routes.push(route), setParams: (params) => state.routes.push({ params }) }) },
     'react-native': { ActivityIndicator: 'ActivityIndicator', Image: 'Image', KeyboardAvoidingView: 'KeyboardAvoidingView', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View', Platform: { OS: 'ios' }, Linking: { openURL: async () => {} }, StyleSheet: { create: (value) => value } },
     '@/src/config': { PHONE_TEL: '000' },
-    '@/src/customer-account': { useCustomerAccount: () => ({ token: 'account-a', loading: false, sessionRevision: 1 }) },
+    '@/src/customer-account': { useCustomerAccount: () => state.account },
     '@/src/use-booking-param-access': routeAccess,
     '@/src/customer-booking-access': { loadBookingAccess: async () => null },
     '@/src/customer-chat': { ...chat, customerChatRequest: async (path, headers, init = {}) => {
       const call = { path, headers, init }; state.calls.push(call);
       if (state.handlers[path]) return state.handlers[path](call);
       if (path.endsWith('/read')) return {};
-      if (path === '/api/chat/conversations') return { conversationId: detail.id };
+      if (path === '/api/chat/conversations') return init.method === 'POST' ? { conversationId: detail.id } : { conversations: [state.detail] };
       if (path.includes('/messages?')) return state.initialPage;
       if (path.endsWith('/messages')) return message('sent', JSON.parse(init.body).body);
       return state.detail;
@@ -113,5 +114,58 @@ test('background polling preserves the oldest pagination cursor already reached'
   h.button('Load older messages').props.onPress(); await settle();
   assert.ok(h.state.calls.some((call) => call.path.endsWith('cursor=older-0')));
   assert.equal(h.state.calls.filter((call) => call.path.endsWith('cursor=older-1')).length, 1);
+  h.unmount();
+});
+
+test('a driver notification opens readable driver messages and replies in that same conversation', async () => {
+  const h = harness({ params: { conversationId: detail.id } });
+  h.state.detail.channel = 'customer_driver';
+  h.state.initialPage.messages = [{ ...message('driver-arriving', 'I am outside'), senderRole: 'driver' }];
+  h.read(); await settle();
+  assert.equal(h.input().props.accessibilityLabel, 'Message to your driver');
+  assert.match(JSON.stringify(h.read()), /I am outside/);
+  assert.equal(h.find((node) => node.type === 'ScreenHeader').props.title, 'Chat with your driver');
+  h.input().props.onChangeText('Coming now'); h.button('Send').props.onPress(); await settle();
+  assert.equal(JSON.parse(h.state.calls.find((call) => call.path.endsWith('/messages')).init.body).body, 'Coming now');
+  assert.equal(h.state.calls.some((call) => call.path === '/api/chat/conversations'), false);
+  h.unmount();
+});
+
+test('customer list includes both support and driver chats with distinct labels, excluding staff threads', async () => {
+  const h = harness({ params: { bookingId: undefined, bookingAccessToken: undefined } });
+  h.state.handlers['/api/chat/conversations'] = async () => ({ conversations: [
+    { ...detail, id: 'support' }, { ...detail, id: 'driver', channel: 'customer_driver', unreadCount: 2 },
+    { ...detail, id: 'staff', channel: 'admin_driver', lastMessageBody: 'Hidden staff content' },
+  ] });
+  h.read(); await settle();
+  assert.ok(h.find((node) => node.props?.accessibilityLabel === 'Open support chat for REF-A'));
+  const driver = h.find((node) => node.props?.accessibilityLabel === 'Open driver chat for REF-A, 2 unread');
+  assert.ok(driver); driver.props.onPress();
+  assert.deepEqual({ ...h.state.routes.at(-1).params }, { conversationId: 'driver', channel: 'customer_driver', refNumber: 'REF-A' });
+  assert.doesNotMatch(JSON.stringify(h.read()), /Hidden staff content/);
+  assert.equal(h.state.calls.some((call) => call.path.includes('channel=customer_admin')), false);
+  h.unmount();
+});
+
+test('guest booking can select its driver channel while support remains a separate session', async () => {
+  const h = harness({ params: { channel: 'customer_driver' }, account: { token: null } });
+  h.state.detail.channel = 'customer_driver';
+  h.read(); await settle();
+  const create = h.state.calls.find((call) => call.path === '/api/chat/conversations');
+  assert.deepEqual(JSON.parse(create.init.body), { bookingId: 'booking-a', channel: 'customer_driver' });
+  assert.equal(create.headers['X-Booking-Access'], 'proof-a');
+  h.find((node) => node.props?.accessibilityLabel === 'Support chat').props.onPress();
+  assert.deepEqual({ ...h.state.routes.at(-1).params }, { bookingId: 'booking-a', conversationId: undefined, channel: 'customer_admin', refNumber: 'REF-A' });
+  h.unmount();
+});
+
+test('customer UI refuses a staff-only conversation even if a malformed response contains it', async () => {
+  const h = harness({ params: { conversationId: detail.id } });
+  h.state.detail.channel = 'admin_driver';
+  h.state.initialPage.messages = [message('staff-secret')];
+  h.read(); await settle();
+  assert.equal(h.input(), undefined);
+  assert.match(JSON.stringify(h.read()), /not available to customers/);
+  assert.doesNotMatch(JSON.stringify(h.read()), /staff-secret/);
   h.unmount();
 });

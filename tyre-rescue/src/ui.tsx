@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { type ComponentProps, type PropsWithChildren, type ReactNode, useEffect, useMemo } from 'react';
+import { type ComponentProps, type PropsWithChildren, type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -22,12 +22,15 @@ import { useCustomerReducedMotion } from './use-customer-reduced-motion';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
 
+// Forward-pointing icons read as "next", so they follow the label instead of leading it.
+const TRAILING_ICONS = new Set<FeatherName>(['arrow-right', 'chevron-right']);
+
 export function useScreenContentInsets() {
   const insets = useSafeAreaInsets();
 
   return useMemo<ViewStyle>(
     () => ({
-      paddingTop: Math.max(spacing.page, insets.top + 14),
+      paddingTop: Math.max(spacing.page, insets.top + 10),
       paddingBottom: Math.max(42, insets.bottom + 24),
     }),
     [insets.bottom, insets.top],
@@ -39,13 +42,51 @@ export function Logo({ compact = false }: { compact?: boolean; animated?: boolea
   return (
     <View accessible accessibilityLabel="Tyre Rescue" style={styles.logoRow}>
       <Image accessible={false} source={require('@/assets/images/icon.png')} style={compact ? styles.logoIconSmall : styles.logoIcon} />
-      {!compact ? (
-        <View>
-          <Text style={styles.logoTyre}>TYRE</Text>
-          <Text style={styles.logoRescue}>RESCUE</Text>
-        </View>
-      ) : null}
+      <Text style={styles.logoText}>
+        TYRE <Text style={styles.logoAccent}>RESCUE</Text>
+      </Text>
     </View>
+  );
+}
+
+/** One brand bar for every tab: optional back action on the leading edge, optional action on the trailing edge. */
+export function AppHeader({ onBack, backDisabled, backLabel = 'Back', trailing }: {
+  onBack?: () => void;
+  backDisabled?: boolean;
+  backLabel?: string;
+  trailing?: ReactNode;
+}) {
+  return (
+    <View style={styles.appHeader}>
+      {onBack ? (
+        <IconButton icon="chevron-left" accessibilityLabel={backLabel} disabled={backDisabled} onPress={onBack} />
+      ) : null}
+      <View style={styles.appHeaderBrand}>
+        <Logo compact />
+      </View>
+      {trailing ? <View style={styles.appHeaderTrailing}>{trailing}</View> : null}
+    </View>
+  );
+}
+
+export function IconButton({ icon, accessibilityLabel, disabled, onPress }: {
+  icon: FeatherName;
+  accessibilityLabel: string;
+  disabled?: boolean;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      disabled={disabled}
+      hitSlop={6}
+      onPress={onPress}
+      style={({ pressed }) => [styles.iconButton, disabled ? styles.buttonDisabled : null, pressed && !disabled ? styles.buttonPressed : null]}
+    >
+      <Feather accessible={false} name={icon} size={20} color={colors.text} />
+    </Pressable>
   );
 }
 
@@ -72,9 +113,11 @@ export function Pill({ children, tone = 'neutral' }: PropsWithChildren<{ tone?: 
         : tone === 'danger'
           ? styles.pillDanger
           : styles.pillNeutral;
+  const textTone =
+    tone === 'accent' ? styles.pillTextAccent : tone === 'success' ? styles.pillTextSuccess : tone === 'danger' ? styles.pillTextDanger : null;
   return (
     <View style={[styles.pill, toneStyle]}>
-      <Text style={styles.pillText}>{children}</Text>
+      <Text style={[styles.pillText, textTone]}>{children}</Text>
     </View>
   );
 }
@@ -125,9 +168,11 @@ export function PrimaryButton({
           ? styles.buttonGhost
           : styles.buttonPrimary;
   const textStyle =
-    variant === 'primary' ? styles.buttonTextDark : styles.buttonTextLight;
+    variant === 'primary' ? styles.buttonTextDark : variant === 'ghost' ? styles.buttonTextGhost : styles.buttonTextLight;
   const label = accessibilityLabel ?? (typeof children === 'string' || typeof children === 'number' ? String(children) : undefined);
-  const iconColor = variant === 'primary' ? colors.bg : colors.text;
+  const iconColor = variant === 'primary' ? colors.onAccent : variant === 'ghost' ? colors.accent : colors.text;
+  const trailing = Boolean(icon && TRAILING_ICONS.has(icon));
+  const iconNode = loading ? <ActivityIndicator accessible={false} color={iconColor} /> : icon ? <Feather accessible={false} name={icon} size={18} color={iconColor} /> : null;
 
   return (
     <Animated.View style={[styles.buttonMotion, style, motionStyle]}>
@@ -152,8 +197,9 @@ export function PrimaryButton({
           pressed && !isDisabled ? styles.buttonPressed : null,
         ]}
       >
-        {loading ? <ActivityIndicator accessible={false} color={iconColor} /> : icon ? <Feather accessible={false} name={icon} size={18} color={iconColor} /> : null}
+        {trailing && !loading ? null : iconNode}
         <Text style={[styles.buttonText, textStyle]}>{children}</Text>
+        {trailing && !loading ? iconNode : null}
       </Pressable>
     </Animated.View>
   );
@@ -182,7 +228,7 @@ export function TextField({
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityHint={[accessibilityHint, error].filter(Boolean).join('. ') || undefined}
         accessibilityState={{ ...accessibilityState, disabled: props.editable === false || accessibilityState?.disabled === true }}
-        placeholderTextColor={props.placeholderTextColor ?? colors.muted}
+        placeholderTextColor={props.placeholderTextColor ?? colors.subtle}
         autoCapitalize={props.autoCapitalize ?? 'none'}
         autoCorrect={props.autoCorrect ?? false}
         style={[styles.input, error ? styles.inputError : null, inputStyle]}
@@ -237,17 +283,17 @@ export function OptionCard({
           pressed && !disabled ? styles.optionPressed : null,
         ]}
       >
-        <View style={styles.optionTop}>
-          {icon ? (
-            <View style={[styles.optionIconShell, selected ? styles.optionIconShellSelected : null]}>
-              <Feather accessible={false} name={icon} size={20} color={selected ? colors.accent : colors.text} />
-            </View>
-          ) : null}
-          {meta ? <Pill tone={selected ? 'accent' : metaTone ?? 'neutral'}>{meta}</Pill> : null}
-          {selected ? <Feather accessible={false} name="check-circle" size={20} color={colors.accent} /> : null}
+        {icon ? (
+          <View style={[styles.optionIconShell, selected ? styles.optionIconShellSelected : null]}>
+            <Feather accessible={false} name={icon} size={20} color={selected ? colors.accent : colors.muted} />
+          </View>
+        ) : null}
+        <View style={styles.optionCopy}>
+          <Text style={styles.optionTitle}>{title}</Text>
+          {detail ? <Text style={styles.optionDetail}>{detail}</Text> : null}
+          {meta ? <Text style={[styles.optionMeta, metaTone === 'success' ? styles.optionMetaSuccess : metaTone === 'accent' || selected ? styles.optionMetaAccent : null]}>{meta}</Text> : null}
         </View>
-        <Text style={[styles.optionTitle, selected ? styles.optionTitleSelected : null]}>{title}</Text>
-        {detail ? <Text style={styles.optionDetail}>{detail}</Text> : null}
+        <Feather accessible={false} name={selected ? 'check-circle' : 'circle'} size={20} color={selected ? colors.accent : colors.borderStrong} />
       </Pressable>
     </Animated.View>
   );
@@ -265,8 +311,11 @@ export function InlineNotice({
         : tone === 'accent'
           ? styles.noticeAccent
           : styles.noticeNeutral;
+  const icon: FeatherName = tone === 'danger' ? 'alert-circle' : tone === 'success' ? 'check-circle' : 'info';
+  const iconColor = tone === 'danger' ? colors.danger : tone === 'success' ? colors.success : tone === 'accent' ? colors.accent : colors.muted;
   return (
     <View style={[styles.notice, toneStyle]}>
+      <Feather accessible={false} name={icon} size={18} color={iconColor} style={styles.noticeIcon} />
       <Text accessibilityRole={tone === 'danger' ? 'alert' : undefined} accessibilityLiveRegion={tone === 'danger' ? 'polite' : undefined} style={styles.noticeText}>{children}</Text>
     </View>
   );
@@ -315,45 +364,245 @@ export function EmptyBox({ children }: { children: ReactNode }) {
   );
 }
 
+/** A grouped summary line with an optional edit action, used on review screens. */
+export function SummaryItem({ icon, title, detail, editLabel, onEdit, disabled }: {
+  icon: FeatherName;
+  title: string;
+  detail?: string | null;
+  editLabel?: string;
+  onEdit?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.summaryItem}>
+      <View style={styles.summaryIcon}>
+        <Feather accessible={false} name={icon} size={18} color={colors.accent} />
+      </View>
+      <View accessible accessibilityLabel={[title, detail].filter(Boolean).join('. ')} style={styles.summaryCopy}>
+        <Text style={styles.summaryTitle}>{title}</Text>
+        {detail ? <Text style={styles.summaryDetail}>{detail}</Text> : null}
+      </View>
+      {onEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={editLabel ?? `Edit ${title}`}
+          accessibilityState={{ disabled: Boolean(disabled) }}
+          disabled={disabled}
+          hitSlop={8}
+          onPress={onEdit}
+          style={({ pressed }) => [styles.summaryEdit, pressed ? styles.buttonPressed : null, disabled ? styles.buttonDisabled : null]}
+        >
+          <Text style={styles.summaryEditText}>Edit</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** Collapsed-by-default group for optional inputs so a step leads with its one required question. */
+export function Disclosure({ title, summary, initiallyOpen = false, children }: PropsWithChildren<{
+  title: string;
+  summary?: string;
+  initiallyOpen?: boolean;
+}>) {
+  const [open, setOpen] = useState(initiallyOpen);
+  return (
+    <View style={styles.disclosure}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={[title, summary].filter(Boolean).join('. ')}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen(value => !value)}
+        style={({ pressed }) => [styles.disclosureHeader, pressed ? styles.buttonPressed : null]}
+      >
+        <View style={styles.summaryCopy}>
+          <Text style={styles.disclosureTitle}>{title}</Text>
+          {summary ? <Text style={styles.summaryDetail}>{summary}</Text> : null}
+        </View>
+        <Feather accessible={false} name={open ? 'chevron-up' : 'chevron-down'} size={20} color={colors.muted} />
+      </Pressable>
+      {open ? <View style={styles.disclosureBody}>{children}</View> : null}
+    </View>
+  );
+}
+
+export function Chip({ label, selected, onPress, accessibilityLabel }: {
+  label: string;
+  selected?: boolean;
+  onPress: () => void;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ selected: Boolean(selected) }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.chip, selected ? styles.chipSelected : null, pressed ? styles.buttonPressed : null]}
+    >
+      <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Equal-width single choice, e.g. quantity or wheel nut type. */
+export function Segmented<T extends string | number>({ options, value, onChange, accessibilityLabel }: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <View accessibilityLabel={accessibilityLabel} style={styles.segmented}>
+      {options.map(option => {
+        const selected = option.value === value;
+        return (
+          <Pressable
+            key={String(option.value)}
+            accessibilityRole="button"
+            accessibilityLabel={`${accessibilityLabel}: ${option.label}`}
+            accessibilityState={{ selected }}
+            onPress={() => onChange(option.value)}
+            style={[styles.segment, selected ? styles.segmentSelected : null]}
+          >
+            <Text style={[styles.segmentText, selected ? styles.segmentTextSelected : null]}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function QuantityStepper({ value, min = 0, max, label, onChange }: {
+  value: number;
+  min?: number;
+  max: number;
+  label: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <View style={styles.stepper}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Remove one ${label}`} accessibilityState={{ disabled: value <= min }} disabled={value <= min}
+        hitSlop={6} onPress={() => onChange(value - 1)} style={[styles.stepperButton, value <= min ? styles.buttonDisabled : null]}>
+        <Feather accessible={false} name={value <= 1 ? 'trash-2' : 'minus'} size={18} color={colors.text} />
+      </Pressable>
+      <Text accessibilityLabel={`${value} ${label}`} style={styles.stepperValue}>{value}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Add one ${label}`} accessibilityState={{ disabled: value >= max }} disabled={value >= max}
+        hitSlop={6} onPress={() => onChange(value + 1)} style={[styles.stepperButton, value >= max ? styles.buttonDisabled : null]}>
+        <Feather accessible={false} name="plus" size={18} color={colors.text} />
+      </Pressable>
+    </View>
+  );
+}
+
+/** Small square shortcut, used for the help row (call, chat, callback). */
+export function ActionTile({ icon, label, onPress, accessibilityLabel }: {
+  icon: FeatherName;
+  label: string;
+  onPress: () => void;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, pressed ? styles.buttonPressed : null]}
+    >
+      <Feather accessible={false} name={icon} size={20} color={colors.accent} />
+      <Text style={styles.tileText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Tappable list row with a leading icon and trailing chevron. */
+export function ListRow({ icon, title, detail, onPress, accessibilityLabel, last }: {
+  icon: FeatherName;
+  title: string;
+  detail?: string;
+  onPress: () => void;
+  accessibilityLabel?: string;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? [title, detail].filter(Boolean).join('. ')}
+      onPress={onPress}
+      style={({ pressed }) => [styles.listRow, last ? null : styles.listRowDivider, pressed ? styles.listRowPressed : null]}
+    >
+      <View style={styles.summaryIcon}>
+        <Feather accessible={false} name={icon} size={18} color={colors.accent} />
+      </View>
+      <View style={styles.summaryCopy}>
+        <Text style={styles.summaryTitle}>{title}</Text>
+        {detail ? <Text style={styles.summaryDetail}>{detail}</Text> : null}
+      </View>
+      <Feather accessible={false} name="chevron-right" size={18} color={colors.subtle} />
+    </Pressable>
+  );
+}
+
 export const styles = StyleSheet.create({
   logoRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 10,
   },
   logoIcon: {
-    height: 42,
-    width: 42,
+    borderRadius: 11,
+    height: 40,
+    width: 40,
   },
   logoIconSmall: {
+    borderRadius: 8,
     height: 30,
     width: 30,
   },
-  logoTyre: {
+  logoText: {
     color: colors.text,
     fontFamily: typography.brand,
-    fontSize: 24,
-    letterSpacing: 0,
-    lineHeight: 24,
+    fontSize: 22,
+    letterSpacing: 1,
+    lineHeight: 26,
   },
-  logoRescue: {
+  logoAccent: {
     color: colors.accent,
-    fontFamily: typography.brand,
-    fontSize: 24,
-    letterSpacing: 0,
-    lineHeight: 24,
+  },
+  appHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 44,
+  },
+  appHeaderBrand: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  appHeaderTrailing: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
   },
   header: {
     alignSelf: 'stretch',
     gap: 6,
-    marginBottom: 8,
   },
   eyebrow: {
     color: colors.accent,
     fontFamily: typography.bodyMedium,
     fontSize: 12,
-    lineHeight: 18,
+    lineHeight: 16,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -369,8 +618,8 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     flexShrink: 1,
     fontFamily: typography.body,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.bodyLine,
+    fontSize: 15,
+    lineHeight: 22,
     maxWidth: '100%',
   },
   card: {
@@ -383,35 +632,40 @@ export const styles = StyleSheet.create({
     padding: spacing.card,
   },
   pill: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
     flexShrink: 1,
-    borderRadius: radii.sm,
-    borderWidth: 1,
     maxWidth: '100%',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   pillNeutral: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
   },
   pillAccent: {
-    backgroundColor: 'rgba(249,115,22,0.13)',
-    borderColor: 'rgba(249,115,22,0.36)',
+    backgroundColor: colors.accentSoft,
   },
   pillSuccess: {
-    backgroundColor: 'rgba(34,197,94,0.12)',
-    borderColor: 'rgba(34,197,94,0.34)',
+    backgroundColor: colors.successSoft,
   },
   pillDanger: {
-    backgroundColor: 'rgba(239,68,68,0.12)',
-    borderColor: 'rgba(239,68,68,0.34)',
+    backgroundColor: colors.dangerSoft,
   },
   pillText: {
-    color: colors.text,
+    color: colors.muted,
     flexShrink: 1,
     fontFamily: typography.bodyMedium,
     fontSize: 12,
-    lineHeight: 18,
+    lineHeight: 16,
+  },
+  pillTextAccent: {
+    color: '#FDBA74',
+  },
+  pillTextSuccess: {
+    color: '#86EFAC',
+  },
+  pillTextDanger: {
+    color: '#FCA5A5',
   },
   buttonMotion: {
     alignSelf: 'stretch',
@@ -419,33 +673,33 @@ export const styles = StyleSheet.create({
   },
   button: {
     alignItems: 'center',
-    borderRadius: radii.md,
+    borderRadius: 14,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
     minHeight: 52,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
   buttonPrimary: {
     backgroundColor: colors.accent,
   },
   buttonSecondary: {
     backgroundColor: colors.surfaceRaised,
-    borderColor: colors.border,
-    borderWidth: 1,
   },
   buttonDanger: {
     backgroundColor: colors.dangerButton,
   },
   buttonGhost: {
     backgroundColor: 'transparent',
+    minHeight: 44,
+    paddingVertical: 10,
   },
   buttonPressed: {
-    opacity: 0.8,
+    opacity: 0.75,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   buttonText: {
     fontFamily: typography.bodyBold,
@@ -455,21 +709,26 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonTextDark: {
-    color: colors.bg,
+    color: colors.onAccent,
   },
   buttonTextLight: {
     color: colors.text,
   },
+  buttonTextGhost: {
+    color: colors.accent,
+    fontFamily: typography.bodyMedium,
+    fontSize: 15,
+  },
   field: {
     alignSelf: 'stretch',
-    gap: 8,
+    gap: 6,
     minWidth: 0,
   },
   label: {
-    color: colors.text,
+    color: colors.muted,
     fontFamily: typography.bodyMedium,
-    fontSize: typeScale.label,
-    lineHeight: typeScale.labelLine,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.captionLine,
   },
   input: {
     backgroundColor: colors.input,
@@ -480,7 +739,7 @@ export const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: typeScale.body,
     lineHeight: typeScale.bodyLine,
-    minHeight: 52,
+    minHeight: 50,
     paddingHorizontal: 14,
     paddingVertical: 12,
     minWidth: 0,
@@ -491,26 +750,27 @@ export const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontFamily: typography.body,
-    fontSize: typeScale.label,
-    lineHeight: typeScale.labelLine,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.captionLine,
   },
   optionMotion: {
     alignSelf: 'stretch',
     minWidth: 0,
   },
   option: {
+    alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderColor: colors.border,
     borderRadius: radii.lg,
     borderWidth: 1,
+    flexDirection: 'row',
     gap: 12,
-    minHeight: 112,
-    padding: spacing.card,
+    padding: 14,
   },
   optionSelected: {
-    backgroundColor: 'rgba(249,115,22,0.1)',
-    borderColor: 'rgba(249,115,22,0.72)',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
   },
   optionDisabled: {
     opacity: 0.5,
@@ -518,72 +778,80 @@ export const styles = StyleSheet.create({
   optionPressed: {
     opacity: 0.86,
   },
-  optionTop: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
   optionIconShell: {
     alignItems: 'center',
-    backgroundColor: 'rgba(249,115,22,0.08)',
-    borderColor: 'rgba(249,115,22,0.22)',
+    backgroundColor: colors.surfaceRaised,
     borderRadius: radii.md,
-    borderWidth: 1,
     height: 40,
     justifyContent: 'center',
     width: 40,
   },
   optionIconShellSelected: {
-    backgroundColor: 'rgba(249,115,22,0.16)',
-    borderColor: 'rgba(249,115,22,0.42)',
+    backgroundColor: colors.accentSoft,
+  },
+  optionCopy: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
   },
   optionTitle: {
     color: colors.text,
-    flexShrink: 1,
-    fontFamily: typography.heading,
-    fontSize: typeScale.section,
-    lineHeight: typeScale.sectionLine,
-    maxWidth: '100%',
-  },
-  optionTitleSelected: {
-    color: colors.accent,
+    fontFamily: typography.bodyBold,
+    fontSize: 16,
+    lineHeight: 22,
   },
   optionDetail: {
     color: colors.muted,
-    flexShrink: 1,
     fontFamily: typography.body,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.bodyLine,
-    maxWidth: '100%',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  optionMeta: {
+    color: colors.subtle,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  optionMetaAccent: {
+    color: '#FDBA74',
+  },
+  optionMetaSuccess: {
+    color: '#86EFAC',
   },
   notice: {
+    alignItems: 'flex-start',
     borderRadius: radii.md,
     borderWidth: 1,
-    padding: 14,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
+  noticeIcon: {
+    marginTop: 2,
   },
   noticeNeutral: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
   },
   noticeDanger: {
-    backgroundColor: 'rgba(239,68,68,0.1)',
-    borderColor: 'rgba(239,68,68,0.35)',
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.dangerBorder,
   },
   noticeSuccess: {
-    backgroundColor: 'rgba(34,197,94,0.1)',
-    borderColor: 'rgba(34,197,94,0.35)',
+    backgroundColor: colors.successSoft,
+    borderColor: colors.successBorder,
   },
   noticeAccent: {
-    backgroundColor: 'rgba(249,115,22,0.1)',
-    borderColor: 'rgba(249,115,22,0.35)',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
   },
   noticeText: {
     color: colors.text,
+    flex: 1,
     fontFamily: typography.body,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.bodyLine,
+    fontSize: 14,
+    lineHeight: 21,
   },
   loading: {
     alignItems: 'center',
@@ -593,39 +861,37 @@ export const styles = StyleSheet.create({
   loadingText: {
     color: colors.muted,
     fontFamily: typography.body,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.bodyLine,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   row: {
     alignItems: 'flex-start',
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
+  // The label takes the free width; the value keeps its natural width up to two thirds of the row.
   rowLabel: {
     color: colors.muted,
+    flex: 1,
     fontFamily: typography.body,
     fontSize: typeScale.label,
     lineHeight: typeScale.labelLine,
-    flexShrink: 1,
-    flexBasis: 96,
+    minWidth: 0,
   },
   rowValue: {
     color: colors.text,
     flexShrink: 1,
     fontFamily: typography.bodyMedium,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.bodyLine,
-    flexBasis: 140,
-    flexGrow: 1,
+    fontSize: typeScale.label,
+    lineHeight: typeScale.labelLine,
+    maxWidth: '66%',
     textAlign: 'right',
   },
   section: {
-    gap: spacing.gap,
+    gap: 10,
   },
   sectionTitle: {
     color: colors.text,
@@ -644,8 +910,181 @@ export const styles = StyleSheet.create({
   emptyText: {
     color: colors.muted,
     fontFamily: typography.body,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.bodyLine,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  summaryIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.accentSoft,
+    borderRadius: 10,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  summaryCopy: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  summaryTitle: {
+    color: colors.text,
+    fontFamily: typography.bodyMedium,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  summaryDetail: {
+    color: colors.muted,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  summaryEdit: {
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+  },
+  summaryEditText: {
+    color: colors.accent,
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+  },
+  disclosure: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+  },
+  disclosureHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 56,
+    paddingHorizontal: spacing.card,
+    paddingVertical: 12,
+  },
+  disclosureTitle: {
+    color: colors.text,
+    fontFamily: typography.bodyMedium,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  disclosureBody: {
+    borderTopColor: colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 14,
+    padding: spacing.card,
+  },
+  chip: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  chipSelected: {
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
+  },
+  chipText: {
+    color: colors.text,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+  },
+  chipTextSelected: {
+    color: colors.accent,
+  },
+  segmented: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+  },
+  segment: {
+    alignItems: 'center',
+    borderRadius: 9,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 6,
+  },
+  segmentSelected: {
+    backgroundColor: colors.surfaceRaised,
+  },
+  segmentText: {
+    color: colors.muted,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  segmentTextSelected: {
+    color: colors.text,
+    fontFamily: typography.bodyBold,
+  },
+  stepper: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    padding: 3,
+  },
+  stepperButton: {
+    alignItems: 'center',
+    borderRadius: 9,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  stepperValue: {
+    color: colors.text,
+    fontFamily: typography.bodyBold,
+    fontSize: 16,
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  tile: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    flex: 1,
+    gap: 6,
+    justifyContent: 'center',
+    minHeight: 72,
+    padding: 10,
+  },
+  tileText: {
+    color: colors.text,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  listRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 60,
+    paddingHorizontal: spacing.card,
+    paddingVertical: 10,
+  },
+  listRowDivider: {
+    borderBottomColor: colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  listRowPressed: {
+    backgroundColor: colors.surfaceRaised,
   },
 });

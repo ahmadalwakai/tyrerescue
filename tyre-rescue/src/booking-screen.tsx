@@ -44,17 +44,23 @@ import {
 import { PulsingMap } from './pulsing-map';
 import { colors, radii, spacing, typography } from './theme';
 import {
+  ActionTile,
+  AppHeader,
   Card,
+  Chip,
+  Disclosure,
   EmptyBox,
   InlineNotice,
   LoadingState,
-  Logo,
   OptionCard,
   Pill,
   PrimaryButton,
+  QuantityStepper,
   Row,
   ScreenHeader,
   Section,
+  Segmented,
+  SummaryItem,
   TextField,
   useScreenContentInsets,
 } from './ui';
@@ -108,10 +114,19 @@ interface StepProps {
 
 function ServiceHeroHeader() {
   return <View style={screenStyles.heroHeader}>
-    <Text style={screenStyles.heroEyebrow}>Mobile tyre support</Text>
     <Text accessibilityRole="header" style={screenStyles.heroTitle}>How can we help?</Text>
-    <Text style={screenStyles.heroDetail}>Get roadside help now or book a fitting that suits you.</Text>
+    <Text style={screenStyles.heroDetail}>Roadside help now, or a fitting when it suits you.</Text>
   </View>;
+}
+
+/** Appointment dates are stored as London calendar days (YYYY-MM-DD) plus a HH:mm slot. */
+function formatAppointment(date: string | null, time: string | null) {
+  if (!date) return time || '';
+  const parsed = new Date(`${date}T12:00:00Z`);
+  const day = Number.isNaN(parsed.getTime())
+    ? date
+    : parsed.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return time ? `${day} at ${time}` : day;
 }
 
 function parseSize(size: string) {
@@ -146,20 +161,18 @@ function StepProgress({ state, step }: { state: BookingState; step: WizardStep }
   if (step === 'service' || step === 'done') return null;
   const activeStage = BOOKING_STAGES.findIndex(stage => (stage.steps as readonly string[]).includes(step));
   const steps = getSteps(state.bookingType, state.serviceType, state.fittingLocation);
-  const index = getProgressIndex(steps, step);
-  return <View style={screenStyles.progressCard}>
-    <View style={screenStyles.progressHeading}>
-      <Text style={screenStyles.progressTitle}>Stage {activeStage + 1} of 3</Text>
-      <Text style={screenStyles.progressDetail}>{currentStepLabel(step)} · {index + 1} of {steps.length} steps</Text>
+  // The service choice is already made on the home screen, so count only the steps after it.
+  const total = Math.max(1, steps.length - 1);
+  const position = Math.min(total, Math.max(1, getProgressIndex(steps, step)));
+  const stage = BOOKING_STAGES[Math.max(0, activeStage)];
+  return <View accessible accessibilityRole="progressbar"
+    accessibilityLabel={`Stage ${activeStage + 1} of 3, ${stage.title}, current. ${currentStepLabel(step)}, step ${position} of ${total}`}
+    accessibilityValue={{ min: 0, max: total, now: position }}
+    style={screenStyles.progress}>
+    <View style={screenStyles.progressTrack}>
+      <View style={[screenStyles.progressFill, { width: `${Math.round((position / total) * 100)}%` }]} />
     </View>
-    <View style={screenStyles.stageRow}>
-      {BOOKING_STAGES.map((stage, stageIndex) => <View key={stage.title} accessible accessibilityLabel={
-        'Stage ' + (stageIndex + 1) + ', ' + stage.title + (stageIndex === activeStage ? ', current' : '')
-      } style={screenStyles.stageItem}>
-        <View style={[screenStyles.stageTrack, stageIndex <= activeStage ? screenStyles.stageTrackActive : null]} />
-        <Text style={[screenStyles.stageLabel, stageIndex === activeStage ? screenStyles.stageLabelActive : null]}>{stageIndex + 1}. {stage.title}</Text>
-      </View>)}
-    </View>
+    <Text style={screenStyles.progressLabel}>{currentStepLabel(step)} · {position} of {total}</Text>
   </View>;
 }
 
@@ -275,17 +288,16 @@ function CustomerBookingSession() {
         style={screenStyles.scroll}
         contentContainerStyle={[screenStyles.content, safeContentInsets]}
       >
-        <View style={screenStyles.topBar}>
-          <View style={screenStyles.brand}><Logo compact animated={false} /><Text style={screenStyles.brandName}>TYRE RESCUE</Text></View>
-          {step !== 'service' && step !== 'done' && !state.pendingPaymentIntentId && !state.paymentAttemptIntentId ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Previous booking step" disabled={navigationLocked} onPress={goPrev} style={screenStyles.backButton}>
-              <Feather name="chevron-left" size={18} color={colors.text} />
-            </Pressable>
-          ) : null}
+        <View style={screenStyles.topBlock}>
+          <AppHeader
+            onBack={step !== 'service' && step !== 'done' && !state.pendingPaymentIntentId && !state.paymentAttemptIntentId ? goPrev : undefined}
+            backDisabled={navigationLocked}
+            backLabel="Previous booking step"
+          />
+          <StepProgress state={state} step={step} />
         </View>
 
-        {draftRestored ? <InlineNotice>Your saved details have been restored. Prices and appointment availability will be checked again.</InlineNotice> : null}
-        <StepProgress state={state} step={step} />
+        {draftRestored ? <InlineNotice tone="accent">We restored your saved details. Prices and times will be checked again.</InlineNotice> : null}
 
         <Animated.View key={step} entering={reducedMotion ? undefined : FadeIn.duration(160)} style={screenStyles.stepMotion}>
           {step === 'service' ? (
@@ -369,51 +381,67 @@ function ServiceChoice({ icon, title, detail, meta, selected, emergency, onPress
   icon: ComponentProps<typeof Feather>['name']; title: string; detail: string; meta: string;
   selected: boolean; emergency?: boolean; onPress: () => void;
 }) {
+  const iconColor = emergency ? colors.onAccent : colors.accent;
   return <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${detail} ${meta}`} accessibilityState={{ selected }} onPress={onPress}
     style={({ pressed }) => [screenStyles.serviceChoice, emergency ? screenStyles.emergencyChoice : null,
-      selected ? screenStyles.serviceChoiceSelected : null, pressed ? screenStyles.choicePressed : null]}>
+      selected && !emergency ? screenStyles.serviceChoiceSelected : null, pressed ? screenStyles.choicePressed : null]}>
     <View style={screenStyles.serviceChoiceHeading}>
-      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[screenStyles.serviceChoiceIcon, emergency ? screenStyles.emergencyChoiceIcon : null]}><Feather accessible={false} name={icon} size={24} color={colors.accent} /></View>
-      <View style={screenStyles.serviceChoiceCopy}>
-        <Text style={screenStyles.serviceChoiceTitle}>{title}</Text>
-        <Text style={screenStyles.serviceChoiceDetail}>{detail}</Text>
-      </View>
-      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Feather accessible={false} name={selected ? 'check-circle' : 'chevron-right'} size={22} color={selected ? colors.accent : colors.muted} /></View>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[screenStyles.serviceChoiceIcon, emergency ? screenStyles.emergencyChoiceIcon : null]}><Feather accessible={false} name={icon} size={22} color={iconColor} /></View>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Feather accessible={false} name={selected && !emergency ? 'check-circle' : 'arrow-right'} size={22} color={iconColor} /></View>
     </View>
-    <Text style={[screenStyles.serviceChoiceMeta, emergency ? screenStyles.emergencyChoiceMeta : null]}>{meta}</Text>
+    <View style={screenStyles.serviceChoiceCopy}>
+      <Text style={[screenStyles.serviceChoiceTitle, emergency ? screenStyles.emergencyChoiceText : null]}>{title}</Text>
+      <Text style={[screenStyles.serviceChoiceDetail, emergency ? screenStyles.emergencyChoiceText : null]}>{detail}</Text>
+    </View>
+    <View style={[screenStyles.serviceChoiceMetaRow, emergency ? screenStyles.emergencyMetaRow : null]}>
+      {emergency ? <View style={screenStyles.liveDot} /> : null}
+      <Text style={[screenStyles.serviceChoiceMeta, emergency ? screenStyles.emergencyChoiceText : null]}>{meta}</Text>
+    </View>
   </Pressable>;
 }
 
-function ServiceStep({ state, updateState, goNext }: StepProps) {
+function ServiceStep({ state, updateState, goNext, goTo }: StepProps) {
   const [availability, setAvailability] = useState<{ available: boolean; count: number } | null>(null);
+  const [callbackOpen, setCallbackOpen] = useState(false);
   useEffect(() => {
     requestJson<{ available: boolean; count: number }>(API.driverAvailable)
       .then(setAvailability)
       .catch(() => setAvailability({ available: false, count: 0 }));
   }, []);
+  const driversMeta = availability?.available
+    ? availability.count > 1 ? `${availability.count} drivers available now` : 'Drivers available now'
+    : availability ? 'Call to check availability' : 'Checking driver availability';
   return <View style={screenStyles.stepGap}>
     <CustomerActiveBookingCard />
     <ServiceHeroHeader />
-    <ServiceChoice icon="zap" emergency title="Emergency tyre help" detail="Flat tyre or a breakdown? Start a callout at your location."
-      meta={availability?.available ? 'Drivers available now' : availability ? 'Call to check availability' : 'Checking driver availability'}
+    {/* Emergency starts straight away: one tap takes the customer to their location. */}
+    <ServiceChoice icon="zap" emergency title="Emergency tyre help" detail="Flat tyre or a puncture right now? We come to you."
+      meta={driversMeta}
       selected={state.bookingType === 'emergency'} onPress={() => {
         void Haptics.selectionAsync().catch(() => {});
         updateState({ ...quoteReset, bookingType: 'emergency',
           ...(state.fittingLocation === 'shop' ? { address: '', lat: null, lng: null, distanceMiles: null } : {}),
           fittingLocation: null, scheduledDate: null, scheduledTime: null });
+        goTo('location');
       }} />
-    <ServiceChoice icon="calendar" title="Book a fitting" detail="Choose a workshop visit or mobile fitting."
+    <ServiceChoice icon="calendar" title="Book a fitting" detail="At our workshop or at your home or work."
       meta="Pick a date and time" selected={state.bookingType === 'scheduled'} onPress={() => {
         if (state.bookingType === 'scheduled') return;
         void Haptics.selectionAsync().catch(() => {});
         updateState({ ...quoteReset, bookingType: 'scheduled', fittingLocation: state.fittingLocation ?? null });
       }} />
-    {state.bookingType === 'scheduled' ? <CustomerFittingChoice state={state} updateState={updateState} /> : null}
-    <BookingContinueButton icon="arrow-right" disabled={!state.bookingType || (state.bookingType === 'scheduled' && !state.fittingLocation)} onPress={goNext}>Continue</BookingContinueButton>
+    {state.bookingType === 'scheduled' ? <>
+      <CustomerFittingChoice state={state} updateState={updateState} />
+      <BookingContinueButton icon="arrow-right" disabled={!state.fittingLocation} onPress={goNext}>Continue</BookingContinueButton>
+    </> : null}
     <View style={screenStyles.homeSupport}>
-      <Text style={screenStyles.supportTitle}>Need a hand?</Text>
-      <PrimaryButton icon="phone" variant="secondary" onPress={() => Linking.openURL('tel:' + PHONE_TEL)}>Call {PHONE_DISPLAY}</PrimaryButton>
-      <CustomerCallbackRequest name={state.customerName} phone={state.customerPhone} notes="Callback requested from the customer booking app." />
+      <Text accessibilityRole="header" style={screenStyles.supportTitle}>Need a hand?</Text>
+      <View style={screenStyles.tileRow}>
+        <ActionTile icon="phone" label="Call us" accessibilityLabel={`Call ${PHONE_DISPLAY}`} onPress={() => { void Linking.openURL('tel:' + PHONE_TEL); }} />
+        <ActionTile icon="message-circle" label="Chat" accessibilityLabel="Chat with our team" onPress={() => router.push('/chat')} />
+        <ActionTile icon="phone-incoming" label="Call me back" accessibilityLabel="Request a callback" onPress={() => setCallbackOpen(value => !value)} />
+      </View>
+      {callbackOpen ? <CustomerCallbackRequest startOpen onCancel={() => setCallbackOpen(false)} name={state.customerName} phone={state.customerPhone} notes="Callback requested from the customer booking app." /> : null}
     </View>
     <CustomerAssistedHelpRequest />
   </View>;
@@ -488,7 +516,7 @@ function EligibilityStep({ state, updateState, goNext, goPrev }: StepProps) {
   if (!result?.eligible) {
     return (
       <View style={screenStyles.stepGap}>
-        <ScreenHeader eyebrow="Availability" title="Outside service area" detail={result?.message} />
+        <ScreenHeader title="Outside service area" detail={result?.message} />
         <PrimaryButton icon="map-pin" onPress={goPrev}>Change location</PrimaryButton>
         <PrimaryButton icon="phone" variant="secondary" onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>
           {PHONE_DISPLAY}
@@ -510,7 +538,7 @@ function EligibilityStep({ state, updateState, goNext, goPrev }: StepProps) {
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Availability" title={result.driversOnline > 0 ? 'Emergency service available' : 'Confirm availability with our team'} detail={result.message} />
+      <ScreenHeader title={result.driversOnline > 0 ? 'Emergency service available' : 'Confirm availability with our team'} detail={result.message} />
       {state.lat != null && state.lng != null ? (
         <PulsingMap
           markers={routeMarkers}
@@ -519,10 +547,11 @@ function EligibilityStep({ state, updateState, goNext, goPrev }: StepProps) {
         />
       ) : null}
       <Card style={screenStyles.etaCard}>
-        <Text style={screenStyles.etaText}>{result.etaLabel || '1-2 hours'}</Text>
-        <Text style={screenStyles.etaLabel}>Estimated arrival window, subject to dispatch</Text>
-        {result.driverName ? <Text style={screenStyles.mutedCentered}>Nearest driver: {result.driverName}</Text> : null}
-        <Text style={screenStyles.mutedCentered}>{result.driversOnline} driver{result.driversOnline === 1 ? '' : 's'} online</Text>
+        <Text style={screenStyles.etaLabel}>Estimated arrival</Text>
+        <Text style={screenStyles.etaText}>{result.etaLabel || 'Team to confirm'}</Text>
+        <Text style={screenStyles.mutedCentered}>
+          {[result.driverName ? `Nearest driver: ${result.driverName}` : null, `${result.driversOnline} driver${result.driversOnline === 1 ? '' : 's'} online`].filter(Boolean).join(' · ')}
+        </Text>
       </Card>
       {result.driversOnline === 0 ? <><InlineNotice>No live driver is currently available to confirm this estimate. Call us or request a callback before paying.</InlineNotice><PrimaryButton icon="phone" onPress={() => { void Linking.openURL(`tel:${PHONE_TEL}`); }}>Call the team</PrimaryButton><CustomerCallbackRequest name={state.customerName} phone={state.customerPhone} notes={`Emergency availability at ${state.address}`} /></> :
       <BookingContinueButton icon="arrow-right" onPress={() => {
@@ -588,6 +617,12 @@ const PROBLEM_OPTIONS: {
   },
 ];
 
+const LOCKING_NUT_OPTIONS: readonly { value: BookingState['lockingNutStatus']; label: string }[] = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'has_key', label: 'I have the key' },
+  { value: 'no_key', label: 'No key' },
+];
+
 function conditionToProblemType(condition: ConditionAssessment | null): ProblemType | null {
   if (condition === 'repair') return 'puncture';
   if (condition === 'replacement') return 'damaged_tyre';
@@ -597,96 +632,6 @@ function conditionToProblemType(condition: ConditionAssessment | null): ProblemT
 
 function problemTitle(problemType: ProblemType | null) {
   return PROBLEM_OPTIONS.find((item) => item.value === problemType)?.title ?? 'Tyre problem';
-}
-
-function rimEstimate(size: BookingState['tyreSize']) {
-  const rim = Number(size.rim);
-  if (!Number.isFinite(rim) || rim <= 0) return { low: 85, high: 155 };
-  if (rim <= 15) return { low: 70, high: 115 };
-  if (rim <= 17) return { low: 85, high: 145 };
-  if (rim <= 19) return { low: 115, high: 190 };
-  return { low: 145, high: 240 };
-}
-
-function bookingExtrasEstimate(input: Pick<BookingState, 'bookingType' | 'fittingLocation' | 'lockingNutStatus'>) {
-  let low = 0;
-  let high = 0;
-  if (input.bookingType === 'emergency') {
-    low += 20;
-    high += 45;
-  }
-  if (input.fittingLocation === 'mobile') {
-    low += 15;
-    high += 35;
-  }
-  if (input.lockingNutStatus === 'no_key') {
-    low += 20;
-    high += 55;
-  }
-  return { low, high };
-}
-
-function getPriceEstimate(input: BookingState) {
-  const quantity = clampQuantity(input.quantity || 1);
-  const extras = bookingExtrasEstimate(input);
-  const isRepair = input.serviceType === 'repair' || input.conditionAssessment === 'repair';
-  const isAssessment = input.serviceType === 'assess' || input.conditionAssessment === 'not_sure';
-
-  if (input.selectedTyres.length > 0) {
-    const tyreTotal = input.selectedTyres.reduce((sum, tyre) => sum + tyre.unitPrice * tyre.quantity, 0);
-    const fitCount = input.selectedTyres.reduce((sum, tyre) => sum + tyre.quantity, 0);
-    const fittingLow = fitCount * 18;
-    const fittingHigh = fitCount * 34;
-    return {
-      low: tyreTotal + fittingLow + extras.low,
-      high: tyreTotal + fittingHigh + extras.high,
-      label: 'Tyres selected',
-      detail: 'Estimate includes selected tyres plus fitting and location extras. Final quote appears before payment.',
-    };
-  }
-
-  if (isRepair) {
-    return {
-      low: 45 + extras.low + (quantity - 1) * 18,
-      high: 85 + extras.high + (quantity - 1) * 35,
-      label: 'Repair estimate',
-      detail: 'Final price depends on tyre condition, location, and whether repair is safe on arrival.',
-    };
-  }
-
-  const tyre = rimEstimate(input.tyreSize);
-  const baseLow = isAssessment ? 45 + tyre.low * 0.65 : tyre.low;
-  const baseHigh = isAssessment ? 80 + tyre.high : tyre.high;
-
-  return {
-    low: baseLow * quantity + extras.low,
-    high: baseHigh * quantity + extras.high,
-    label: isAssessment ? 'Assessment estimate' : 'Replacement estimate',
-    detail: 'Range is based on tyre size, quantity, appointment type, and common fitting costs.',
-  };
-}
-
-function PriceEstimateCard({ state }: { state: BookingState }) {
-  if (!state.bookingType || !state.conditionAssessment) return null;
-
-  const estimate = getPriceEstimate(state);
-
-  return (
-    <Card style={screenStyles.estimateCard}>
-      <View style={screenStyles.estimateHeader}>
-        <View style={screenStyles.estimateIcon}>
-          <Feather name="tag" size={18} color={colors.accent} />
-        </View>
-        <View style={screenStyles.flex}>
-          <Text style={screenStyles.estimateLabel}>{estimate.label}</Text>
-          <Text style={screenStyles.estimateRange}>
-            {formatPrice(estimate.low)} - {formatPrice(estimate.high)}
-          </Text>
-        </View>
-      </View>
-      <Text style={screenStyles.estimateDetail}>{estimate.detail}</Text>
-    </Card>
-  );
 }
 
 function ProblemCard({
@@ -711,15 +656,12 @@ function ProblemCard({
       ]}
     >
       <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[screenStyles.problemIcon, selected ? screenStyles.problemIconSelected : null]}>
-        <Feather accessible={false} name={option.icon} size={24} color={selected ? colors.accent : colors.text} />
+        <Feather accessible={false} name={option.icon} size={20} color={selected ? colors.accent : colors.muted} />
       </View>
-      <View style={screenStyles.problemCopy}>
-        <Text style={[screenStyles.problemTitle, selected ? screenStyles.problemTitleSelected : null]}>
-          {option.title}
-        </Text>
-        <Text style={screenStyles.problemDetail}>{option.detail}</Text>
-      </View>
-      <Pill tone={selected ? 'accent' : 'neutral'}>{option.meta}</Pill>
+      <Text style={[screenStyles.problemTitle, selected ? screenStyles.problemTitleSelected : null]}>
+        {option.title}
+      </Text>
+      <Text style={screenStyles.problemDetail}>{option.meta}</Text>
     </Pressable>
   );
 }
@@ -738,13 +680,10 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
   const [quantity, setQuantity] = useState(clampQuantity(state.quantity));
   const [lockingNut, setLockingNut] = useState(state.lockingNutStatus);
   const [photoUrl, setPhotoUrl] = useState<string | null>(state.tyrePhotoUrl);
-  const [sizeQuery, setSizeQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<SizeSuggestion[]>([]);
   const [popular, setPopular] = useState<SizeSuggestion[]>([]);
   const [loadingLookup, setLoadingLookup] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     requestJson<SizeSuggestion[]>(API.popularTyreSizes)
@@ -774,28 +713,13 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
     setWidth(parsed.width);
     setAspect(parsed.aspect);
     setRim(parsed.rim);
-    setSizeQuery('');
-    setSuggestions([]);
-  };
-
-  const searchSizes = (value: string) => {
-    setSizeQuery(value);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (value.trim().length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    searchTimer.current = setTimeout(async () => {
-      const data = await requestJson<{ sizes: SizeSuggestion[] }>(`${API.tyreSizes}?q=${encodeURIComponent(value.trim())}`).catch(() => ({ sizes: [] }));
-      setSuggestions(data.sizes || []);
-    }, 300);
   };
 
   const photoRequest = useRef(0);
   const photoMounted = useRef(true);
   const photoUploadController = useRef<AbortController | null>(null);
   const [unknownSize, setUnknownSize] = useState(false);
-  useEffect(() => { photoMounted.current = true; return () => { photoMounted.current = false; photoUploadController.current?.abort(); if (searchTimer.current) clearTimeout(searchTimer.current); }; }, []);
+  useEffect(() => { photoMounted.current = true; return () => { photoMounted.current = false; photoUploadController.current?.abort(); }; }, []);
   const pickPhoto = async (camera: boolean) => {
     if (uploading) return;
     const revision = ++photoRequest.current;
@@ -833,128 +757,98 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
 
   const canContinue = width.length >= 3 && aspect.length >= 2 && rim.length >= 2 && condition;
   const showQuantity = condition === 'repair' || state.bookingType === 'emergency';
-  const draftEstimateState: BookingState = {
-    ...state,
-    tyreSize: { width, aspect, rim },
-    problemType,
-    conditionAssessment: condition,
-    serviceType: condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : condition ? 'assess' : state.serviceType,
-    quantity: clampQuantity(quantity),
-    lockingNutStatus: lockingNut,
-  };
+  const selectedProblem = PROBLEM_OPTIONS.find(option => option.value === problemType);
+  const vehicleSummary = [vehicleReg, vehicleMake, vehicleModel].filter(Boolean).join(' · ');
+  const extrasSummary = [
+    LOCKING_NUT_OPTIONS.find(option => option.value === lockingNut)?.label,
+    photoUrl ? 'Photo added' : 'No photo',
+  ].join(' · ');
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Tyre details" title="Tell us about the tyre" detail="Add your vehicle and tyre details. A photo helps our technician prepare." />
+      <ScreenHeader title="About your tyre" detail="The size is printed on the side of the tyre, like 205/55 R16." />
 
-      <Section title="Vehicle">
+      <Card style={screenStyles.sizeCard}>
+        <Text accessibilityRole="header" style={screenStyles.cardHeading}>Tyre size</Text>
+        <View style={screenStyles.sizeRow}>
+          <TextField label="Width" value={width} onChangeText={(v) => setWidth(v.replace(/\D/g, '').slice(0, 3))} placeholder="205" keyboardType="number-pad" style={screenStyles.sizeField} inputStyle={screenStyles.sizeInput} />
+          <TextField label="Profile" accessibilityLabel="Aspect ratio" value={aspect} onChangeText={(v) => setAspect(v.replace(/\D/g, '').slice(0, 2))} placeholder="55" keyboardType="number-pad" style={screenStyles.sizeField} inputStyle={screenStyles.sizeInput} />
+          <TextField label="Rim" value={rim} onChangeText={(v) => setRim(v.replace(/\D/g, '').slice(0, 2))} placeholder="16" keyboardType="number-pad" style={screenStyles.sizeField} inputStyle={screenStyles.sizeInput} />
+        </View>
+        {popular.length > 0 ? (
+          <View style={screenStyles.chipWrap}>
+            {popular.slice(0, 6).map((item) => {
+              const parsed = parseSize(item.size);
+              const selected = Boolean(parsed && parsed.width === width && parsed.aspect === aspect && parsed.rim === rim);
+              return <Chip key={item.size} label={item.size} selected={selected} accessibilityLabel={`Use tyre size ${item.size}`} onPress={() => chooseSize(item.size)} />;
+            })}
+          </View>
+        ) : null}
+        <PrimaryButton variant="ghost" icon={unknownSize ? 'check' : 'help-circle'} disabled={uploading} onPress={() => setUnknownSize(value => !value)}>
+          {unknownSize ? 'I know my tyre size' : "I don't know my tyre size"}
+        </PrimaryButton>
+      </Card>
+
+      {!unknownSize ? <>
+        <Section title="What happened?">
+          <View style={screenStyles.problemGrid}>
+            {PROBLEM_OPTIONS.map((option) => (
+              <ProblemCard
+                key={option.value}
+                option={option}
+                selected={problemType === option.value}
+                onPress={() => {
+                  void Haptics.selectionAsync().catch(() => {});
+                  setProblemType(option.value);
+                  setCondition(option.condition);
+                }}
+              />
+            ))}
+          </View>
+          {selectedProblem ? <Text style={screenStyles.problemHint}>{selectedProblem.detail}</Text> : null}
+        </Section>
+
+        {showQuantity ? (
+          <Section title="How many tyres?">
+            <Segmented accessibilityLabel="Number of tyres" value={quantity} onChange={setQuantity}
+              options={[1, 2, 3, 4].map(value => ({ value, label: String(value) }))} />
+          </Section>
+        ) : null}
+      </> : null}
+
+      <Disclosure key={unknownSize ? 'vehicle-help' : 'vehicle'} title="Vehicle details" summary={vehicleSummary || 'Optional · helps us bring the right tyre'}
+        initiallyOpen={unknownSize || Boolean(vehicleReg)}>
         <View style={screenStyles.inlineFields}>
           <View style={screenStyles.flex}>
             <TextField label="Registration" value={vehicleReg} onChangeText={(v) => setVehicleReg(v.toUpperCase())} placeholder="AB12 CDE" autoCapitalize="characters" />
           </View>
           <PrimaryButton icon="search" variant="secondary" loading={loadingLookup} style={screenStyles.lookupButton} onPress={lookupVehicle}>
-            Lookup
+            Find
           </PrimaryButton>
         </View>
-        <TextField label="Make" value={vehicleMake} onChangeText={setVehicleMake} placeholder="Ford" />
-        <TextField label="Model" value={vehicleModel} onChangeText={setVehicleModel} placeholder="Focus" />
-      </Section>
-
-      <Section title="Tyre size">
-        <TextField label="Search size" value={sizeQuery} onChangeText={searchSizes} placeholder="205/55/R16" />
-        {suggestions.length > 0 ? (
-          <View style={screenStyles.suggestions}>
-            {suggestions.map((item) => (
-              <Pressable key={item.size} style={screenStyles.suggestionItem} onPress={() => chooseSize(item.size)}>
-                <Text style={screenStyles.suggestionMain}>{item.size}</Text>
-                <Text style={screenStyles.suggestionSub}>{item.count} available</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
         <View style={screenStyles.sizeRow}>
-          <TextField label="Width" value={width} onChangeText={(v) => setWidth(v.replace(/\D/g, '').slice(0, 3))} placeholder="205" keyboardType="number-pad" style={screenStyles.sizeField} inputStyle={screenStyles.centerInput} />
-          <TextField label="Aspect" value={aspect} onChangeText={(v) => setAspect(v.replace(/\D/g, '').slice(0, 2))} placeholder="55" keyboardType="number-pad" style={screenStyles.sizeField} inputStyle={screenStyles.centerInput} />
-          <TextField label="Rim" value={rim} onChangeText={(v) => setRim(v.replace(/\D/g, '').slice(0, 2))} placeholder="16" keyboardType="number-pad" style={screenStyles.sizeField} inputStyle={screenStyles.centerInput} />
+          <TextField label="Make" value={vehicleMake} onChangeText={setVehicleMake} placeholder="Ford" style={screenStyles.flex} />
+          <TextField label="Model" value={vehicleModel} onChangeText={setVehicleModel} placeholder="Focus" style={screenStyles.flex} />
         </View>
-        <Card style={screenStyles.sizePreview}>
-          <Text style={screenStyles.sizePreviewText}>{tyreSizeDisplay({ width, aspect, rim }) || 'Enter tyre size'}</Text>
-        </Card>
-        {popular.length > 0 ? (
-          <View style={screenStyles.chipWrap}>
-            {popular.slice(0, 8).map((item) => (
-              <Pressable key={item.size} style={screenStyles.chip} onPress={() => chooseSize(item.size)}>
-                <Text style={screenStyles.chipText}>{item.size}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </Section>
+      </Disclosure>
 
-      <Section title="Problem">
-        <View style={screenStyles.problemGrid}>
-          {PROBLEM_OPTIONS.map((option) => (
-            <ProblemCard
-              key={option.value}
-              option={option}
-              selected={problemType === option.value}
-              onPress={() => {
-                void Haptics.selectionAsync().catch(() => {});
-                setProblemType(option.value);
-                setCondition(option.condition);
-              }}
-            />
-          ))}
-        </View>
-      </Section>
-
-      {showQuantity ? (
-        <Section title="Quantity">
-          <View style={screenStyles.quantityRow}>
-            {[1, 2, 3, 4].map((item) => (
-              <Pressable
-                key={item}
-                style={[screenStyles.quantityButton, quantity === item ? screenStyles.quantityButtonSelected : null]}
-                onPress={() => setQuantity(item)}
-              >
-                <Text style={[screenStyles.quantityText, quantity === item ? screenStyles.quantityTextSelected : null]}>{item}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Section>
-      ) : null}
-
-      <Section title="Locking wheel nuts">
-        <View style={screenStyles.threeGrid}>
-          {[
-            ['standard', 'Standard nuts'],
-            ['has_key', 'I have the key'],
-            ['no_key', 'No key'],
-          ].map(([value, label]) => (
-            <Pressable
-              key={value}
-              style={[screenStyles.smallOption, lockingNut === value ? screenStyles.smallOptionSelected : null]}
-              onPress={() => setLockingNut(value as BookingState['lockingNutStatus'])}
-            >
-              <Text style={screenStyles.smallOptionText}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
+      <Disclosure title="Wheel nuts and photo" summary={extrasSummary} initiallyOpen={lockingNut !== 'standard' || Boolean(photoUrl)}>
+        <Text style={screenStyles.fieldHeading}>Locking wheel nuts</Text>
+        <Segmented accessibilityLabel="Locking wheel nuts" value={lockingNut} onChange={setLockingNut} options={LOCKING_NUT_OPTIONS} />
         <LockingNutPriceNotice status={lockingNut} />
-      </Section>
+        <Text style={screenStyles.fieldHeading}>Tyre photo</Text>
+        <Text style={screenStyles.fieldHint}>Optional. A photo helps the driver prepare.</Text>
+        {photoUrl ? <Image accessibilityLabel="Attached tyre photo" source={{ uri: photoUrl }} style={screenStyles.photoPreview} /> : null}
+        <View style={screenStyles.sizeRow}>
+          <PrimaryButton icon="image" variant="secondary" loading={uploading} style={screenStyles.flex} onPress={() => { void pickPhoto(false); }}>
+            {photoUrl ? 'Replace' : 'Library'}
+          </PrimaryButton>
+          {Platform.OS !== 'web' ? <PrimaryButton icon="camera" variant="secondary" disabled={uploading} style={screenStyles.flex} onPress={() => { void pickPhoto(true); }}>Camera</PrimaryButton> : null}
+        </View>
+        {photoUrl ? <PrimaryButton variant="ghost" icon="trash-2" disabled={uploading} onPress={() => { setPhotoUrl(null); updateState({ tyrePhotoUrl: null }); }}>Remove photo</PrimaryButton> : null}
+      </Disclosure>
 
-      <Section title="Photo">
-        {photoUrl ? <Image source={{ uri: photoUrl }} style={screenStyles.photoPreview} /> : null}
-        <PrimaryButton icon="image" variant="secondary" loading={uploading} onPress={() => { void pickPhoto(false); }}>
-          {photoUrl ? 'Replace photo' : 'Choose tyre photo'}
-        </PrimaryButton>
-        {Platform.OS !== 'web' ? <PrimaryButton icon="camera" variant="secondary" disabled={uploading} onPress={() => { void pickPhoto(true); }}>Take a photo</PrimaryButton> : null}
-        {photoUrl ? <><InlineNotice tone="success">Photo uploaded and attached to your booking.</InlineNotice><PrimaryButton variant="ghost" disabled={uploading} onPress={() => { setPhotoUrl(null); updateState({ tyrePhotoUrl: null }); }}>Remove photo</PrimaryButton></> : null}
-        <PrimaryButton variant="ghost" disabled={uploading} onPress={() => setUnknownSize(value => !value)}>{unknownSize ? 'Use a confirmed tyre size instead' : 'I do not know my tyre size'}</PrimaryButton>
-        {unknownSize ? <CustomerAssistedHelpRequest name={state.customerName} phone={state.customerPhone} details={{ address: state.address, lat: state.lat ?? NaN, lng: state.lng ?? NaN, vehicleReg, vehicleMake, vehicleModel, photoUrl: photoUrl || undefined }} /> : null}
-      </Section>
-
-      <PriceEstimateCard state={draftEstimateState} />
+      {unknownSize ? <CustomerAssistedHelpRequest name={state.customerName} phone={state.customerPhone} details={{ address: state.address, lat: state.lat ?? NaN, lng: state.lng ?? NaN, vehicleReg, vehicleMake, vehicleModel, photoUrl: photoUrl || undefined }} /> : null}
 
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
@@ -1056,7 +950,7 @@ function TyresStep({ state, updateState, goNext }: StepProps) {
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Tyres" title="Choose your tyres" detail={`Size ${tyreSizeDisplay(state.tyreSize)}. Select up to 4 tyres.`} />
+      <ScreenHeader title="Choose your tyres" detail={`${tyreSizeDisplay(state.tyreSize)} · up to 4 tyres. Prices are per tyre; fitting is added in your quote.`} />
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       {!error && tyres.length === 0 ? (
         <EmptyBox>No tyres are listed for this size right now. Call us and we can source one.</EmptyBox>
@@ -1066,59 +960,48 @@ function TyresStep({ state, updateState, goNext }: StepProps) {
         const item = state.selectedTyres.find((cartItem) => cartItem.tyreId === tyre.id);
         const inStock = tyre.availableNew && tyre.stockNew >= 1;
         const canAdd = totalItems < 4 && tyre.priceNew != null;
+        const details = [tyre.tier, tyre.season, tyre.wetGrip ? `Wet grip ${tyre.wetGrip}` : null].filter(Boolean).join(' · ');
         return (
-          <Card key={tyre.id} style={item ? screenStyles.selectedTyreCard : null}>
+          <Card key={tyre.id} style={[screenStyles.tyreCard, item ? screenStyles.selectedTyreCard : null]}>
             <View style={screenStyles.tyreTop}>
               <View style={screenStyles.flex}>
                 <Text style={screenStyles.tyreBrand}>{tyre.brand}</Text>
                 <Text style={screenStyles.tyrePattern}>{tyre.pattern}</Text>
-                <Text style={screenStyles.tyreSize}>{tyre.sizeDisplay}</Text>
               </View>
               <View style={screenStyles.priceStack}>
-                <Pill tone={tyre.isOrderOnly ? 'accent' : inStock ? 'success' : 'neutral'}>
-                  {tyre.isOrderOnly ? 'Special order' : inStock ? 'In stock' : 'Pre-order'}
-                </Pill>
+                <Text style={screenStyles.tyrePrice}>{tyre.priceNew != null ? formatPrice(tyre.priceNew) : 'Call for price'}</Text>
+                {tyre.priceNew != null ? <Text style={screenStyles.tyreMeta}>per tyre</Text> : null}
               </View>
             </View>
             <View style={screenStyles.tyreMetaRow}>
-              <Text style={screenStyles.tyreMeta}>{tyre.tier}</Text>
-              <Text style={screenStyles.tyreMeta}>{tyre.season}</Text>
-              {tyre.wetGrip ? <Text style={screenStyles.tyreMeta}>Grip {tyre.wetGrip}</Text> : null}
+              <Pill tone={tyre.isOrderOnly ? 'accent' : inStock ? 'success' : 'neutral'}>
+                {tyre.isOrderOnly ? tyre.leadTimeLabel || 'Special order' : inStock ? 'In stock' : 'Pre-order'}
+              </Pill>
+              {details ? <Text style={screenStyles.tyreMeta}>{details}</Text> : null}
             </View>
             {item ? (
               <View style={screenStyles.cartControls}>
-                <PrimaryButton variant="secondary" icon="minus" style={screenStyles.qtyControl} onPress={() => setCart(updateCartQuantity(state.selectedTyres, tyre.id, item.quantity - 1))}>
-                  Less
-                </PrimaryButton>
-                <Text style={screenStyles.cartQty}>{item.quantity}</Text>
-                <PrimaryButton variant="secondary" icon="plus" style={screenStyles.qtyControl} onPress={() => setCart(updateCartQuantity(state.selectedTyres, tyre.id, item.quantity + 1))}>
-                  More
-                </PrimaryButton>
+                <Text style={screenStyles.cartAdded}>{formatPrice(item.unitPrice * item.quantity)} added</Text>
+                <QuantityStepper label={`${tyre.brand} ${tyre.pattern} tyres`} value={item.quantity} max={item.quantity + (4 - totalItems)}
+                  onChange={(value) => setCart(updateCartQuantity(state.selectedTyres, tyre.id, value))} />
               </View>
             ) : (
               <PrimaryButton
-                icon="shopping-cart"
+                icon="plus"
                 variant="secondary"
                 disabled={!canAdd}
+                accessibilityLabel={`Add ${tyre.brand} ${tyre.pattern} to booking`}
                 onPress={() => (tyre.isOrderOnly ? setOrderPrompt(tyre) : addTyre(tyre))}
               >
-                Add to booking
+                Add
               </PrimaryButton>
             )}
           </Card>
         );
       })}
 
-      {state.selectedTyres.length > 0 ? (
-        <Card>
-          <Row label="Selected" value={`${totalItems} tyre${totalItems === 1 ? '' : 's'}`} />
-        </Card>
-      ) : null}
-
-      <PriceEstimateCard state={state} />
-
       <BookingContinueButton icon="arrow-right" disabled={state.selectedTyres.length === 0} onPress={goNext}>
-        Continue
+        {totalItems > 0 ? `Continue with ${totalItems} tyre${totalItems === 1 ? '' : 's'}` : 'Choose a tyre to continue'}
       </BookingContinueButton>
 
       <Modal transparent visible={Boolean(orderPrompt)} animationType="fade" onRequestClose={() => setOrderPrompt(null)}>
@@ -1170,10 +1053,13 @@ function ScheduleStep({ state, updateState, goNext, goTo }: StepProps) {
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Schedule" title="Choose date and time" detail="All appointments are shown in UK time (Europe/London)." />
+      <ScreenHeader title="Pick a date and time" detail="Times are shown in UK time." />
 
-      <Section title="Fitting location">
-        {state.fittingLocation ? <><Row label="Where" value={state.fittingLocation === 'shop' ? `At the workshop: ${state.address}` : 'At your location'} /><PrimaryButton variant="ghost" onPress={() => goTo('service')}>Change fitting location</PrimaryButton></> :
+      <Section title="Where">
+        {state.fittingLocation ? <Card style={screenStyles.compactCard}>
+          <SummaryItem icon={state.fittingLocation === 'shop' ? 'home' : 'map-pin'} title={state.fittingLocation === 'shop' ? 'At our workshop' : 'At your location'}
+            detail={state.address || null} editLabel="Change fitting location" onEdit={() => goTo('service')} />
+        </Card> :
         <View style={screenStyles.twoGrid}>
           <OptionCard title="At the shop" detail="No extra fee." meta="Shop" metaTone="success" icon="home" selected={fittingLocation === 'shop'} onPress={() => setFittingLocation('shop')} />
           <OptionCard title="At your location" detail="Priced in quote." meta="Mobile" metaTone="accent" icon="map-pin" selected={fittingLocation === 'mobile'} onPress={() => setFittingLocation('mobile')} />
@@ -1220,8 +1106,6 @@ function ScheduleStep({ state, updateState, goNext, goTo }: StepProps) {
           ))}
         </View>
       </Section>
-
-      <PriceEstimateCard state={{ ...state, fittingLocation }} />
 
       <BookingContinueButton
         icon="arrow-right"
@@ -1357,7 +1241,7 @@ function QuoteStep(props: StepProps) {
 
   return (
     <View style={screenStyles.stepGap}>
-      {!state.breakdown ? <ScreenHeader eyebrow="Review" title="Your booking and price" detail="Check your service, price and contact details together before payment." /> : null}
+      {!state.breakdown ? <ScreenHeader title="Review and pay" detail="We couldn't get a live price yet." /> : null}
       {error ? (
         <>
           <InlineNotice tone="danger">{error}</InlineNotice>
@@ -1367,13 +1251,16 @@ function QuoteStep(props: StepProps) {
       ) : null}
       {state.breakdown ? (
         <>
-          {expired ? <InlineNotice>Your quote has expired. Refresh the price to continue; your details will be kept.</InlineNotice> : <Text style={screenStyles.mutedCentered}>Price valid until {new Date(state.quoteExpiresAt!).toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' })} UK time.</Text>}
+          {expired ? <InlineNotice tone="accent">Your quote has expired. Refresh the price to continue; your details will be kept.</InlineNotice> : null}
           <CustomerStep {...props} quoteReady={total > 0 && !loading && !error && !expired}
             canSubmit={() => !quoteRequestPending.current}
             setNavigationLocked={(locked) => { bookingCreationLocked.current = locked; setCreatingBooking(locked); props.setNavigationLocked?.(locked); }} />
-          <PrimaryButton icon="refresh-cw" variant="ghost" loading={loading} disabled={creatingBooking} onPress={requestQuote}>
-            Refresh quote
-          </PrimaryButton>
+          <View style={screenStyles.quoteMeta}>
+            {!expired ? <Text style={screenStyles.mutedCentered}>Price held until {new Date(state.quoteExpiresAt!).toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' })} UK time</Text> : null}
+            <PrimaryButton icon="refresh-cw" variant="ghost" loading={loading} disabled={creatingBooking} onPress={requestQuote}>
+              Refresh quote
+            </PrimaryButton>
+          </View>
         </>
       ) : null}
     </View>
@@ -1472,31 +1359,47 @@ function CustomerStep({
     }
   };
 
+  const serviceLabel = state.serviceType === 'repair' ? 'Puncture repair' : state.serviceType === 'assess' ? 'Tyre assessment' : 'Tyre fitting';
+  // Fitted tyres carry their own quantities; the separate quantity only applies to repairs and assessments.
+  const tyreTitle = state.selectedTyres.length > 0
+    ? state.selectedTyres.map((tyre) => `${tyre.quantity} × ${tyre.brand} ${tyre.pattern}`).join(', ')
+    : `${serviceLabel}${state.quantity > 1 ? ` · ${state.quantity} tyres` : ''}`;
+  const tyreDetail = [
+    tyreSizeDisplay(state.tyreSize),
+    problemTitle(state.problemType),
+    [state.vehicleReg, state.vehicleMake, state.vehicleModel].filter(Boolean).join(' '),
+    state.tyrePhotoUrl ? 'Photo attached' : null,
+  ].filter(Boolean).join(' · ');
+  const when = state.bookingType === 'scheduled'
+    ? `${formatAppointment(state.scheduledDate, state.scheduledTime)} (UK time)`
+    : state.emergencyEtaLabel ? `Estimated arrival ${state.emergencyEtaLabel}` : 'Our team will confirm the arrival time';
+
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Review" title="Review & confirm booking" detail="Check the location, service and total. Your card is charged only when you complete secure payment." />
+      <ScreenHeader title="Review and pay" detail="You're only charged when you complete secure payment." />
       {state.breakdown ? (
-        <Card>
-          <Row label="Service" value={state.serviceType === 'repair' ? 'Puncture repair' : state.serviceType === 'assess' ? 'Assessment' : 'Tyre fitting'} />
-          <Row label="Problem" value={problemTitle(state.problemType)} />
-          <Row label="Location" value={state.address} />
-          <Row label={state.bookingType === 'scheduled' ? 'Appointment (UK time)' : 'Estimated arrival'} value={state.bookingType === 'scheduled' ? `${state.scheduledDate} ${state.scheduledTime}` : state.emergencyEtaLabel || 'Our team will confirm availability'} />
-          <PrimaryButton variant="ghost" disabled={loading} onPress={() => goTo(state.fittingLocation === 'shop' ? 'service' : 'location')}>Edit location</PrimaryButton>
-          <Row label="Vehicle" value={[state.vehicleReg, state.vehicleMake, state.vehicleModel].filter(Boolean).join(' ') || 'Not specified'} />
-          <Row label="Tyre size" value={tyreSizeDisplay(state.tyreSize)} />
-          <Row label="Quantity" value={String(state.quantity)} />
-          {state.selectedTyres.map((tyre) => <Row key={tyre.tyreId} label={`${tyre.quantity}x ${tyre.brand} ${tyre.pattern}`} value={tyre.sizeDisplay} />)}
-          <PrimaryButton variant="ghost" disabled={loading} onPress={() => goTo('details')}>Edit vehicle or tyres</PrimaryButton>
-          {state.tyrePhotoUrl ? <Image accessibilityLabel="Attached tyre photo" source={{ uri: state.tyrePhotoUrl }} style={screenStyles.photoPreview} /> : null}
-          {(state.breakdown.lineItems || []).map((item, index) => <Row key={`${item.type}-${index}`} label={item.label} value={formatPrice(item.amount)} />)}
-          <Row label="Subtotal" value={formatPrice(state.breakdown.subtotal)} />
-          <Row label="VAT" value={formatPrice(state.breakdown.vatAmount)} />
-          <Row label="Total to pay" value={formatPrice(state.breakdown.total)} valueStyle={{ color: colors.accent }} />
-        </Card>
+        <>
+          <Card style={screenStyles.compactCard}>
+            <SummaryItem icon={state.fittingLocation === 'shop' ? 'home' : 'map-pin'} title={state.address || 'Location'} detail={when}
+              editLabel="Edit location" disabled={loading} onEdit={() => goTo(state.fittingLocation === 'shop' ? 'service' : 'location')} />
+            <View style={screenStyles.divider} />
+            <SummaryItem icon="disc" title={tyreTitle} detail={tyreDetail || null}
+              editLabel="Edit vehicle or tyres" disabled={loading} onEdit={() => goTo('details')} />
+          </Card>
+          <Card style={screenStyles.priceCard}>
+            {(state.breakdown.lineItems || []).map((item, index) => <Row key={`${item.type}-${index}`} label={item.label} value={formatPrice(item.amount)} />)}
+            <View style={screenStyles.divider} />
+            <Row label="Subtotal" value={formatPrice(state.breakdown.subtotal)} />
+            <Row label="VAT" value={formatPrice(state.breakdown.vatAmount)} />
+            <Row label="Total to pay" value={formatPrice(state.breakdown.total)} valueStyle={screenStyles.totalValue} />
+          </Card>
+        </>
       ) : null}
-      <TextField label="Full name" value={name} onChangeText={value => { setName(value); updateState({ customerName: value }); }} placeholder="John Smith" autoComplete="name" />
-      <TextField label="Email" value={email} onChangeText={value => { setEmail(value); updateState({ customerEmail: value }); }} placeholder="john@example.com" keyboardType="email-address" autoComplete="email" />
-      <TextField label="Phone" value={phone} onChangeText={value => { setPhone(value); updateState({ customerPhone: value }); }} placeholder="07123 456789" keyboardType="phone-pad" autoComplete="tel" />
+      <Section title="Your details">
+        <TextField label="Full name" value={name} onChangeText={value => { setName(value); updateState({ customerName: value }); }} placeholder="John Smith" autoComplete="name" />
+        <TextField label="Email" value={email} onChangeText={value => { setEmail(value); updateState({ customerEmail: value }); }} placeholder="john@example.com" keyboardType="email-address" autoComplete="email" />
+        <TextField label="Phone" value={phone} onChangeText={value => { setPhone(value); updateState({ customerPhone: value }); }} placeholder="07123 456789" keyboardType="phone-pad" autoComplete="tel" />
+      </Section>
       <LockingNutPriceNotice status={state.lockingNutStatus} />
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       {quoteNeedsRestart ? (
@@ -1504,8 +1407,8 @@ function CustomerStep({
           Refresh price and keep my details
         </BookingContinueButton>
       ) : (
-        <BookingContinueButton icon="credit-card" loading={loading} disabled={!quoteReady} onPress={submit}>
-          Confirm details & continue to payment
+        <BookingContinueButton icon="lock" loading={loading} disabled={!quoteReady} onPress={submit}>
+          {state.breakdown ? `Continue to payment · ${formatPrice(state.breakdown.total)}` : 'Continue to payment'}
         </BookingContinueButton>
       )}
     </View>
@@ -1624,10 +1527,10 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Payment" title="Secure payment" detail="Your payment is handled securely by Stripe." />
-      <Card>
-        <Row label="Reference" value={state.refNumber || '-'} />
-        <Row label="Total" value={amountLabel} valueStyle={{ color: colors.accent }} />
+      <ScreenHeader title="Secure payment" detail="Card details are handled by Stripe and never stored on your phone." />
+      <Card style={screenStyles.priceCard}>
+        <Row label="Booking reference" value={state.refNumber || '-'} />
+        <Row label="Total" value={amountLabel} valueStyle={screenStyles.totalValue} />
       </Card>
       <LockingNutPriceNotice status={state.lockingNutStatus} />
       {paymentNotice ? <InlineNotice>{paymentNotice}</InlineNotice> : null}
@@ -1707,44 +1610,35 @@ function DoneStep({ state, reset }: { state: BookingState; reset: () => void }) 
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Confirmed" title="Booking received" detail={`${BUSINESS_NAME} has your booking reference.`} />
-      <View style={screenStyles.doneCardMotion}>
-        <Card style={screenStyles.doneCard}>
-          <View style={screenStyles.doneCheckBadge}>
-            <Feather name="check-circle" size={38} color={colors.success} />
-          </View>
-          <View style={screenStyles.doneRefRow}>
-            <Text style={screenStyles.doneRef}>{refNumber || '-'}</Text>
-            {refNumber ? (
-              <View>
-                <Pressable accessibilityLabel="Copy booking reference" accessibilityRole="button" onPress={copyReference} style={screenStyles.doneCopyButton}>
-                  <Feather name={referenceCopied ? 'check' : 'copy'} size={16} color={referenceCopied ? colors.success : colors.text} />
-                  <Text style={screenStyles.doneCopyText}>{referenceCopied ? 'Copied' : 'Copy'}</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
-          <Text style={screenStyles.mutedCentered}>
-            Confirmation email and SMS will be sent after payment confirmation.
-          </Text>
-        </Card>
+      <View style={screenStyles.doneHero}>
+        <View style={screenStyles.doneCheckBadge}>
+          <Feather accessible={false} name="check" size={34} color={colors.success} />
+        </View>
+        <Text accessibilityRole="header" style={screenStyles.doneTitle}>Booking confirmed</Text>
+        <Text style={screenStyles.mutedCentered}>{`${BUSINESS_NAME} has your booking. We'll send a confirmation by email and SMS.`}</Text>
       </View>
-      {state.refNumber && state.invoiceDownloadToken ? (
-        <PrimaryButton
-          icon="download"
-          variant="secondary"
-          onPress={() => Linking.openURL(customerInvoiceUrl(state.refNumber!, state.invoiceDownloadToken!))}
-        >
-          Download invoice
-        </PrimaryButton>
-      ) : null}
-      <PrimaryButton icon="message-circle" variant="secondary" onPress={() => router.push({ pathname: '/chat', params: { bookingId: state.bookingId || '', refNumber, bookingAccessToken: state.bookingAccessToken || '' } })}>Chat with our team</PrimaryButton>
+      <Card style={screenStyles.doneCard}>
+        <Text style={screenStyles.etaLabel}>Booking reference</Text>
+        <View style={screenStyles.doneRefRow}>
+          <Text selectable style={screenStyles.doneRef}>{refNumber || '-'}</Text>
+          {refNumber ? (
+            <Pressable accessibilityLabel="Copy booking reference" accessibilityRole="button" onPress={copyReference} style={screenStyles.doneCopyButton}>
+              <Feather name={referenceCopied ? 'check' : 'copy'} size={16} color={referenceCopied ? colors.success : colors.text} />
+              <Text style={screenStyles.doneCopyText}>{referenceCopied ? 'Copied' : 'Copy'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </Card>
       <PrimaryButton icon="map-pin" onPress={() => router.push({ pathname: '/track', params: { ref: refNumber, accessToken: state.bookingAccessToken || '' } })}>Track my booking</PrimaryButton>
+      <View style={screenStyles.tileRow}>
+        <ActionTile icon="message-circle" label="Chat" accessibilityLabel="Chat with our team" onPress={() => router.push({ pathname: '/chat', params: { bookingId: state.bookingId || '', refNumber, bookingAccessToken: state.bookingAccessToken || '' } })} />
+        <ActionTile icon="phone" label="Call us" accessibilityLabel={`Call ${PHONE_DISPLAY}`} onPress={() => { void Linking.openURL(`tel:${PHONE_TEL}`); }} />
+        {state.refNumber && state.invoiceDownloadToken ? (
+          <ActionTile icon="download" label="Invoice" accessibilityLabel="Download invoice" onPress={() => { void Linking.openURL(customerInvoiceUrl(state.refNumber!, state.invoiceDownloadToken!)); }} />
+        ) : null}
+      </View>
       <AccountOffer state={state} />
-      <PrimaryButton icon="phone" variant="secondary" onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>
-        {PHONE_DISPLAY}
-      </PrimaryButton>
-      <PrimaryButton icon="plus" onPress={reset}>New booking</PrimaryButton>
+      <PrimaryButton icon="plus" variant="ghost" onPress={reset}>Start a new booking</PrimaryButton>
     </View>
   );
 }
@@ -1803,544 +1697,132 @@ function AccountOffer({ state }: { state: BookingState }) {
   }
 
   return (
-    <Card style={screenStyles.accountCard}>
-      <View style={screenStyles.accountHeading}>
-        <Feather name="user-plus" size={22} color={colors.accent} />
-        <Text style={screenStyles.accountTitle}>Create account</Text>
-      </View>
-      <Row label="Booking" value={state.refNumber} />
-      <Row label="Email" value={state.customerEmail} />
+    <Disclosure title="Save your details for next time" summary={`Create an account for ${state.customerEmail}`}>
       <TextField label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry autoComplete="password-new" />
       <TextField label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" secureTextEntry autoComplete="password-new" />
       {message ? <InlineNotice tone="success">{message}</InlineNotice> : null}
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       <PrimaryButton
         icon="user-plus"
+        variant="secondary"
         loading={busy}
         disabled={!password || !confirmPassword}
         onPress={createAccount}
       >
         Create account
       </PrimaryButton>
-    </Card>
+    </Disclosure>
   );
 }
 
 const quoteReset = resetBookingQuote;
 
 const screenStyles = StyleSheet.create({
-  root: {
-    backgroundColor: colors.bg,
-    flex: 1,
-    overflow: 'hidden',
-  },
+  root: { backgroundColor: colors.bg, flex: 1, overflow: 'hidden' },
   scroll: { flex: 1 },
-  content: { gap: 16, padding: spacing.page, paddingBottom: 24 },
-  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 12, minHeight: 42 },
-  brand: { alignItems: 'center', flexDirection: 'row', flexShrink: 1, gap: 10 },
-  brandName: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 15, flexShrink: 1 },
-  backButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.md, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
-  stepGap: { gap: 14 },
-  heroHeader: { alignSelf: 'stretch', gap: 6, marginBottom: 2 },
-  heroEyebrow: { color: colors.accent, fontFamily: typography.bodyMedium, fontSize: 12 },
-  heroTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 28, lineHeight: 36, flexShrink: 1 },
-  heroDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 15, lineHeight: 22, flexShrink: 1 },
+  content: { gap: 20, paddingHorizontal: spacing.page, paddingBottom: 24 },
+  topBlock: { gap: 14 },
+  stepGap: { gap: 16 },
   stepMotion: { alignSelf: 'stretch' },
-  serviceChoice: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 12 },
-  emergencyChoice: { backgroundColor: '#231A14', borderColor: '#B75B26' },
-  serviceChoiceSelected: { borderColor: colors.accent, backgroundColor: '#2B211B' },
-  choicePressed: { opacity: 0.84 },
-  serviceChoiceHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  serviceChoiceIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, flexShrink: 0 },
-  emergencyChoiceIcon: { backgroundColor: 'rgba(249,115,22,0.16)' },
-  serviceChoiceCopy: { flex: 1, minWidth: 0, gap: 5 },
-  serviceChoiceTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 20, lineHeight: 27, flexShrink: 1 },
-  serviceChoiceDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 14, lineHeight: 21 },
-  serviceChoiceMeta: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 18 },
-  emergencyChoiceMeta: { color: '#FDBA74' },
+  flex: { flex: 1 },
+  divider: { backgroundColor: colors.border, height: StyleSheet.hairlineWidth, marginVertical: 2 },
+  compactCard: { gap: 10, paddingVertical: 12 },
+  cardHeading: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 15, lineHeight: 21 },
+  fieldHeading: { color: colors.text, fontFamily: typography.bodyMedium, fontSize: 14, lineHeight: 20 },
+  fieldHint: { color: colors.muted, fontFamily: typography.body, fontSize: 13, lineHeight: 18, marginTop: -8 },
+  mutedCentered: { color: colors.muted, fontFamily: typography.body, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+
+  progress: { gap: 8 },
+  progressTrack: { backgroundColor: colors.surfaceRaised, borderRadius: 4, height: 4, overflow: 'hidden' },
+  progressFill: { backgroundColor: colors.accent, borderRadius: 4, height: 4 },
+  progressLabel: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 16 },
+
+  heroHeader: { alignSelf: 'stretch', gap: 6, marginTop: 4 },
+  heroTitle: { color: colors.text, fontFamily: typography.heading, fontSize: 30, lineHeight: 36, flexShrink: 1 },
+  heroDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 15, lineHeight: 22, flexShrink: 1 },
+  serviceChoice: { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radii.xl, padding: 18, gap: 14 },
+  emergencyChoice: { backgroundColor: colors.accent, borderColor: colors.accent },
+  serviceChoiceSelected: { borderColor: colors.accentBorder, backgroundColor: colors.accentSoft },
+  choicePressed: { opacity: 0.85 },
+  serviceChoiceHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  serviceChoiceIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentSoft },
+  emergencyChoiceIcon: { backgroundColor: 'rgba(26,13,4,0.12)' },
+  serviceChoiceCopy: { gap: 4 },
+  serviceChoiceTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 20, lineHeight: 26 },
+  serviceChoiceDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 14, lineHeight: 20 },
+  emergencyChoiceText: { color: colors.onAccent },
+  serviceChoiceMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  emergencyMetaRow: { alignSelf: 'flex-start', backgroundColor: 'rgba(26,13,4,0.12)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  liveDot: { backgroundColor: colors.onAccent, borderRadius: 4, height: 8, width: 8 },
+  serviceChoiceMeta: { color: colors.subtle, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 16 },
   homeSupport: { gap: 10, marginTop: 4 },
-  supportTitle: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 13 },
-  progressCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 12, padding: 12, gap: 12 },
-  progressHeading: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
-  progressTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 14 },
-  progressDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 12 },
-  stageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  stageItem: { flexBasis: 90, flexGrow: 1, flexShrink: 1, gap: 6 },
-  stageTrack: { height: 4, borderRadius: 4, backgroundColor: colors.border },
-  stageTrackActive: { backgroundColor: colors.accent },
-  stageLabel: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 18 },
-  stageLabelActive: { color: colors.text },
-  suggestions: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  suggestionItem: {
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 2,
-    padding: 13,
-  },
-  suggestionMain: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 14,
-  },
-  suggestionSub: {
-    color: colors.muted,
-    fontFamily: typography.body,
-    fontSize: 12,
-  },
-  mapImage: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    height: 178,
-    marginTop: 12,
-    width: '100%',
-  },
-  mapImageTall: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    height: 220,
-    width: '100%',
-  },
-  etaCard: {
-    alignItems: 'center',
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  etaText: {
-    color: colors.accent,
-    fontFamily: typography.display,
-    fontSize: 52,
-    lineHeight: 52,
-  },
-  etaLabel: {
-    color: colors.muted,
-    fontFamily: typography.bodyBold,
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  mutedCentered: {
-    color: colors.muted,
-    fontFamily: typography.body,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  inlineFields: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 10,
-  },
-  flex: {
-    flex: 1,
-  },
-  lookupButton: {
-    minWidth: 108,
-  },
-  sizeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  sizeField: {
-    flex: 1,
-  },
-  centerInput: {
-    textAlign: 'center',
-  },
-  sizePreview: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  sizePreviewText: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 18,
-  },
-  chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  chipText: {
-    color: colors.text,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-  },
-  problemGrid: {
-    gap: 10,
-  },
-  problemCard: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    minHeight: 104,
-    padding: 14,
-  },
-  problemCardSelected: {
-    backgroundColor: 'rgba(249,115,22,0.1)',
-    borderColor: 'rgba(249,115,22,0.72)',
-    borderWidth: 2,
-  },
-  problemCardPressed: {
-    opacity: 0.86,
-  },
-  problemIcon: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    height: 54,
-    justifyContent: 'center',
-    width: 54,
-  },
-  problemIconSelected: {
-    backgroundColor: 'rgba(249,115,22,0.16)',
-    borderColor: 'rgba(249,115,22,0.42)',
-  },
-  problemCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  problemTitle: {
-    color: colors.text,
-    flexShrink: 1,
-    fontFamily: typography.bodyBold,
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  problemTitleSelected: {
-    color: colors.accent,
-  },
-  problemDetail: {
-    color: colors.muted,
-    flexShrink: 1,
-    fontFamily: typography.body,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  quantityRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  quantityButton: {
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    height: 56,
-    justifyContent: 'center',
-    width: 56,
-  },
-  quantityButtonSelected: {
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  quantityText: {
-    color: colors.text,
-    fontFamily: typography.display,
-    fontSize: 26,
-  },
-  quantityTextSelected: {
-    color: colors.accent,
-  },
-  threeGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  twoGrid: {
-    gap: 10,
-  },
-  smallOption: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 56,
-    padding: 8,
-  },
-  smallOptionSelected: {
-    borderColor: colors.accent,
-  },
-  smallOptionText: {
-    color: colors.text,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  photoPreview: {
-    borderRadius: radii.lg,
-    height: 190,
-    width: '100%',
-  },
-  estimateCard: {
-    backgroundColor: '#202024',
-    gap: 10,
-  },
-  estimateHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-  },
-  estimateIcon: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(249,115,22,0.12)',
-    borderColor: 'rgba(249,115,22,0.34)',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
-  },
-  estimateLabel: {
-    color: colors.muted,
-    fontFamily: typography.bodyBold,
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  estimateRange: {
-    color: colors.accent,
-    flexShrink: 1,
-    fontFamily: typography.display,
-    fontSize: 34,
-    lineHeight: 36,
-  },
-  estimateDetail: {
-    color: colors.muted,
-    fontFamily: typography.body,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  tyreTop: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 12,
-  },
-  selectedTyreCard: {
-    borderColor: colors.accent,
-  },
-  tyreBrand: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 18,
-  },
-  tyrePattern: {
-    color: colors.muted,
-    fontFamily: typography.body,
-    fontSize: 13,
-  },
-  tyreSize: {
-    color: colors.text,
-    fontFamily: typography.display,
-    fontSize: 25,
-    lineHeight: 28,
-    marginTop: 4,
-  },
-  tyrePrice: {
-    color: colors.accent,
-    fontFamily: typography.bodyBold,
-    fontSize: 18,
-    textAlign: 'right',
-  },
-  priceStack: {
-    alignItems: 'flex-end',
-    gap: 7,
-  },
-  tyreMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  tyreMeta: {
-    color: colors.muted,
-    fontFamily: typography.body,
-    fontSize: 12,
-  },
-  cartControls: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    marginTop: 14,
-  },
-  qtyControl: {
-    flex: 1,
-  },
-  cartQty: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 18,
-    minWidth: 28,
-    textAlign: 'center',
-  },
-  modalBackdrop: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 18,
-  },
-  modalCard: {
-    gap: 12,
-    width: '100%',
-  },
-  dateRow: {
-    gap: 8,
-    paddingRight: 6,
-  },
-  dateButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    minHeight: 76,
-    minWidth: 72,
-    justifyContent: 'center',
-    padding: 10,
-  },
-  dateButtonSelected: {
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  dateDay: {
-    color: colors.muted,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-  },
-  dateLabel: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 14,
-  },
-  slotGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  slotButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    minHeight: 74,
-    padding: 10,
-    width: '31.8%',
-  },
-  slotButtonSelected: {
-    borderColor: colors.accent,
-    borderWidth: 2,
-  },
-  disabledBlock: {
-    opacity: 0.45,
-  },
-  slotTime: {
-    color: colors.text,
-    fontFamily: typography.display,
-    fontSize: 24,
-    lineHeight: 28,
-  },
-  slotMeta: {
-    color: colors.muted,
-    fontFamily: typography.body,
-    fontSize: 11,
-  },
-  totalCard: {
-    alignItems: 'center',
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  totalLabel: {
-    color: colors.bg,
-    fontFamily: typography.bodyBold,
-    fontSize: 13,
-  },
-  totalPrice: {
-    color: colors.bg,
-    fontFamily: typography.display,
-    fontSize: 50,
-    lineHeight: 52,
-  },
-  doneCard: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  doneCardMotion: {
-    alignSelf: 'stretch',
-  },
-  doneCheckBadge: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(34,197,94,0.12)',
-    borderColor: 'rgba(34,197,94,0.35)',
-    borderRadius: 29,
-    borderWidth: 1,
-    height: 58,
-    justifyContent: 'center',
-    width: 58,
-  },
-  doneRefRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  doneRef: {
-    color: colors.accent,
-    flexShrink: 1,
-    fontFamily: typography.display,
-    fontSize: 46,
-    lineHeight: 48,
-  },
-  doneCopyButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 6,
-    minHeight: 40,
-    paddingHorizontal: 12,
-  },
-  doneCopyText: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 13,
-  },
-  accountCard: {
-    gap: 12,
-  },
-  accountHeading: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  accountTitle: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 17,
-  },
+  supportTitle: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 13, lineHeight: 18 },
+  tileRow: { flexDirection: 'row', gap: 10 },
+
+  mapImageTall: { backgroundColor: colors.surface, borderRadius: radii.lg, height: 220, width: '100%' },
+  etaCard: { alignItems: 'center', gap: 6, paddingVertical: 20 },
+  etaText: { color: colors.accent, fontFamily: typography.display, fontSize: 48, lineHeight: 50, textAlign: 'center' },
+  etaLabel: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+
+  sizeCard: { gap: 14 },
+  sizeRow: { flexDirection: 'row', gap: 10 },
+  sizeField: { flex: 1 },
+  sizeInput: { fontFamily: typography.bodyBold, fontSize: 20, textAlign: 'center' },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  inlineFields: { alignItems: 'flex-end', flexDirection: 'row', gap: 10 },
+  lookupButton: { minWidth: 96 },
+  problemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  problemCard: { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radii.lg, borderWidth: 1, flexBasis: '47%', flexGrow: 1, gap: 8, minHeight: 112, padding: 14 },
+  problemCardSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  problemCardPressed: { opacity: 0.85 },
+  problemIcon: { alignItems: 'center', backgroundColor: colors.surfaceRaised, borderRadius: 10, height: 36, justifyContent: 'center', width: 36 },
+  problemIconSelected: { backgroundColor: colors.accentSoft },
+  problemTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 15, lineHeight: 20 },
+  problemTitleSelected: { color: colors.accent },
+  problemDetail: { color: colors.subtle, fontFamily: typography.body, fontSize: 12, lineHeight: 16 },
+  problemHint: { color: colors.muted, fontFamily: typography.body, fontSize: 14, lineHeight: 20 },
+  photoPreview: { borderRadius: radii.lg, height: 180, width: '100%' },
+
+  tyreCard: { gap: 12 },
+  selectedTyreCard: { borderColor: colors.accentBorder, backgroundColor: colors.accentSoft },
+  tyreTop: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
+  tyreBrand: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 17, lineHeight: 23 },
+  tyrePattern: { color: colors.muted, fontFamily: typography.body, fontSize: 14, lineHeight: 20 },
+  priceStack: { alignItems: 'flex-end' },
+  tyrePrice: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 18, lineHeight: 24 },
+  tyreMetaRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tyreMeta: { color: colors.subtle, fontFamily: typography.body, fontSize: 12, lineHeight: 16 },
+  cartControls: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
+  cartAdded: { color: colors.accent, flexShrink: 1, fontFamily: typography.bodyMedium, fontSize: 14 },
+  modalBackdrop: { alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.72)', flex: 1, justifyContent: 'center', padding: 18 },
+  modalCard: { gap: 12, width: '100%' },
+
+  twoGrid: { gap: 10 },
+  dateRow: { gap: 8, paddingRight: 6 },
+  dateButton: { alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderRadius: radii.md, borderWidth: 1, justifyContent: 'center', minHeight: 64, minWidth: 64, paddingHorizontal: 10, paddingVertical: 8 },
+  dateButtonSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  dateDay: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12 },
+  dateLabel: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 14 },
+  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  slotButton: { alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderRadius: radii.md, borderWidth: 1, flexBasis: '30%', flexGrow: 1, minHeight: 60, justifyContent: 'center', padding: 8 },
+  slotButtonSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  disabledBlock: { opacity: 0.4 },
+  slotTime: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 15, lineHeight: 20 },
+  slotMeta: { color: colors.subtle, fontFamily: typography.body, fontSize: 11 },
+
+  priceCard: { gap: 2 },
+  totalValue: { color: colors.accent, fontFamily: typography.bodyBold, fontSize: 18, lineHeight: 24 },
+  quoteMeta: { alignItems: 'center' },
+
+  doneHero: { alignItems: 'center', gap: 10, paddingTop: 8 },
+  doneTitle: { color: colors.text, fontFamily: typography.heading, fontSize: 26, lineHeight: 32, textAlign: 'center' },
+  doneCard: { alignItems: 'center', gap: 8 },
+  doneCheckBadge: { alignItems: 'center', backgroundColor: colors.successSoft, borderRadius: 36, height: 72, justifyContent: 'center', width: 72 },
+  doneRefRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
+  doneRef: { color: colors.text, flexShrink: 1, fontFamily: typography.display, fontSize: 40, lineHeight: 44, letterSpacing: 1 },
+  doneCopyButton: { alignItems: 'center', backgroundColor: colors.surfaceRaised, borderRadius: radii.md, flexDirection: 'row', gap: 6, minHeight: 40, paddingHorizontal: 12 },
+  doneCopyText: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 13 },
+  accountCard: { gap: 12 },
+  accountHeading: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  accountTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 17 },
 });
