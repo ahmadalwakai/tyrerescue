@@ -1,3 +1,4 @@
+import { getBookingTimingPayload, getBookingScheduleError, assertBookingTimingResponse, normalizeBookingTiming } from '@/lib/booking-schedule';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
@@ -12,7 +13,7 @@ import {
 } from '@/lib/assisted-chat-workflow';
 import {
   ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
-  ASSISTED_CHAT_PRICING_CONTEXT,
+  getAssistedChatPricingContext,
 } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
@@ -62,6 +63,8 @@ function quoteFromBooking(booking: QuickBookCreateResponse['booking']): Assisted
       ? Number(booking.distanceKm)
       : null;
   return {
+    bookingType: booking.priceBreakdown.bookingType,
+    scheduledAt: booking.priceBreakdown.scheduledAt,
     subtotal: booking.priceBreakdown.subtotal,
     vatAmount: booking.priceBreakdown.vatAmount,
     total: booking.priceBreakdown.total,
@@ -91,29 +94,43 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
 
   const applyBooking = useCallback(
     (booking: QuickBookCreateResponse['booking'], extra?: Partial<AssistedChatDraft['location']>) => {
+      if ((draft.quickBookingId && draft.quickBookingId !== booking.id)
+        || draft.bookingTimingNeedsReview || draft.dispatchedBookingId || draft.dispatchedRefNumber || draft.paymentLink) return false;
       const lat = booking.locationLat ? Number(booking.locationLat) : null;
       const lng = booking.locationLng ? Number(booking.locationLng) : null;
-      const quote = quoteFromBooking(booking);
+      const validLocation = lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)
+        && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+      if ((booking.locationLat != null || booking.locationLng != null) && !validLocation) return false;
+      const expectedTiming = getBookingTimingPayload(draft);
+      const receivedTiming = normalizeBookingTiming(booking);
+      const sameTiming = expectedTiming.bookingType === receivedTiming.bookingType
+        && expectedTiming.scheduledAt === receivedTiming.scheduledAt;
+      // A pending location link may finish after the operator changes the
+      // appointment locally. Coordinates still belong to this quick booking;
+      // accept them, but let Get Price sync the current appointment first.
+      const quote = sameTiming ? quoteFromBooking(booking) : null;
       update({
         quickBookingId: booking.id,
         location: {
           ...draft.location,
           ...extra,
           address: booking.locationAddress ?? extra?.address ?? draft.location.address,
-          lat,
-          lng,
+          lat: validLocation ? lat : null,
+          lng: validLocation ? lng : null,
           postcode: booking.locationPostcode ?? extra?.postcode ?? draft.location.postcode,
-          status: lat != null && lng != null ? 'received' : extra?.status ?? draft.location.status,
+          status: validLocation ? 'received' : extra?.status ?? draft.location.status,
         },
-        quote: quote ?? draft.quote,
-        priceNeedsRefresh: false,
+        quote: sameTiming ? quote ?? draft.quote : null,
+        priceNeedsRefresh: !sameTiming,
+        ...(!sameTiming ? { savedQuoteId: null, savedQuoteRef: null, manualPriceGbp: null } : {}),
         paymentChoice: null,
         paymentLink: null,
         dispatchedRefNumber: null,
         dispatchedBookingId: null,
       });
+      return true;
     },
-    [draft.location, draft.quote, update],
+    [draft, update],
   );
 
   const ensureQuickBooking = useCallback(
@@ -121,17 +138,23 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
       method: AssistedChatLocationMethod,
       contact?: LocationShareContactOverride,
     ): Promise<{ id: string; locationLink: string | null; whatsappLink: string | null }> => {
+      if (draft.bookingTimingNeedsReview) throw new Error('Open Bookings to review this booking’s appointment before changing its location.');
+      const scheduleError = getBookingScheduleError(draft);
+      if (scheduleError) throw new Error(scheduleError);
       const customerPhone = contact?.phone?.trim() || draft.customer.phone.trim() || PLACEHOLDER_PHONE;
       const customerEmail = contact?.email?.trim() || draft.customer.email.trim();
       const customerName = contact?.name?.trim() || draft.customer.name.trim() || PLACEHOLDER_NAME;
 
       if (draft.quickBookingId) {
-        await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
+        const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
           customerName,
           customerPhone,
           customerEmail,
           vehicle: buildAssistedChatVehiclePayload(draft),
+          ...getBookingTimingPayload(draft),
+          pricingContext: getAssistedChatPricingContext(draft),
         });
+        assertBookingTimingResponse(draft, patched.booking);
         return {
           id: draft.quickBookingId,
           locationLink: draft.location.link,
@@ -157,11 +180,13 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         tyreLines,
         items: tyreLines,
         vehicle,
-        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        pricingContext: getAssistedChatPricingContext(draft),
+        ...getBookingTimingPayload(draft),
         adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         notes: draft.note || undefined,
         virtualLandlineInteractionId: draft.virtualLandlineInteractionId ?? undefined,
       });
+      assertBookingTimingResponse(draft, created.booking);
       applyBooking(created.booking, {
         method,
         link: created.locationLink,
@@ -238,6 +263,10 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         if (err instanceof ApiError && err.status === 404) {
           setIsPolling(false);
           setStaleReason('Request expired or no longer available.');
+          if (draft.bookingTimingNeedsReview) {
+            setMessage({ kind: 'err', text: 'Open Bookings to review this booking’s appointment.' });
+            return;
+          }
           update({
             quickBookingId: null,
             location: {
@@ -266,7 +295,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         setBusy(null);
       }
     },
-    [draft.customer, draft.location, draft.priceNeedsRefresh, draft.quote, ensureQuickBooking, update],
+    [draft.bookingTimingNeedsReview, draft.customer, draft.location, draft.priceNeedsRefresh, draft.quote, ensureQuickBooking, update],
   );
 
   useEffect(() => {
@@ -283,10 +312,10 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         const data = await api.get<QuickBookGetResponse>(`/api/admin/quick-book/${draft.quickBookingId}`);
         if (cancelled) return;
         if (data.booking.locationLat && data.booking.locationLng) {
+          if (!applyBooking(data.booking, { method: 'link' })) return;
           setIsPolling(false);
           setLastPollingError(null);
           setStaleReason(null);
-          applyBooking(data.booking, { method: 'link' });
           setMessage({ kind: 'ok', text: 'Location shared by customer.' });
         }
       } catch (err) {
@@ -295,6 +324,10 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
           clearInterval(interval);
           setIsPolling(false);
           setStaleReason('Request expired or no longer available.');
+          if (draft.bookingTimingNeedsReview) {
+            setMessage({ kind: 'err', text: 'Open Bookings to review this booking’s appointment.' });
+            return;
+          }
           update({
             quickBookingId: null,
             location: {
@@ -325,7 +358,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
       cancelled = true;
       clearInterval(interval);
     };
-  }, [applyBooking, draft.location, draft.quickBookingId, update]);
+  }, [applyBooking, draft.bookingTimingNeedsReview, draft.location, draft.quickBookingId, update]);
 
   return {
     busy,

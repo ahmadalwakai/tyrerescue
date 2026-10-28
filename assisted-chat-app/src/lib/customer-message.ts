@@ -1,3 +1,4 @@
+import { formatBookingSchedule } from './booking-schedule';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -81,6 +82,7 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   }
 
   const detail: string[] = [];
+  if (draft.bookingType === 'scheduled') detail.push(`Scheduled appointment: ${formatBookingSchedule(draft)}`);
   detail.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
   if (draft.dispatchedRefNumber) {
     detail.push(`Booking ref: ${draft.dispatchedRefNumber}`);

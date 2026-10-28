@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 umask 077
+test -z "${CM_API_TOKEN:-}" && test -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" && test -z "${APP_STORE_CONNECT_API_KEY:-}" && test -z "${APP_STORE_CONNECT_KEY_IDENTIFIER:-}" && test -z "${APP_STORE_CONNECT_ISSUER_ID:-}"
 ci_dir="$CM_BUILD_DIR/$ASSISTED_CI_DIR"
-signing="$ASSISTED_CI_TEMP/assisted-ios57-signing"
-work="$ASSISTED_CI_TEMP/assisted-ios57-work"
-output="$ASSISTED_CI_TEMP/assisted-ios57-output"
+signing="$ASSISTED_CI_TEMP/assisted-ios58-signing"
+work="$ASSISTED_CI_TEMP/assisted-ios58-work"
+output="$ASSISTED_CI_TEMP/assisted-ios58-output"
 test ! -e "$work" && test ! -e "$output"
 mkdir -m 700 "$work" "$output"
 trap 'bash "$ci_dir/cleanup.sh"' EXIT
@@ -21,7 +22,7 @@ security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$keychain_pa
 python3 - <<'PY'
 import os, shlex, subprocess
 from pathlib import Path
-temporary = str(Path(os.environ['ASSISTED_CI_TEMP']) / 'assisted-ios57-signing/signing.keychain-db')
+temporary = str(Path(os.environ['ASSISTED_CI_TEMP']) / 'assisted-ios58-signing/signing.keychain-db')
 existing = shlex.split(subprocess.check_output(['security', 'list-keychains', '-d', 'user'], text=True))
 search_list = [temporary] + [value for value in existing if value != temporary]
 subprocess.run(['security', 'list-keychains', '-d', 'user', '-s', *search_list], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -30,15 +31,15 @@ security find-identity -v -p codesigning "$keychain" > "$signing/identities.txt"
 python3 - <<'PY'
 import json, os
 from pathlib import Path
-p = Path(os.environ['ASSISTED_CI_TEMP']) / 'assisted-ios57-signing'
+p = Path(os.environ['ASSISTED_CI_TEMP']) / 'assisted-ios58-signing'
 meta = json.loads((p / 'metadata.json').read_text())
 assert meta['certificateSha1'] in (p / 'identities.txt').read_text(), 'The imported signing identity is unavailable'
 PY
 unset ASSISTED_IOS_P12_BASE64 ASSISTED_IOS_P12_PASSWORD ASSISTED_IOS_PROFILE_BASE64 keychain_password
 rm -f -- "$signing/distribution.p12" "$signing/keychain-password.txt"
 ruby "$ci_dir/configure-signing.rb"
-workspace="$(python3 -c 'import json,os; print(json.load(open(os.path.join(os.environ["ASSISTED_CI_TEMP"],"assisted-ios57-signing/xcode-target.json")))["workspace"])')"
-scheme="$(python3 -c 'import json,os; print(json.load(open(os.path.join(os.environ["ASSISTED_CI_TEMP"],"assisted-ios57-signing/xcode-target.json")))["scheme"])')"
+workspace="$(python3 -c 'import json,os; print(json.load(open(os.path.join(os.environ["ASSISTED_CI_TEMP"],"assisted-ios58-signing/xcode-target.json")))["workspace"])')"
+scheme="$(python3 -c 'import json,os; print(json.load(open(os.path.join(os.environ["ASSISTED_CI_TEMP"],"assisted-ios58-signing/xcode-target.json")))["scheme"])')"
 
 run_logged() {
   local stage="$1"; shift
@@ -57,10 +58,10 @@ python3 - <<'PY'
 import json, os, plistlib
 from pathlib import Path
 t = Path(os.environ['ASSISTED_CI_TEMP'])
-m = json.loads((t / 'assisted-ios57-signing/metadata.json').read_text())
+m = json.loads((t / 'assisted-ios58-signing/metadata.json').read_text())
 options = {'method': 'app-store-connect', 'destination': 'export', 'signingStyle': 'manual', 'teamID': m['team'], 'signingCertificate': m['certificateSha1'], 'provisioningProfiles': {m['bundle']: m['uuid']}, 'manageAppVersionAndBuildNumber': False, 'stripSwiftSymbols': True, 'uploadSymbols': False}
-(t / 'assisted-ios57-work/ExportOptions.plist').write_bytes(plistlib.dumps(options))
+(t / 'assisted-ios58-work/ExportOptions.plist').write_bytes(plistlib.dumps(options))
 PY
 run_logged export xcodebuild -exportArchive -archivePath "$work/AssistedChat.xcarchive" -exportPath "$work/export" -exportOptionsPlist "$work/ExportOptions.plist"
 python3 "$ci_dir/verify-ipa.py"
-echo 'The signed IPA is verified and ready for TestFlight upload from the existing local submission workflow.'
+echo 'The signed IPA is verified and ready for the following Codemagic App Store Connect publishing step.'

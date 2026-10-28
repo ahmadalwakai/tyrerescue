@@ -1,3 +1,4 @@
+import { getBookingScheduleError } from './booking-schedule';
 import type {
   AssistedChatDraft,
   AssistedChatLocation,
@@ -357,7 +358,7 @@ export function getAssistedChatStage(input: AssistedChatWorkflowInput): Assisted
   if (draft.dispatchedRefNumber) return 'DISPATCHED';
   if (!hasLocation(draft)) return 'LOCATION';
   if (!hasAssistedChatTyre(draft)) return 'TYRE';
-  if (!draft.quote || draft.priceNeedsRefresh) return 'PRICE';
+  if (getBookingScheduleError(draft) || !draft.quote || draft.priceNeedsRefresh) return 'PRICE';
   if (!hasSavedQuote(draft)) return 'QUOTE';
   if (!quoteConfirmed) return 'CONFIRMATION';
   if (!draft.paymentChoice) return 'PAYMENT';
@@ -371,6 +372,11 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
 
   if (input.canUseApi === false && stage !== 'CUSTOMER' && stage !== 'TYRE' && stage !== 'DISPATCHED') {
     return 'Unable to verify this session. Please retry.';
+  }
+
+  if (['PRICE', 'QUOTE', 'CONFIRMATION', 'PAYMENT', 'READY_TO_DISPATCH'].includes(stage)) {
+    const scheduleError = getBookingScheduleError(draft);
+    if (scheduleError) return scheduleError;
   }
 
   if (stage === 'TYRE') {
@@ -441,7 +447,7 @@ export function getAssistedChatPrimaryAction(input: AssistedChatWorkflowInput): 
     QUOTE: 'Save Quote',
     CONFIRMATION: 'Confirm Quote',
     PAYMENT: 'Choose Payment',
-    READY_TO_DISPATCH: 'Review & Dispatch',
+    READY_TO_DISPATCH: input.draft.bookingType === 'scheduled' ? 'Review Scheduled Booking' : 'Review & Dispatch',
     DISPATCHED: 'Open Booking',
   };
 
@@ -491,7 +497,7 @@ export function getAssistedChatWorkflow(input: AssistedChatWorkflowInput): Assis
     { key: 'PRICE', label: 'Price', state: timelineState('PRICE', activeKey, completedSteps) },
     { key: 'QUOTE', label: 'Quote', state: timelineState('QUOTE', activeKey, completedSteps) },
     { key: 'PAYMENT', label: 'Payment', state: timelineState('PAYMENT', activeKey, completedSteps) },
-    { key: 'DISPATCH', label: 'Dispatch', state: timelineState('DISPATCH', activeKey, completedSteps) },
+    { key: 'DISPATCH', label: draft.bookingType === 'scheduled' ? 'Booking' : 'Dispatch', state: timelineState('DISPATCH', activeKey, completedSteps) },
   ];
 
   const primary = getAssistedChatPrimaryAction(input);
@@ -533,6 +539,8 @@ export function quoteFromQuickBookPatch(
       ? Number(distanceKm)
       : null;
   return {
+    bookingType: breakdown.bookingType,
+    scheduledAt: breakdown.scheduledAt,
     subtotal: breakdown.subtotal,
     vatAmount: breakdown.vatAmount,
     total: breakdown.total,

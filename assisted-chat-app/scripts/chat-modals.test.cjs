@@ -62,6 +62,7 @@ function createChatHarness(kind = 'hub') {
     '@/hooks/useAdminSession': { getAdminSessionRevision: () => state.revision },
     '@/hooks/useChatSounds': { useChatSounds: () => sounds },
     '@/lib/chat-message-display': display,
+    '@/lib/chat-message-state': loadSource('lib/chat-message-state.ts', {}),
     '@/hooks/useDriverList': { useDriverList: () => ({ drivers: [{ id: 'driver-no-job', name: 'Hassan', phone: '+44 7700 900123', isOnline: false }], loading: false, error: null, reload: () => {} }) },
     '@/lib/chat-attachments': { uploadChatImageAttachment: async (asset) => { state.uploads.push(asset); return state.upload ? state.upload.promise : ({ url: 'https://example.invalid/photo.jpg', mimeType: 'image/jpeg' }); }, uploadChatVoiceAttachment: async (uri) => { state.voiceUploads.push(uri); return state.voiceUpload ? state.voiceUpload.promise : { url: 'https://example.invalid/voice.m4a', mimeType: 'audio/mp4', fileSize: 1234 }; } },
     '@/lib/chat-download': { saveChatAttachmentToDevice: async () => {} },
@@ -77,7 +78,7 @@ function createChatHarness(kind = 'hub') {
   };
   const component = loadSource(`components/${kind === 'hub' ? 'ChatHubModal' : 'DriverChatModal'}.tsx`, dependencies, { setInterval: (fn) => { state.timers.push(fn); return fn; }, clearInterval: () => {}, setTimeout: (fn) => { fn(); return 0; }, clearTimeout: () => {} });
   const renderer = { hooks: [], effects: [], layoutEffects: [], cursor: 0 };
-  function read() { renderer.cursor = 0; renderer.effects = []; renderer.layoutEffects = []; rendering = renderer; const tree = kind === 'hub' ? component.ChatHubModal({ visible: state.visible, initialConversationId: state.initialConversationId, entryMode: state.entryMode, onClose: () => { state.closes += 1; } }) : component.DriverChatModal({ visible: state.visible, bookingId: state.bookingId, bookingRef: state.bookingRef, onClose: () => { state.closes += 1; } }); for (const effect of renderer.layoutEffects) effect(); for (const effect of renderer.effects) effect(); return tree; }
+  function read() { renderer.cursor = 0; renderer.effects = []; renderer.layoutEffects = []; rendering = renderer; const tree = kind === 'hub' ? component.ChatHubModal({ visible: state.visible, initialConversationId: state.initialConversationId, initialConversationChannel: state.initialConversationChannel, entryMode: state.entryMode, onClose: () => { state.closes += 1; } }) : component.DriverChatModal({ visible: state.visible, bookingId: state.bookingId, bookingRef: state.bookingRef, onClose: () => { state.closes += 1; } }); for (const effect of renderer.layoutEffects) effect(); for (const effect of renderer.effects) effect(); return tree; }
   function findNodes(predicate, tree) { if (!tree || typeof tree !== 'object') return []; if (Array.isArray(tree)) return tree.flatMap((child) => findNodes(predicate, child)); const matches = predicate(tree) ? [tree] : []; if (typeof tree.type === 'function') return matches.concat(findNodes(predicate, tree.type(tree.props))); return matches.concat(findNodes(predicate, tree.props?.children)); }
   const find = (predicate) => findNodes(predicate, read())[0];
   function press(label) { const target = find((value) => value.props?.accessibilityLabel === label || value.props?.label === label); assert.ok(target, `Missing ${label}`); target.props.onPress(); return target; }

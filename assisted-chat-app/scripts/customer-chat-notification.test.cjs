@@ -34,6 +34,19 @@ test('an old customer notification response cannot open after account, project o
   }
 });
 
+test('an authorized admin driver notification opens the private driver channel', async () => {
+  const h = createChatHarness();
+  h.state.initialConversationId = id;
+  h.state.initialConversationChannel = 'admin_driver';
+  h.state.handlers[`/api/chat/conversations/${id}`] = async () => ({ ...detail, channel: 'admin_driver', bookingId: null, bookingRef: 'Direct chat', participants: [{ role: 'driver', name: 'Hassan' }] });
+  h.read(); await settle();
+  assert.ok(h.find((node) => node.type === 'ChatScreenLayout').props.onBack);
+  assert.ok(h.state.gets.some((url) => url.includes(`${id}/messages`)));
+  assert.equal(h.find((node) => node.type === 'ChatScreenLayout').props.title, 'Hassan');
+  assert.equal(h.find((node) => node.type === 'ChatScreenLayout').props.reference, null);
+  h.unmount();
+});
+
 test('customer notification cannot redirect into a private driver channel', async () => {
   const h = createChatHarness();
   h.state.initialConversationId = id;

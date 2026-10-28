@@ -1,7 +1,7 @@
 // Local mirror of `<repo-root>/types/admin-quotes.ts`. The Expo app is kept
 // outside the Next.js tsconfig include path, so these operational API shapes
 // are mirrored here and should remain field-for-field compatible.
-import type { BookingTyreLine } from './assisted-chat';
+import type { AssistedChatBookingType, BookingTyreLine } from './assisted-chat';
 
 export const ADMIN_QUOTE_STATUSES = [
   'DRAFT',
@@ -39,6 +39,8 @@ export type AdminQuoteNextAction = (typeof ADMIN_QUOTE_NEXT_ACTIONS)[number];
 export type AdminQuoteConfirmationMethod = 'PHONE';
 
 export interface AdminQuoteListItem {
+  bookingType?: AssistedChatBookingType;
+  scheduledAt?: string | null;
   id: string;
   quoteRef: string;
   customerName: string | null;
@@ -73,6 +75,8 @@ export interface AdminQuoteListItem {
 export type AdminQuote = AdminQuoteListItem;
 
 export interface CreateAdminQuoteInput {
+  bookingType?: AssistedChatBookingType;
+  scheduledAt?: string | null;
   quickBookingId?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
@@ -94,6 +98,8 @@ export interface CreateAdminQuoteInput {
 }
 
 export interface UpdateAdminQuoteInput {
+  bookingType?: AssistedChatBookingType;
+  scheduledAt?: string | null;
   quickBookingId?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
@@ -115,6 +121,8 @@ export interface UpdateAdminQuoteInput {
 }
 
 export interface ConfirmAdminQuoteInput {
+  bookingType?: AssistedChatBookingType;
+  scheduledAt?: string | null;
   selectedPaymentOption: AdminQuotePaymentOption;
   operatorNote?: string | null;
   idempotencyKey?: string | null;

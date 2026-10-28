@@ -10,9 +10,12 @@ import subprocess
 import wave
 import zipfile
 
+release_lock = json.loads((Path(__file__).resolve().parent / 'release-lock.json').read_text())
+assert release_lock['version'] == '1.0.14' and release_lock['buildNumber'] == '58', 'Wrong finalized release'
+assert release_lock['bundleIdentifier'] == 'uk.tyrerescue.assistedchat' and release_lock['teamId'] == 'BXK52CMHR2', 'Wrong finalized app identity'
 temp = Path(os.environ['ASSISTED_CI_TEMP'])
-work = temp / 'assisted-ios57-work'
-output = temp / 'assisted-ios57-output'
+work = temp / 'assisted-ios58-work'
+output = temp / 'assisted-ios58-output'
 ipas = list((work / 'export').glob('*.ipa'))
 assert len(ipas) == 1, 'Expected exactly one IPA'
 inspection = work / 'ipa-inspection'
@@ -28,7 +31,7 @@ assert len(apps) == 1, 'Expected exactly one application'
 app = apps[0]
 info = plistlib.loads((app / 'Info.plist').read_bytes())
 assert info['CFBundleIdentifier'] == 'uk.tyrerescue.assistedchat', 'Wrong exported application'
-assert info['CFBundleShortVersionString'] == '1.0.13' and info['CFBundleVersion'] == '57', 'Wrong exported version'
+assert info['CFBundleShortVersionString'] == '1.0.14' and info['CFBundleVersion'] == '58', 'Wrong exported version'
 assert info.get('ITSAppUsesNonExemptEncryption') is False, 'Missing encryption export declaration'
 for permission in ['NSCameraUsageDescription', 'NSMicrophoneUsageDescription', 'NSPhotoLibraryUsageDescription', 'NSFaceIDUsageDescription']:
     assert info.get(permission), 'Missing required permission description'
@@ -56,6 +59,7 @@ required_ui_markers += ['assisted-chat-header-incoming-call', 'Returning custome
                         'Previous booking price', 'Not recorded', '/api/mobile/admin/phone/incoming-call',
                         '/api/mobile/admin/customers/match?phone=', 'AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY']
 required_ui_markers += ['bonline-call-button', 'bonline-call-card', 'assisted-chat-header-caller-history', '/api/mobile/admin/phone/analytics', '/api/mobile/admin/phone/outbound']
+required_ui_markers += ['When does the customer need us?', 'Call assistance', 'Review extracted details', 'Registered customers', 'First-time App Store downloads']
 assert all(marker in bundle_text for marker in required_ui_markers), 'Expected production API or fixed UI markers are missing'
 assert bundle[:8] == bytes.fromhex('c61fbc03c103191f'), 'Expected production Hermes bytecode'
 import re
@@ -74,9 +78,9 @@ with wave.open(io.BytesIO(notification_sound_bytes), 'rb') as sound:
     assert sound.getcomptype() == 'NONE' and sound.getnchannels() == 1 and sound.getsampwidth() == 2, 'External notification sound must be mono PCM16'
     assert sound.getframerate() == 44100 and sound.getnframes() == 308700, 'External notification sound must be exactly seven seconds at 44100 Hz'
 assert not list(app.rglob('*.p12')) and not list(app.rglob('*.p8')) and not list(app.rglob('.env*')), 'Private source material in IPA'
-destination = output / 'assisted-chat-1.0.13-57.ipa'
+destination = output / 'assisted-chat-1.0.14-58.ipa'
 shutil.copyfile(ipas[0], destination)
-manifest = {'version': '1.0.13', 'buildNumber': '57', 'bundleIdentifier': 'uk.tyrerescue.assistedchat', 'teamId': 'BXK52CMHR2', 'sourceManifestSha256': 'e2c11a2e32eca49ab5f29b681356f9f4bc76a0da61b439b943a72369a5e40f99', 'ipaSha256': hashlib.sha256(destination.read_bytes()).hexdigest(), 'ipaBytes': destination.stat().st_size, 'architecture': architecture, 'hermesBundleSha256': hashlib.sha256(bundle).hexdigest(), 'uiMarkersVerified': required_ui_markers, 'duplicateChatLaunchCardAbsent': True, 'configuredPublicMapboxTokenPresent': True, 'privateBundleLiteralsAbsent': True, 'productionAPNs': True, 'nativeSecureStoreVerified': True, 'incomingCallerHistoryAndPriceVerified': True, 'nodeVersion': '24.22.1', 'signatureVerified': True, 'appStoreDistributionProfile': True, 'xcodeVersion': '26.2', 'xcodeBuild': '17C52', 'iOSSdk': '26.2', 'runner': 'mac_mini_m2', 'repository': 'ahmadalwakai/tyrerescue', 'commit': subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'rev-parse', 'HEAD'], text=True).strip(), 'runId': os.environ.get('CM_BUILD_ID'), 'testFlightUploadPerformed': False, 'appStoreReviewRequested': False}
+manifest = {'version': '1.0.14', 'buildNumber': '58', 'bundleIdentifier': 'uk.tyrerescue.assistedchat', 'teamId': 'BXK52CMHR2', 'sourceManifestSha256': release_lock['sourceManifestSha256'], 'ipaSha256': hashlib.sha256(destination.read_bytes()).hexdigest(), 'ipaBytes': destination.stat().st_size, 'architecture': architecture, 'hermesBundleSha256': hashlib.sha256(bundle).hexdigest(), 'uiMarkersVerified': required_ui_markers, 'duplicateChatLaunchCardAbsent': True, 'configuredPublicMapboxTokenPresent': True, 'privateBundleLiteralsAbsent': True, 'productionAPNs': True, 'nativeSecureStoreVerified': True, 'incomingCallerHistoryAndPriceVerified': True, 'nodeVersion': '24.22.1', 'signatureVerified': True, 'appStoreDistributionProfile': True, 'xcodeVersion': '26.2', 'xcodeBuild': '17C52', 'iOSSdk': '26.2', 'runner': 'mac_mini_m2', 'repository': 'ahmadalwakai/tyrerescue', 'commit': subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'rev-parse', 'HEAD'], text=True).strip(), 'runId': os.environ.get('CM_BUILD_ID'), 'testFlightUploadPerformed': False, 'appStoreReviewRequested': False}
 manifest['externalNotificationSoundVerified'] = True
 manifest['externalNotificationSoundSha256'] = notification_sound_sha256
 (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

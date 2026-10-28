@@ -211,7 +211,7 @@ export function deriveOperatorWorkflowSteps(
     },
     {
       id: 'dispatch',
-      label: STEP_LABELS.dispatch,
+      label: draft.bookingType === 'scheduled' ? 'Booking' : STEP_LABELS.dispatch,
       status: hasDispatched
         ? 'complete'
         : dispatchBusy
@@ -355,7 +355,7 @@ export function deriveNextBestAction(input: NextBestActionInput): NextBestAction
     return {
       id: 'payment',
       title: 'Send payment link',
-      body: 'Choose how the customer will pay so we can dispatch the job.',
+      body: draft.bookingType === 'scheduled' ? 'Choose how the customer will pay for the appointment.' : 'Choose how the customer will pay so we can dispatch the job.',
       status: 'info',
       primaryLabel: primaryActionLabel,
       onPrimaryPress,
@@ -369,14 +369,16 @@ export function deriveNextBestAction(input: NextBestActionInput): NextBestAction
       return {
         id: 'payment',
         title: 'Payment link sent',
-        body: 'Waiting for customer payment. The driver has the job.',
+        body: draft.bookingType === 'scheduled' ? 'Waiting for customer payment for the scheduled appointment.' : 'Waiting for customer payment. The driver has the job.',
         status: 'waiting',
       };
     }
     return {
       id: 'dispatch',
-      title: 'Booking dispatched',
-      body: draft.dispatchedRefNumber
+      title: draft.bookingType === 'scheduled' ? 'Scheduled booking saved' : 'Booking dispatched',
+      body: draft.bookingType === 'scheduled'
+        ? 'The appointment is saved. Manage driver assignment from Bookings.'
+        : draft.dispatchedRefNumber
         ? `Booking ${draft.dispatchedRefNumber} is on its way to a driver.`
         : 'Booking is on its way to a driver.',
       status: 'success',
@@ -385,8 +387,8 @@ export function deriveNextBestAction(input: NextBestActionInput): NextBestAction
 
   return {
     id: 'dispatch',
-    title: 'Booking ready to dispatch',
-    body: 'Review the job and send it to the driver.',
+    title: draft.bookingType === 'scheduled' ? 'Ready to book appointment' : 'Booking ready to dispatch',
+    body: draft.bookingType === 'scheduled' ? 'Review the appointment and create the scheduled booking.' : 'Review the job and send it to the driver.',
     status: 'info',
     primaryLabel: primaryActionLabel,
     onPrimaryPress,

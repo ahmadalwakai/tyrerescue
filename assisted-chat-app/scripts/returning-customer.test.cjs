@@ -3,7 +3,7 @@ const test = require('node:test');
 const { loadSource } = require('./chat-modals.test.cjs');
 
 const geo = loadSource('lib/geo.ts', {});
-const workflow = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo });
+const workflow = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo, './booking-schedule': loadSource('lib/booking-schedule.ts', {}) });
 const returning = loadSource('lib/returning-customer.ts', { './assisted-chat-workflow': workflow });
 
 const emptyLocation = { method: 'address', address: '', lat: null, lng: null, postcode: null, link: null, whatsappLink: null, status: 'idle' };

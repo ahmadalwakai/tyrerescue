@@ -20,6 +20,7 @@ import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { DriverLocationShareActions } from '@/components/tracking/DriverLocationShareActions';
 import { CopyAddressButton } from './CopyAddressButton';
+import { formatBookingSchedule } from '@/lib/booking-schedule';
 import { CopyCoordinatesButton } from './CopyCoordinatesButton';
 import { formatBookingCoordinatesForCopy } from '@/lib/booking-coordinates';
 import { InvoicePresentationEditor, type InvoicePresentationEditorHandle } from './invoices/InvoicePresentationEditor';
@@ -1134,7 +1135,7 @@ function BookingDetailView({
                 <DetailRow label="Type" value={data.booking.bookingType} />
                 <DetailRow
                   label="Scheduled Service Time"
-                  value={data.booking.bookingType === 'scheduled' ? formatDate(data.booking.scheduledAt) : null}
+                  value={data.booking.bookingType === 'scheduled' ? formatBookingSchedule({ bookingType: 'scheduled', scheduledAt: data.booking.scheduledAt }) : null}
                 />
                 <DetailRow label="Created" value={formatDate(data.booking.createdAt)} />
                 <DetailRow label="Assigned at" value={formatDate(data.booking.assignedAt)} />
@@ -1564,7 +1565,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
                   </View>
                   {item.bookingType === 'scheduled' && item.scheduledAt ? (
                     <Text style={styles.bookingScheduled} numberOfLines={1}>
-                      Service time: {formatDate(item.scheduledAt)}
+                      Service time: {formatBookingSchedule({ bookingType: 'scheduled', scheduledAt: item.scheduledAt })}
                     </Text>
                   ) : null}
                   {item.driverName ? (

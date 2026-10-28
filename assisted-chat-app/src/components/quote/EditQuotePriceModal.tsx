@@ -4,7 +4,6 @@ import { api, ApiError } from '@/lib/api';
 import { formatGbp } from '@/lib/money';
 import {
   ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
-  ASSISTED_CHAT_PRICING_CONTEXT,
 } from '@/lib/pricing-context';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
@@ -129,7 +128,7 @@ export function EditQuotePriceModal({
       const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${quickBookingId}`, {
         adminAdjustmentAmount: delta,
         adminAdjustmentReason: MANUAL_PRICE_REASON,
-        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        // Retain the appointment's canonical pricing context on the server.
         adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
       });
       onSaved(result.value, quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm));

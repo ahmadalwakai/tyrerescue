@@ -8,8 +8,11 @@ const manifestPath = path.join(__dirname, 'source-manifest.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 function check(condition, label) { if (!condition) throw Error(label); }
-check(manifest.sourceManifestSha256 === 'e2c11a2e32eca49ab5f29b681356f9f4bc76a0da61b439b943a72369a5e40f99', 'Wrong frozen release');
-check(hash(JSON.stringify(manifest.files)) === manifest.sourceManifestSha256 && manifest.files.length === manifest.fileCount && manifest.fileCount === 288, 'Invalid frozen source manifest');
+const releaseLock = JSON.parse(fs.readFileSync(path.join(__dirname, 'release-lock.json'), 'utf8'));
+check(releaseLock.version === '1.0.14' && releaseLock.buildNumber === '58' && releaseLock.bundleIdentifier === 'uk.tyrerescue.assistedchat' && releaseLock.teamId === 'BXK52CMHR2', 'Wrong finalized release identity');
+check(manifest.version === releaseLock.version && manifest.buildNumber === releaseLock.buildNumber && manifest.bundleIdentifier === releaseLock.bundleIdentifier && manifest.projectId === '7b51b2be-7b4e-484e-bb94-82628e8253e5', 'Frozen manifest identity differs from finalized release');
+check(/^[a-f0-9]{64}$/.test(releaseLock.sourceManifestSha256) && manifest.sourceManifestSha256 === releaseLock.sourceManifestSha256, 'Wrong frozen release');
+check(Array.isArray(manifest.files) && hash(JSON.stringify(manifest.files)) === manifest.sourceManifestSha256 && manifest.files.length === manifest.fileCount && manifest.fileCount === releaseLock.sourceFiles && manifest.fileCount >= 288, 'Invalid frozen source manifest');
 const expected = new Map(manifest.files.map(file => [file.path, file]));
 check(expected.size === manifest.fileCount, 'Duplicate frozen source path');
 check(process.version === 'v24.22.1', 'Node 24.22.1 is required for the frozen dependencies');
@@ -35,11 +38,11 @@ walk();
 check(count === manifest.fileCount, 'Frozen source file count mismatch');
 const expo = JSON.parse(fs.readFileSync(path.join(app, 'app.json'), 'utf8')).expo;
 const pkg = JSON.parse(fs.readFileSync(path.join(app, 'package.json'), 'utf8'));
-check(expo.version === '1.0.13' && pkg.version === '1.0.13' && expo.ios.buildNumber === '57', 'Unexpected app version');
+check(expo.version === '1.0.14' && pkg.version === '1.0.14' && expo.ios.buildNumber === '58', 'Unexpected app version');
 check(expo.ios.bundleIdentifier === 'uk.tyrerescue.assistedchat' && expo.extra.eas.projectId === '7b51b2be-7b4e-484e-bb94-82628e8253e5', 'Unexpected application identity');
 check(pkg.main === './src/startup-entry.js' && pkg.scripts.postinstall === 'node scripts/apply-patches.js', 'Startup or patch guard changed');
 check(pkg.engines.node === '24.x', 'Unexpected Node engine');
-check(hash(fs.readFileSync(path.join(app, 'package-lock.json'))) === 'bcf8fe3dbb4042875dd4a115d256b40b89e99773246815713692157580ef6d58', 'Lockfile mismatch');
+check(/^[a-f0-9]{64}$/.test(releaseLock.packageLockSha256) && hash(fs.readFileSync(path.join(app, 'package-lock.json'))) === releaseLock.packageLockSha256, 'Lockfile mismatch');
 check(process.env.EXPO_PUBLIC_API_BASE_URL === 'https://www.tyrerescue.uk', 'Wrong server URL');
 check(/^pk\.[A-Za-z0-9_.-]+$/.test(process.env.EXPO_PUBLIC_MAPBOX_TOKEN || ''), 'An explicit public Mapbox token is required');
 check(!process.env.EXPO_PUBLIC_ADMIN_TOKEN && !process.env.EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP && !process.env.EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_SESSION_RESTORE, 'Forbidden release environment override');
@@ -96,6 +99,9 @@ check(soundFormat?.length >= 16 && soundFormat.readUInt16LE(0) === 1 && soundFor
   'External notification sound must be seven seconds of mono 44100 Hz PCM16');
 check(readSource('src/lib/admin-session-storage.ts').includes("await import('expo-secure-store')")
   && readSource('src/lib/admin-session-storage.ts').includes('secure.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY'), 'Persistent secure session storage missing');
+const release58Markers = ['When does the customer need us?', 'Call assistance', 'Review extracted details', 'Registered customers', 'First-time App Store downloads'];
+const releaseSource = manifest.files.filter(file => /^src\/.*\.(?:tsx?|jsx?)$/.test(file.path)).map(file => readSource(file.path)).join('\n');
+check(release58Markers.every(marker => releaseSource.includes(marker)), 'A required release 58 UI feature is missing');
 if (process.argv.includes('--installed')) {
   const deps = ['expo', 'expo-audio', 'expo-local-authentication', 'expo-notifications', 'expo-secure-store'];
   for (const name of deps) check(require(path.join(app, 'node_modules', name, 'package.json')).version.startsWith('55.'), 'Unexpected native package version');
@@ -104,4 +110,4 @@ if (process.argv.includes('--installed')) {
   const secureStoreModule = JSON.parse(fs.readFileSync(path.join(app, 'node_modules/expo-secure-store/expo-module.config.json'), 'utf8'));
   check(secureStoreModule.apple.modules.includes('SecureStoreModule'), 'Native secure storage module registration missing');
 }
-console.log(JSON.stringify({ verified: true, version: '1.0.13', buildNumber: '57', sourceFiles: count, sourceManifestSha256: manifest.sourceManifestSha256, dependenciesVerified: process.argv.includes('--installed') }));
+console.log(JSON.stringify({ verified: true, version: '1.0.14', buildNumber: '58', sourceFiles: count, sourceManifestSha256: manifest.sourceManifestSha256, dependenciesVerified: process.argv.includes('--installed') }));

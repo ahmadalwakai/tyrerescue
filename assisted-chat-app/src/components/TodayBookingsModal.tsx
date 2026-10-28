@@ -14,6 +14,7 @@ import { colors, fontSize, radius } from './theme';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp } from '@/lib/money';
 import { formatAssistedChatServiceType } from '@/lib/assisted-chat-workflow';
+import { formatBookingSchedule } from '@/lib/booking-schedule';
 import { CopyAddressButton } from './CopyAddressButton';
 
 interface Props {
@@ -95,6 +96,7 @@ function buildDetailLines(item: TodayBookingItem): string[] {
   lines.push(`Booking ref: ${item.bookingReference}`);
   lines.push(`Date: ${formatDate(item.createdAtIso)}`);
   lines.push(`Service: ${formatAssistedChatServiceType(item.serviceType)}`);
+  lines.push(`Booking time: ${item.bookingTimingNeedsReview ? 'Review appointment in Bookings' : formatBookingSchedule(item)}`);
   const t = formatTime(item.createdAtIso);
   if (t) lines.push(`Time: ${t}`);
   if (item.customerPhone) lines.push(`Phone: ${item.customerPhone}`);
@@ -214,6 +216,7 @@ export function TodayBookingsModal({ visible, items, onClose }: Props) {
                 <DetailRow label="Date" value={formatDate(selected.createdAtIso)} />
                 <DetailRow label="Time" value={formatTime(selected.createdAtIso)} />
                 <DetailRow label="Service" value={formatAssistedChatServiceType(selected.serviceType)} />
+                <DetailRow label="Booking time" value={selected.bookingTimingNeedsReview ? 'Review appointment in Bookings' : formatBookingSchedule(selected)} />
                 {selected.customerPhone ? (
                   <DetailRow label="Phone" value={selected.customerPhone} />
                 ) : null}
@@ -284,6 +287,7 @@ export function TodayBookingsModal({ visible, items, onClose }: Props) {
                       {formatDate(item.createdAtIso)} · {formatAssistedChatServiceType(item.serviceType)} · {PAYMENT_LABEL[item.paymentChoice]}
                       {total ? ` · ${total}` : ''}
                     </Text>
+                    {item.bookingTimingNeedsReview ? <Text style={styles.itemSub}>Review appointment in Bookings</Text> : item.bookingType === 'scheduled' ? <Text style={styles.itemSub}>{formatBookingSchedule(item)}</Text> : null}
                     {item.customerAddress ? (
                       <Text style={styles.itemSub} numberOfLines={1}>
                         {item.customerAddress}

@@ -32,6 +32,9 @@ export interface TodayBookingItem {
   bookingReference: string;
   bookingId?: string;
   createdAtIso: string;
+  bookingType?: 'emergency' | 'scheduled';
+  scheduledAt?: string | null;
+  bookingTimingNeedsReview?: boolean;
   paymentChoice: AssistedChatPaymentChoice;
   totalPence?: number;
   totalLabel?: string;

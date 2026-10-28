@@ -12,8 +12,9 @@ const parse = (relative) => ts.createSourceFile(relative, fs.readFileSync(path.j
 const screen = parse('components/AssistedChatScreen.tsx');
 const locationSection = parse('components/LocationSection.tsx');
 const draftSource = parse('hooks/useAssistedChatDraft.ts');
+const scheduleHelpers = loadSource('lib/booking-schedule.ts', {});
 const geo = loadSource('lib/geo.ts', {});
-const workflowModule = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo });
+const workflowModule = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo, './booking-schedule': loadSource('lib/booking-schedule.ts', {}) });
 
 function findNode(source, predicate, label) {
   let found;
@@ -66,7 +67,8 @@ function createHarness(options = {}) {
   function read() {
     const workflow = workflowModule.getAssistedChatWorkflow({ draft: state.draft, canUseApi: true });
     const globals = {
-      ...workflowModule,
+      ...scheduleHelpers,
+    ...workflowModule,
       draft: state.draft, editingStage: state.editingStage, workflow,
       locationShare: { busy: options.busy ?? null, requestLink: async (method) => { state.links.push(method); } },
       price: { loading: Boolean(options.priceLoading), getPrice: async () => { state.prices += 1; } },

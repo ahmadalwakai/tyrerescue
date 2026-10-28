@@ -1,3 +1,4 @@
+import { getBookingTimingPayload, getBookingScheduleError, assertBookingTimingResponse } from '@/lib/booking-schedule';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
@@ -5,7 +6,7 @@ import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
 import {
   ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
-  ASSISTED_CHAT_PRICING_CONTEXT,
+  getAssistedChatPricingContext,
 } from '@/lib/pricing-context';
 import {
   buildAssistedChatVehiclePayload,
@@ -82,6 +83,7 @@ function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, loc
   const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
   const quoteLockingNutCharge = isServiceOnly ? 0 : lockingNutCharge;
   return {
+    ...getBookingTimingPayload(draft),
     quickBookingId: draft.quickBookingId,
     customerName: draft.customer.name || null,
     customerPhone: draft.customer.phone || null,
@@ -141,7 +143,10 @@ export function useAssistedChatQuoteActions({
   );
 
   const saveQuote = useCallback(async (): Promise<AdminQuote> => {
-    if (!draft.quote) throw new Error('Get price before saving a quote.');
+    if (draft.bookingTimingNeedsReview) throw new Error('Open Bookings to review this booking’s appointment before changing its quote.');
+    const scheduleError = getBookingScheduleError(draft);
+    if (scheduleError) throw new Error(scheduleError);
+    if (!draft.quote || draft.priceNeedsRefresh) throw new Error('Get price before saving a quote.');
 
     let canonicalDraft = draft;
     if (draft.quickBookingId) {
@@ -182,9 +187,11 @@ export function useAssistedChatQuoteActions({
         vehicle,
         adminAdjustmentAmount: adjustmentAmount,
         adminAdjustmentReason: adjustmentReason,
-        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        pricingContext: getAssistedChatPricingContext(draft),
+        ...getBookingTimingPayload(draft),
         adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
       });
+      assertBookingTimingResponse(draft, patched.booking);
       const quote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
       canonicalDraft = { ...draft, quote, priceNeedsRefresh: false };
       update({ quote, priceNeedsRefresh: false });
@@ -196,11 +203,18 @@ export function useAssistedChatQuoteActions({
       lockingNutCharge,
     );
     if (draft.savedQuoteId) {
-      const patch: UpdateAdminQuoteInput = { ...input };
+      const patch: UpdateAdminQuoteInput = {
+        ...input,
+        // The quick booking was just repriced above. Refresh the linked quote
+        // from that canonical amount, including its saved operator adjustment.
+        ...(draft.quickBookingId ? { refreshPrice: true } : {}),
+      };
       const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${draft.savedQuoteId}`, patch);
+      assertBookingTimingResponse(draft, response.quote);
       return response.quote;
     }
     const response = await api.post<AdminQuoteResponse>('/api/admin/quotes', input);
+    assertBookingTimingResponse(draft, response.quote);
     return response.quote;
   }, [draft, effectiveTotal, lockingNutCharge, update]);
 
@@ -224,9 +238,22 @@ export function useAssistedChatQuoteActions({
   }, [draft.savedQuoteId, persistQuote, saveQuote, update]);
 
   const ensureSavedQuote = useCallback(async (): Promise<AdminQuote> => {
+    if (draft.bookingTimingNeedsReview) throw new Error('Open Bookings to review this booking’s appointment before confirming or sending its quote.');
+    if (currentQuote?.id === draft.savedQuoteId && (currentQuote.isExpired || ['EXPIRED', 'CANCELLED'].includes(currentQuote.quoteStatus))) {
+      throw new Error('Refresh and save this quote before confirming or sending it.');
+    }
+    const scheduleError = getBookingScheduleError(draft);
+    if (scheduleError) throw new Error(scheduleError);
+    if (draft.priceNeedsRefresh || !draft.quote) throw new Error('Refresh the price before using this quote.');
     const finalPayablePence = getBackendPriceAmountPence(draft, effectiveTotal);
-    if (quoteMatchesFinalPayable(currentQuote, finalPayablePence)) return currentQuote as AdminQuote;
+    if (currentQuote?.id === draft.savedQuoteId && !currentQuote?.isExpired
+      && !['EXPIRED', 'CANCELLED'].includes(currentQuote?.quoteStatus ?? '') && quoteMatchesFinalPayable(currentQuote, finalPayablePence)
+      && (currentQuote?.bookingType ?? 'emergency') === (draft.bookingType ?? 'emergency')
+      && (currentQuote?.scheduledAt ?? null) === (draft.scheduledAt ?? null)) return currentQuote as AdminQuote;
     const quote = await saveQuote();
+    if (quote.isExpired || ['EXPIRED', 'CANCELLED'].includes(quote.quoteStatus)) {
+      throw new Error('Refresh and save this quote before confirming or sending it.');
+    }
     persistQuote(quote);
     return quote;
   }, [currentQuote, draft, effectiveTotal, persistQuote, saveQuote]);
@@ -259,9 +286,11 @@ export function useAssistedChatQuoteActions({
     try {
       const quote = await ensureSavedQuote();
       const response = await api.post<ConfirmAdminQuoteResponse>(`/api/admin/quotes/${quote.id}/confirm`, {
+        ...getBookingTimingPayload(draft),
         selectedPaymentOption,
         operatorNote: draft.note || null,
       });
+      assertBookingTimingResponse(draft, response.quote);
       persistQuote(response.quote);
       setConfirmResult(response);
       setMessage({
@@ -281,14 +310,14 @@ export function useAssistedChatQuoteActions({
     } finally {
       setBusy(null);
     }
-  }, [draft.note, ensureSavedQuote, persistQuote, selectedPaymentOption, update]);
+  }, [draft, ensureSavedQuote, persistQuote, selectedPaymentOption, update]);
 
   const copyConfirmedMessage = useCallback(async () => {
     setBusy('copy');
     setMessage(null);
     try {
       const quote = await ensureSavedQuote();
-      const text = confirmResult?.whatsappMessage ?? quote.confirmationWhatsAppMessages[selectedPaymentOption];
+      const text = confirmResult?.quote.id === quote.id ? confirmResult.whatsappMessage : quote.confirmationWhatsAppMessages[selectedPaymentOption];
       const ok = await copyToClipboard(text);
       setMessage(ok ? { kind: 'ok', text: 'Quote message copied.' } : { kind: 'err', text: 'Could not copy WhatsApp message.' });
     } catch (error) {
@@ -303,7 +332,7 @@ export function useAssistedChatQuoteActions({
     setMessage(null);
     try {
       const quote = await ensureSavedQuote();
-      const text = confirmResult?.paymentInstruction ?? quote.confirmationWhatsAppMessages.PAYMENT_LINK;
+      const text = (confirmResult?.quote.id === quote.id ? confirmResult.paymentInstruction : null) ?? quote.confirmationWhatsAppMessages.PAYMENT_LINK;
       const ok = await copyToClipboard(text);
       setMessage(ok ? { kind: 'ok', text: 'Payment instructions copied.' } : { kind: 'err', text: 'Could not copy payment instructions.' });
     } catch (error) {
@@ -329,9 +358,9 @@ export function useAssistedChatQuoteActions({
   return {
     busy,
     message,
-    currentQuote,
+    currentQuote: currentQuote?.id === draft.savedQuoteId ? currentQuote : null,
     selectedPaymentOption,
-    confirmResult,
+    confirmResult: confirmResult?.quote.id === draft.savedQuoteId ? confirmResult : null,
     setMessage,
     selectPaymentOption,
     saveQuote: handleSave,

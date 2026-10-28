@@ -1,9 +1,10 @@
+import { getBookingTimingPayload, getBookingScheduleError, assertBookingTimingResponse, normalizeBookingTiming } from '@/lib/booking-schedule';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import { api, ApiError, getApiContextRevision } from '@/lib/api';
 import {
   ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
-  ASSISTED_CHAT_PRICING_CONTEXT,
+  getAssistedChatPricingContext,
 } from '@/lib/pricing-context';
 import {
   buildAssistedChatVehiclePayload,
@@ -40,6 +41,8 @@ function paymentChoiceFor(response: FinalizeResponse): AssistedChatPaymentChoice
 function confirmedQuote(response: FinalizeResponse, canonicalQuote: AssistedChatQuoteBreakdown): AssistedChatQuoteBreakdown {
   if (!response.breakdown) return canonicalQuote;
   return {
+    bookingType: response.bookingType ?? response.breakdown.bookingType,
+    scheduledAt: response.scheduledAt ?? response.breakdown.scheduledAt,
     subtotal: response.breakdown.subtotal,
     vatAmount: response.breakdown.vatAmount,
     total: response.breakdown.total,
@@ -107,6 +110,7 @@ export interface UseAssistedChatDispatchArgs {
     paymentChoice: AssistedChatPaymentChoice;
     effectiveTotal: number;
     paymentLink: StripePaymentLinkState | null;
+    bookingTimingNeedsReview: boolean;
   }) => void;
 }
 
@@ -138,6 +142,10 @@ export function useAssistedChatDispatch({
     async (choice: AssistedChatPaymentChoice | null, recoveryOnly: boolean) => {
       if (!mounted.current || inflight.current) return false;
       setError(null);
+      if (draft.bookingTimingNeedsReview) {
+        setError('The saved booking’s appointment needs review. Open Bookings to check it before taking payment or assigning a driver.');
+        return false;
+      }
       if (!recoveryOnly && (draft.dispatchedRefNumber || draft.dispatchedBookingId || draft.paymentLink || confirmed.current?.quickBookingId === draft.quickBookingId)) {
         setError('This booking is already created. Retry its payment link or open it from Bookings.');
         return false;
@@ -169,22 +177,45 @@ export function useAssistedChatDispatch({
         total: draft.quote.total,
         partialBookingId: null as string | null,
         paymentBlocked: false,
+        bookingTimingNeedsReview: false,
       };
       const finishConfirmed = async (response: FinalizeResponse, canCollectPayment: boolean, quote: AssistedChatQuoteBreakdown) => {
         if (!isCurrent()) return false;
         const canonicalQuote = confirmedQuote(response, quote);
         const canonicalChoice = paymentChoiceFor(response);
+        const timingSource = response.bookingType ? response : response.breakdown?.bookingType ? response.breakdown : null;
+        const canonicalTiming = timingSource ? normalizeBookingTiming(timingSource) : getBookingTimingPayload(draft);
+        let bookingTimingNeedsReview = draft.bookingTimingNeedsReview === true || latestDraft.current.bookingTimingNeedsReview === true;
+        try {
+          assertBookingTimingResponse(draft, timingSource ?? {});
+          if (canonicalTiming.bookingType !== (draft.bookingType ?? 'emergency')
+            || (canonicalTiming.bookingType === 'scheduled' && !canonicalTiming.scheduledAt)) {
+            bookingTimingNeedsReview = true;
+          }
+        } catch {
+          bookingTimingNeedsReview = true;
+        }
         confirmation.response = response;
         confirmation.total = canonicalQuote.total;
+        confirmation.bookingTimingNeedsReview = bookingTimingNeedsReview;
         confirmed.current = { quickBookingId, response };
         setResult(response);
         // Store the server identity BEFORE the second network request. A failed
         // deposit checkout must never send the operator back to finalization.
         update({
+          ...canonicalTiming,
+          bookingTimingNeedsReview,
           dispatchedRefNumber: response.refNumber, dispatchedBookingId: response.bookingId,
           paymentChoice: canonicalChoice, paymentLink: null, quote: canonicalQuote,
           priceNeedsRefresh: false, manualPriceGbp: null,
         });
+        // Persist the confirmed identity even if the server lost/mutated the
+        // appointment. Never create another booking or charge an unverified one.
+        if (bookingTimingNeedsReview) {
+          confirmation.paymentBlocked = true;
+          setPaymentBlockedBookingId(response.bookingId);
+          throw new Error('The saved booking’s appointment does not match the reviewed time or could not be verified. Open Bookings to check it before taking payment.');
+        }
         if (canonicalChoice !== 'cash' && !canCollectPayment) {
           confirmation.paymentBlocked = true;
           setPaymentBlockedBookingId(response.bookingId);
@@ -240,7 +271,9 @@ export function useAssistedChatDispatch({
         if (recoveryOnly) {
           throw new Error('The existing booking could not be confirmed. Open Bookings before retrying.');
         }
-        if (!choice) throw new Error('Choose a payment method before dispatching.');
+        const scheduleError = getBookingScheduleError(draft);
+        if (scheduleError) throw new Error(scheduleError);
+        if (!choice) throw new Error('Choose a payment method before creating the booking.');
         update({ paymentChoice: choice });
         let canonicalQuote = draft.quote;
 
@@ -295,7 +328,8 @@ export function useAssistedChatDispatch({
             vehicle,
             adminAdjustmentAmount: adjustmentAmount,
             adminAdjustmentReason: adjustmentReason,
-            pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+            pricingContext: getAssistedChatPricingContext(draft),
+            ...getBookingTimingPayload(draft),
             adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
           });
         } catch (patchError) {
@@ -305,6 +339,7 @@ export function useAssistedChatDispatch({
           throw patchError;
         }
         if (!isCurrent()) return false;
+        assertBookingTimingResponse(draft, patched.booking);
         canonicalQuote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
         update({ quote: canonicalQuote, priceNeedsRefresh: false });
 
@@ -326,6 +361,7 @@ export function useAssistedChatDispatch({
         try {
           response = await api.post<FinalizeResponse>(`/api/admin/quick-book/${draft.quickBookingId}/finalize`, {
             paymentMethod,
+            ...getBookingTimingPayload(draft),
             customerEmailMode: draft.customerEmailMode,
             tyreLines,
             items: tyreLines,
@@ -356,7 +392,7 @@ export function useAssistedChatDispatch({
         try {
           if (confirmation.response && isCurrent() && !notifiedBookings.current.has(confirmation.response.bookingId)) {
             notifiedBookings.current.add(confirmation.response.bookingId);
-            onBookingCreated?.({ response: confirmation.response, paymentChoice: paymentChoiceFor(confirmation.response), effectiveTotal: confirmation.total, paymentLink: confirmation.paymentLink });
+            onBookingCreated?.({ response: confirmation.response, paymentChoice: paymentChoiceFor(confirmation.response), effectiveTotal: confirmation.total, paymentLink: confirmation.paymentLink, bookingTimingNeedsReview: confirmation.bookingTimingNeedsReview });
           }
         } finally {
           if (mounted.current) setBusy(false);
@@ -374,10 +410,11 @@ export function useAssistedChatDispatch({
     () => runDispatch(draft.paymentChoice, true), [draft.paymentChoice, runDispatch],
   );
   const canRetryPaymentLink = Boolean(
+    !draft.bookingTimingNeedsReview &&
     (draft.dispatchedBookingId || draft.dispatchedRefNumber) &&
     (!paymentBlockedBookingId || paymentBlockedBookingId !== draft.dispatchedBookingId) &&
     !draft.paymentLink && draft.paymentChoice !== 'cash' && !draft.externalPayment && !draft.manualPaymentRecorded,
   );
 
-  return { busy, error, result, setError, choosePaymentAndDispatch, retryPaymentLink, canRetryPaymentLink };
+  return { busy, error, result, setError, choosePaymentAndDispatch, retryPaymentLink, canRetryPaymentLink, bookingNeedsReview: draft.bookingTimingNeedsReview === true };
 }

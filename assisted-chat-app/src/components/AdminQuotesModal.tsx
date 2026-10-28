@@ -13,6 +13,7 @@ import {
 import { api, ApiError, SESSION_VERIFICATION_ERROR } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp } from '@/lib/money';
+import { assertBookingTimingResponse, formatBookingSchedule, getBookingTimingPayload } from '@/lib/booking-schedule';
 import type {
   AdminQuote,
   AdminQuoteListResponse,
@@ -211,7 +212,9 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     try {
       const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${selected.id}`, {
         internalNotes: notesDraft,
+        ...getBookingTimingPayload(selected),
       });
+      assertBookingTimingResponse(selected, response.quote);
       updateSelected(response.quote);
       setSuccess('Quote notes saved.');
     } catch (err) {
@@ -231,7 +234,9 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
       const response = await api.post<ConfirmAdminQuoteResponse>(`/api/admin/quotes/${selected.id}/confirm`, {
         selectedPaymentOption: paymentOption,
         operatorNote: notesDraft || null,
+        ...getBookingTimingPayload(selected),
       });
+      assertBookingTimingResponse(selected, response.quote);
       updateSelected(response.quote);
       setConfirmationResult(response);
       setSuccess(
@@ -252,7 +257,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     setActionBusy('refresh');
     setDetailError(null);
     setSuccess(null);
-    const patch = selected.isExpired
+    const patch = selected.isExpired && !selected.quickBookingId
       ? {
           quoteStatus: 'QUOTED' as AdminQuoteStatus,
           expiresAt: new Date(Date.now() + QUOTE_REACTIVATION_MS).toISOString(),
@@ -261,11 +266,12 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
           refreshPrice: true,
         };
     try {
-      const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${selected.id}`, patch);
+      const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${selected.id}`, { ...patch, ...getBookingTimingPayload(selected) });
+      assertBookingTimingResponse(selected, response.quote);
       updateSelected(response.quote);
       setConfirmationResult(null);
       setSuccess(
-        selected.isExpired
+        selected.isExpired && !selected.quickBookingId
           ? `Quote ${response.quote.quoteRef} reactivated for 2 hours.`
           : `Quote ${response.quote.quoteRef} recalculated for 2 hours.`,
       );
@@ -279,6 +285,10 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   const copyMessage = useCallback(async () => {
     if (!selected) return;
+    if (selected.isExpired || selected.quoteStatus === 'CANCELLED') {
+      setDetailError('Recalculate and review this quote before sharing its confirmation.');
+      return;
+    }
     setActionBusy('copy');
     setDetailError(null);
     setSuccess(null);
@@ -291,6 +301,10 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   const copyPaymentInstruction = useCallback(async () => {
     if (!selected) return;
+    if (selected.isExpired || selected.quoteStatus === 'CANCELLED') {
+      setDetailError('Recalculate and review this quote before sharing payment instructions.');
+      return;
+    }
     const instruction = confirmationResult?.paymentInstruction ?? (
       paymentOption === 'PAYMENT_LINK' ? selected.confirmationWhatsAppMessages.PAYMENT_LINK : null
     );
@@ -346,7 +360,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     selected?.quickBookingId ||
       (selected?.tyreSize && selected.latitude != null && selected.longitude != null),
   );
-  const refreshActionLabel = selected?.isExpired ? 'Reactivate quote' : 'Recalculate Price';
+  const refreshActionLabel = selected?.isExpired && !selected.quickBookingId ? 'Reactivate quote' : 'Recalculate Price';
   const refreshActionDisabled = !selected || actionBusy !== null || (!selected.isExpired && !canRecalculateSelectedQuote);
   const canStartPayment = Boolean(confirmationResult?.paymentHandoff.canStartPayment && confirmationResult.paymentHandoff.paymentUrl);
   const paymentInstructionAvailable = Boolean(
@@ -406,6 +420,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
               <Text style={styles.detailLine}>Phone: {selected.customerPhone ?? 'Not set'}</Text>
               <Text style={styles.detailLine}>Name: {selected.customerName ?? 'Not set'}</Text>
               <Text style={styles.detailLine}>Address: {selected.address ?? 'Not set'}</Text>
+              <Text style={styles.detailLine}>Booking time: {formatBookingSchedule(selected)}</Text>
               <CopyAddressButton address={selected.address} postcode={selected.postcode} contextKey={selected.id} />
               <Text style={styles.detailLine}>Tyre: {selected.tyreSize ?? 'Not set'} x {selected.quantity}</Text>
               <Text style={styles.detailLine}>Price: {formatGbp(selected.priceAmount / 100)}</Text>
@@ -458,9 +473,9 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
                     disabled={actionBusy !== null || selected.isExpired || selected.quoteStatus === 'CANCELLED'}
                     fullWidth
                   />
-                  <AppButton label="Copy WhatsApp Message" variant="secondary" onPress={copyMessage} loading={actionBusy === 'copy'} disabled={actionBusy !== null} fullWidth />
+                  <AppButton label="Copy WhatsApp Message" variant="secondary" onPress={copyMessage} loading={actionBusy === 'copy'} disabled={actionBusy !== null || selected.isExpired || selected.quoteStatus === 'CANCELLED'} fullWidth />
                   {paymentInstructionAvailable ? (
-                    <AppButton label="Copy Payment Instructions" variant="secondary" onPress={copyPaymentInstruction} loading={actionBusy === 'instruction'} disabled={actionBusy !== null} fullWidth />
+                    <AppButton label="Copy Payment Instructions" variant="secondary" onPress={copyPaymentInstruction} loading={actionBusy === 'instruction'} disabled={actionBusy !== null || selected.isExpired || selected.quoteStatus === 'CANCELLED'} fullWidth />
                   ) : null}
                   {canStartPayment ? (
                     <AppButton label="Start Payment" onPress={startPayment} loading={actionBusy === 'payment'} disabled={actionBusy !== null} fullWidth />
@@ -480,7 +495,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
                 <AppButton label="Use quote in draft" variant="ghost" onPress={() => onUseQuote(selected)} disabled={actionBusy !== null} fullWidth />
               </View>
               {!selected.smsAvailable && selected.smsUnavailableReason ? <StatusBanner kind="info" message={selected.smsUnavailableReason} /> : null}
-              {selected.isExpired ? <StatusBanner kind="warn" message="This quote is expired. Reactivate it before confirming." /> : null}
+              {selected.isExpired ? <StatusBanner kind="warn" message={selected.quickBookingId ? 'This quote needs a current price. Recalculate and review it before confirming.' : 'This quote is expired. Reactivate it before confirming.'} /> : null}
               {!selected.isExpired && !canRecalculateSelectedQuote ? <StatusBanner kind="info" message="This quote can be used, but it cannot be recalculated because it has no saved booking/location pricing context." /> : null}
               {success ? <StatusBanner kind="ok" message={success} /> : null}
               {detailError ? <StatusBanner kind="err" message={detailError} /> : null}
@@ -511,6 +526,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
                   </View>
                   <Text style={styles.cardLine}>{quote.customerPhone ?? 'No phone'} · {quote.tyreSize ?? 'No tyre size'} x {quote.quantity}</Text>
                   <Text style={styles.price}>{formatGbp(quote.priceAmount / 100)}</Text>
+                  {quote.bookingType === 'scheduled' ? <Text style={styles.cardLine}>{formatBookingSchedule(quote)}</Text> : null}
                   <Text style={styles.meta}>Created {formatDateTime(quote.createdAt)} · Expires {formatDateTime(quote.expiresAt)}</Text>
                   {quote.internalNotes ? <Text style={styles.notesPreview} numberOfLines={2}>{quote.internalNotes}</Text> : null}
                   <Text style={styles.openHint}>Tap to open quote actions</Text>

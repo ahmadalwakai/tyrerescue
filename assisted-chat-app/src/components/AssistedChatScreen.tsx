@@ -6,6 +6,10 @@ import { useBonlineCallAttribution } from '@/hooks/useBonlineCallAttribution';
 import { useBonlineResource } from '@/hooks/useBonlineResource';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import { canAutofillIncomingPhone, type IncomingPhoneCall } from '@/lib/incoming-phone-call';
+import { CallBookingReviewCard } from './CallBookingReviewCard';
+import { BookingScheduleCard } from './BookingScheduleCard';
+import { buildBookingSchedulePatch, formatBookingSchedule, getBookingScheduleError } from '@/lib/booking-schedule';
+import { buildCallBookingDraftPatch, type CallBookingReview } from '@/lib/call-booking-draft';
 import {
   ActivityIndicator,
   Alert,
@@ -54,7 +58,6 @@ import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
   AssistedChatQuoteBreakdown,
-  AssistedChatServiceType,
   RecentCustomer,
   StripePaymentLinkState,
 } from '@/types/assisted-chat';
@@ -74,6 +77,7 @@ import { DuplicateBookingWarning } from './DuplicateBookingWarning';
 import { AdminQuotesModal } from './AdminQuotesModal';
 import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
+import { CustomerAudienceCard } from './CustomerAudienceCard';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { ProjectSourcesModal } from './ProjectSourcesModal';
 import { AddAdminModal } from './AddAdminModal';
@@ -144,7 +148,6 @@ import {
   getManualLocationBlockedReason,
   hasAssistedChatTyre,
   isAssistedChatServiceOnly,
-  normalizeAssistedChatTyreSize,
   primaryBookingTyreLine,
   summarizeBookingTyreLines,
   totalBookingTyreQuantity,
@@ -172,20 +175,6 @@ import {
 import { OperatorStepProgress } from './workflow/OperatorStepProgress';
 
 logStartupModuleStarted('Assisted Chat module');
-
-interface ParsedCallNotes {
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  locationAddress?: string;
-  serviceType?: AssistedChatServiceType;
-  tyreSize?: string;
-  quantity?: number;
-  lockingNutAnswer?: 'yes' | 'no' | 'unknown';
-  lockingNutCharge?: number | null;
-  paymentChoice?: AssistedChatPaymentChoice;
-  driverNote?: string;
-}
 
 interface AssistedChatScreenProps {
   user?: { name: string; email: string } | null;
@@ -488,81 +477,6 @@ function activePanelCopyForStage(stage: AssistedChatStage): { title: string; hel
   }
 }
 
-function normalizeTyreSizeFromText(text: string): string | undefined {
-  const match = text.match(/\b(\d{3})\s*[\/ -]?\s*(\d{2})\s*(?:[\/ -]?\s*r\s*|[\/ -]+)(\d{2})\b/i);
-  if (!match) return undefined;
-  return normalizeAssistedChatTyreSize(`${match[1]}/${match[2]}/R${match[3]}`) ?? undefined;
-}
-
-function parseCallNotes(text: string): ParsedCallNotes {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-  const lower = normalized.toLowerCase();
-  const parsed: ParsedCallNotes = {};
-
-  const wantsLockingNutRemoval =
-    /\b(?:break|remove|drill|cut|force|smash)\w*\s+(?:off\s+)?(?:the\s+)?(?:locking\s+)?(?:wheel\s+)?(?:nut|bolt)\b/i.test(normalized) ||
-    /\b(?:locking\s+)?wheel\s+nut\s+removal\b/i.test(normalized) ||
-    /\blocking\s+(?:wheel\s+)?nut\s+(?:removed|removal|broken|drilled|off)\b/i.test(normalized) ||
-    /\b(?:lost|missing|no)\s+(?:the\s+)?locking\s+(?:wheel\s+)?nut\s+key\b.*\b(?:remove|break|drill|cut|force)\b/i.test(normalized);
-
-  if (wantsLockingNutRemoval) {
-    parsed.serviceType = 'locking_nut';
-  } else if (/\b(?:not sure|unsure|unknown|inspect|inspection|assess|assessment|check first|needs checking)\b/i.test(normalized)) {
-    parsed.serviceType = 'assess';
-  } else if (/\b(?:puncture|punctured|repair|repaired|patch|slow puncture|plug)\b/i.test(normalized)) {
-    parsed.serviceType = 'repair';
-  } else if (/\b(?:new tyre|new tire|replacement|replace|fit|fitting)\b/i.test(normalized)) {
-    parsed.serviceType = 'fit';
-  }
-
-  const email = normalized.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
-  if (email) parsed.customerEmail = email;
-
-  const phone = normalized.match(/(?:\+44\s?\d{4}|0\d{4}|01\d{3}|02\d{3})[\d\s-]{5,12}/)?.[0];
-  if (phone) parsed.customerPhone = phone.replace(/\s{2,}/g, ' ').trim();
-
-  const name = normalized.match(/\b(?:name is|customer is|customer name is)\s+([A-Za-z][A-Za-z' -]{1,42})(?=\s+(?:phone|number|email|address|at|location|tyre|size|needs|wants|payment|cash|deposit|full|locking)\b|$)/i)?.[1];
-  if (name) parsed.customerName = name.trim();
-
-  const tyreSize = normalizeTyreSizeFromText(normalized);
-  if (tyreSize) parsed.tyreSize = tyreSize;
-
-  const quantityMatch = normalized.match(/\b(?:qty|quantity|needs?|wants?|fit)\s*(?:x\s*)?(\d{1,2})\s*(?:tyres?|tires?|x)?\b/i)
-    ?? normalized.match(/\bx\s*(\d{1,2})\b/i)
-    ?? normalized.match(/\b(\d{1,2})\s*(?:tyres?|tires?)\b/i);
-  if (quantityMatch) {
-    const quantity = Number(quantityMatch[1]);
-    if (Number.isFinite(quantity)) parsed.quantity = Math.max(1, Math.min(10, Math.round(quantity)));
-  }
-
-  const address = normalized.match(/\b(?:address|location|at)\s+(.+?)(?=\s+(?:phone|number|email|tyre|tire|size|needs|wants|payment|cash|deposit|full|locking|note)\b|$)/i)?.[1];
-  if (address && address.length >= 5) parsed.locationAddress = address.replace(/[,. ]+$/, '').trim();
-
-  if (/\b(?:has|with)\s+(?:the\s+)?(?:locking\s+)?(?:wheel\s+)?nut\s+key\b/i.test(normalized)) {
-    parsed.lockingNutAnswer = 'yes';
-  } else if (/\b(?:no|without|lost|missing|does not have|doesn't have)\s+(?:the\s+)?(?:locking\s+)?(?:wheel\s+)?nut\s+key\b/i.test(normalized)) {
-    parsed.lockingNutAnswer = 'no';
-  }
-
-  const lockingCharge = normalized.match(/\b(?:locking|nut|removal)\D{0,16}(?:£|gbp)?\s*(\d{1,4}(?:\.\d{1,2})?)\b/i)?.[1];
-  if (lockingCharge) {
-    const charge = Number(lockingCharge);
-    if (Number.isFinite(charge) && charge >= 0) {
-      parsed.lockingNutAnswer = 'no';
-      parsed.lockingNutCharge = Math.round(charge * 100) / 100;
-    }
-  }
-
-  if (/\bdeposit\b/.test(lower)) parsed.paymentChoice = 'deposit';
-  else if (/\b(?:full payment|pay full|paid full|payment link)\b/.test(lower)) parsed.paymentChoice = 'full';
-  else if (/\bcash\b/.test(lower)) parsed.paymentChoice = 'cash';
-
-  const driverNote = normalized.match(/\b(?:driver note|note)\s*[:\-]?\s+(.+)$/i)?.[1];
-  if (driverNote) parsed.driverNote = driverNote.trim();
-
-  return parsed;
-}
-
 function formatPence(pence: number): string {
   if (!Number.isFinite(pence)) return formatGbp(0);
   return formatGbp(pence / 100);
@@ -656,13 +570,14 @@ function hasDraftContent(draft: AssistedChatDraft): boolean {
       draft.location.lat != null ||
       buildBookingTyreLinePayload(draft.tyreLines).length > 0 ||
       draft.note ||
+      draft.bookingType === 'scheduled' ||
       draft.quote ||
       draft.dispatchedRefNumber,
   );
 }
 
 function buildCustomerDetails(draft: AssistedChatDraft): string {
-  const lines: string[] = ['Customer details'];
+  const lines: string[] = ['Customer details', formatBookingSchedule(draft)];
   lines.push(`Name: ${draft.customer.name.trim() || 'New customer'}`);
   if (draft.customer.phone.trim()) lines.push(`Phone: ${draft.customer.phone.trim()}`);
   if (draft.customer.email.trim()) lines.push(`Email: ${draft.customer.email.trim()}`);
@@ -677,6 +592,7 @@ function buildJobDetails(
 ): string {
   const lines: string[] = ['Tyre Rescue Assisted Chat draft'];
   lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
+  lines.push(formatBookingSchedule(draft));
   if (draft.customer.name.trim()) lines.push(`Customer: ${draft.customer.name.trim()}`);
   if (draft.customer.phone.trim()) lines.push(`Phone: ${draft.customer.phone.trim()}`);
   if (draft.location.address.trim()) lines.push(`Address: ${draft.location.address.trim()}`);
@@ -740,6 +656,7 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
   lines.push('');
   lines.push(`${referenceLabel}: ${reference}`);
   lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
+  lines.push(formatBookingSchedule(draft));
   lines.push(paymentLink.kind === 'deposit' ? `Deposit due now: ${formatPence(paymentLink.amountPence)}` : `Amount due: ${formatPence(paymentLink.amountPence)}`);
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
   lines.push(`${bookingReady ? 'Total to pay' : 'Quote total'}: ${formatGbp(effectiveTotal)}`);
@@ -774,8 +691,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const draftRef = useLatestRef(draft);
   const [noteInput, setNoteInput] = useState('');
   const [noteSynced, setNoteSynced] = useState(false);
-  const [callNotesInput, setCallNotesInput] = useState('');
-  const [callAssistMessage, setCallAssistMessage] = useState<string | null>(null);
+  const [callDraftGeneration, setCallDraftGeneration] = useState(0);
+  const callAssistApiRevision = getApiContextRevision();
+  const callAssistSessionRevision = getAdminSessionRevision();
+  const callAssistKey = `${activeProjectId ?? 'tyrerescue'}:${callAssistApiRevision}:${callAssistSessionRevision}:${callDraftGeneration}`;
   const [phoneInput, setPhoneInput] = useState(draft.customer.phone);
   const phoneInputRef = useLatestRef(phoneInput);
   const phoneFocusedRef = useRef(false);
@@ -1347,11 +1266,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       paymentChoice,
       effectiveTotal: total,
       paymentLink,
+      bookingTimingNeedsReview,
     }: {
-      response: { bookingId: string; refNumber: string };
+      response: { bookingId: string; refNumber: string; bookingType?: 'emergency' | 'scheduled'; scheduledAt?: string | null };
       paymentChoice: AssistedChatPaymentChoice;
       effectiveTotal: number;
       paymentLink: StripePaymentLinkState | null;
+      bookingTimingNeedsReview: boolean;
     }) => {
       if (!response.refNumber) return;
       const primaryTyre = primaryBookingTyreLine(draft);
@@ -1360,6 +1281,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         bookingReference: response.refNumber,
         bookingId: response.bookingId,
         createdAtIso: new Date().toISOString(),
+        bookingType: response.bookingType ?? (bookingTimingNeedsReview ? undefined : draft.bookingType),
+        scheduledAt: response.bookingType ? response.scheduledAt ?? null : bookingTimingNeedsReview ? null : draft.scheduledAt,
+        bookingTimingNeedsReview,
         paymentChoice,
         totalPence: Number.isFinite(total) ? Math.round(total * 100) : undefined,
         paymentLink: paymentLink?.paymentUrl,
@@ -1406,7 +1330,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // Live tracking session for the dispatched booking. Hook is a no-op when
   // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
   // see a booking id, then polls /tracking every 8s.
-  const bookingTracking = useBookingTracking({ bookingId: draft.dispatchedBookingId });
+  const bookingTracking = useBookingTracking({ bookingId: draft.bookingTimingNeedsReview || draft.bookingType === 'scheduled' ? null : draft.dispatchedBookingId });
 
   // Whether the dispatched booking has both customer coordinates and a fresh
   // driver location fix — the prerequisites for the live tracking map.
@@ -1421,6 +1345,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // location, even before the driver's first fix — the cockpit then shows the
   // customer marker and a "waiting for driver location" state.
   const canTrackDriver =
+    !draft.bookingTimingNeedsReview &&
+    draft.bookingType !== 'scheduled' &&
     trackingHasCustomerCoords &&
     draft.dispatchedRefNumber != null &&
     draft.dispatchedBookingId != null;
@@ -1455,7 +1381,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       externalReference: null,
       bookingId: id,
       status: 'driver_assigned',
-      scheduledAt: null,
+      scheduledAt: draft.scheduledAt,
       assignedAt: null,
       acceptedAt: null,
       customer: {
@@ -1497,6 +1423,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [
     draft.dispatchedRefNumber,
     draft.dispatchedBookingId,
+    draft.scheduledAt,
     draft.customer.name,
     draft.customer.phone,
     draft.location.address,
@@ -1557,7 +1484,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     }
     update(patch);
   }, [activeStage, activeQuote?.quoteStatus, dispatch.busy, draft.dispatchedBookingId, draft.dispatchedRefNumber, draft.paymentLink, setDispatchError, update]);
-  const paymentAutoCheckActive = activeStage === 'PAYMENT' || activeStage === 'DISPATCHED';
+  const paymentAutoCheckActive = !draft.bookingTimingNeedsReview && (activeStage === 'PAYMENT' || activeStage === 'DISPATCHED');
   // Admin-created Stripe payment links are verified by the backend checker.
   // Auto-checking runs only while the payment surface is visible.
   const paymentLinkActions = useAdminPaymentLink({
@@ -1576,6 +1503,19 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     setActionNotice(notice);
     setTimeout(() => setActionNotice(null), 2200);
   }, []);
+
+  const handleBookingTimingChange = useCallback((bookingType: 'emergency' | 'scheduled', scheduledAt: string | null): string | null => {
+    if (!hydrated || !api.hasAdminToken || callAssistApiRevision !== getApiContextRevision()
+      || callAssistSessionRevision !== getAdminSessionRevision()) return 'Reopen the booking after signing in.';
+    if (price.loading || dispatch.busy || quoteActions.busy || locationShare.busy) return 'Wait for the current booking action to finish.';
+    try {
+      update(buildBookingSchedulePatch(draft, bookingType, scheduledAt));
+      setEditingStage(null);
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Could not change the appointment.';
+    }
+  }, [callAssistApiRevision, callAssistSessionRevision, dispatch.busy, draft, hydrated, locationShare.busy, price.loading, quoteActions.busy, update]);
 
   const playDriverNearbyAlertSound = useCallback(() => {
     // Keep native launch isolated from native audio playback. The visual warning remains;
@@ -1618,8 +1558,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const handleClear = useCallback(() => {
     clear();
     setNoteInput('');
-    setCallNotesInput('');
-    setCallAssistMessage(null);
+    setCallDraftGeneration((value) => value + 1);
     setNoteSynced(false);
     phoneInputRef.current = '';
     setPhoneInput('');
@@ -1651,8 +1590,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       setPhoneInput(phone);
       setPhoneSynced(true);
       setNoteInput('');
-      setCallNotesInput('');
-      setCallAssistMessage(null);
+      setCallDraftGeneration((value) => value + 1);
       setDuplicateAck(false);
       setEditingStage('CUSTOMER');
       flashNotice({ kind: 'ok', text: 'Virtual Landline call loaded into a new draft.' });
@@ -1789,6 +1727,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
 
   const handleUseRecent = useCallback(
     (item: RecentCustomer) => {
+      setCallDraftGeneration((value) => value + 1);
       update({
         customer: {
           phone: item.customerPhone ?? '',
@@ -1805,6 +1744,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           whatsappLink: null,
           status: item.lat != null && item.lng != null ? 'received' : 'idle',
         },
+        bookingType: 'emergency',
+        scheduledAt: null,
+        bookingTimingNeedsReview: false,
         serviceType: item.serviceType ?? 'fit',
         tyreLines: item.tyreLines?.length
           ? item.tyreLines
@@ -1831,8 +1773,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
 
   const handleUseQuote = useCallback(
     (quote: AdminQuote) => {
+      setCallDraftGeneration((value) => value + 1);
       const total = quote.priceAmount / 100;
       update({
+        bookingType: quote.bookingType ?? 'emergency',
+        scheduledAt: quote.scheduledAt ?? null,
+        bookingTimingNeedsReview: false,
         customer: {
           phone: quote.customerPhone ?? '',
           name: quote.customerName ?? '',
@@ -1891,113 +1837,25 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     [draft.customer.email, quoteActions, update],
   );
 
-  const handleApplyCallNotes = useCallback(() => {
-    const parsed = parseCallNotes(callNotesInput);
-    const applied: string[] = [];
-    const patch: Partial<AssistedChatDraft> = {};
-
-    if (parsed.customerName || parsed.customerPhone || parsed.customerEmail) {
-      patch.customer = {
-        ...draft.customer,
-        ...(parsed.customerName ? { name: parsed.customerName } : {}),
-        ...(parsed.customerPhone ? { phone: parsed.customerPhone } : {}),
-        ...(parsed.customerEmail ? { email: parsed.customerEmail } : {}),
-      };
-      if (parsed.customerName) applied.push('name');
-      if (parsed.customerPhone) applied.push('phone');
-      if (parsed.customerEmail) applied.push('email');
+  const handleApplyCallReview = useCallback((review: CallBookingReview): string | null => {
+    if (!hydrated || !api.hasAdminToken || callAssistApiRevision !== getApiContextRevision()
+      || callAssistSessionRevision !== getAdminSessionRevision()) {
+      return 'The account changed. Open the call notes again before applying them.';
     }
-
-    if (parsed.locationAddress) {
-      patch.location = {
-        ...draft.location,
-        method: 'address',
-        address: parsed.locationAddress,
-        lat: null,
-        lng: null,
-        postcode: null,
-        link: null,
-        whatsappLink: null,
-        status: 'idle',
-      };
-      patch.quote = null;
-      patch.priceNeedsRefresh = Boolean(draft.quote || draft.priceNeedsRefresh);
-      patch.paymentChoice = null;
-      patch.paymentLink = null;
-      patch.dispatchedRefNumber = null;
-      applied.push('address text');
+    if (price.loading || dispatch.busy || quoteActions.busy) {
+      return 'Wait for the current booking action to finish before applying call details.';
     }
-
-    if (parsed.serviceType) {
-      patch.serviceType = parsed.serviceType;
-      patch.quote = null;
-      patch.priceNeedsRefresh = Boolean(draft.quote || draft.priceNeedsRefresh);
-      patch.paymentChoice = null;
-      patch.paymentLink = null;
-      patch.dispatchedRefNumber = null;
-      patch.dispatchedBookingId = null;
-      patch.savedQuoteId = null;
-      patch.savedQuoteRef = null;
-      applied.push(
-        parsed.serviceType === 'repair'
-          ? 'tyre repair'
-          : parsed.serviceType === 'locking_nut'
-          ? 'locking wheel nut removal'
-          : parsed.serviceType === 'assess'
-          ? 'inspection required'
-          : 'replacement tyre',
-      );
+    try {
+      const patch = buildCallBookingDraftPatch(draft, review);
+      update(patch);
+      if (patch.note !== undefined) setNoteInput(patch.note);
+      setDuplicateAck(false);
+      flashNotice({ kind: 'ok', text: 'Reviewed details added to the draft. Check the address and tyre before pricing.' });
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Could not apply the reviewed call details.';
     }
-
-    if (parsed.tyreSize || parsed.quantity) {
-      const nextLines = buildBookingTyreLinePayload(draft.tyreLines);
-      const firstLine = nextLines[0] ?? primaryBookingTyreLine(draft);
-      patch.tyreLines = [
-        {
-          ...firstLine,
-          ...(parsed.tyreSize ? { size: parsed.tyreSize } : {}),
-          ...(parsed.quantity ? { quantity: parsed.quantity } : {}),
-        },
-        ...nextLines.slice(1),
-      ];
-      if (parsed.tyreSize) applied.push('tyre size');
-      if (parsed.quantity) applied.push('quantity');
-      patch.quote = null;
-      patch.priceNeedsRefresh = Boolean(draft.quote || draft.priceNeedsRefresh);
-      patch.paymentLink = null;
-      patch.dispatchedRefNumber = null;
-    }
-
-    if (parsed.lockingNutAnswer) {
-      patch.lockingNut = {
-        answer: parsed.lockingNutAnswer,
-        chargeGbp: parsed.lockingNutAnswer === 'no' ? parsed.lockingNutCharge ?? draft.lockingNut.chargeGbp : null,
-      };
-      applied.push('locking nut');
-    }
-
-    if (parsed.paymentChoice && draft.quote) {
-      patch.paymentChoice = parsed.paymentChoice;
-      applied.push('payment choice');
-    }
-
-    if (parsed.driverNote) {
-      const nextNote = draft.note.trim() ? `${draft.note.trim()}\n${parsed.driverNote}` : parsed.driverNote;
-      patch.note = nextNote;
-      setNoteInput(nextNote);
-      applied.push('driver note');
-    }
-
-    if (applied.length === 0) {
-      setCallAssistMessage('No obvious details found. Try including a phone, address, tyre size, quantity, or payment word.');
-      return;
-    }
-
-    if (parsed.customerPhone) setPhoneInput(parsed.customerPhone);
-    update(patch);
-    setDuplicateAck(false);
-    setCallAssistMessage(`Applied: ${applied.join(', ')}.`);
-  }, [callNotesInput, draft, update]);
+  }, [callAssistApiRevision, callAssistSessionRevision, dispatch.busy, draft, flashNotice, hydrated, price.loading, quoteActions.busy, update]);
 
   const handleCopyCustomerDetails = useCallback(async () => {
     const ok = await copyToClipboard(buildCustomerDetails(draft));
@@ -2062,22 +1920,22 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [customerMessage, flashNotice]);
 
   const handleCopyPaymentLink = useCallback(async () => {
-    if (!draft.paymentLink) return;
+    if (!draft.paymentLink || draft.bookingTimingNeedsReview) return;
     const ok = await copyToClipboard(draft.paymentLink.paymentUrl);
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Payment link copied.' : 'Could not copy payment link.' });
-  }, [draft.paymentLink, flashNotice]);
+  }, [draft.bookingTimingNeedsReview, draft.paymentLink, flashNotice]);
 
   const handleOpenPaymentLink = useCallback(async () => {
-    if (!draft.paymentLink) return;
+    if (!draft.paymentLink || draft.bookingTimingNeedsReview) return;
     try {
       await Linking.openURL(draft.paymentLink.paymentUrl);
     } catch {
       flashNotice({ kind: 'err', text: 'Could not open payment link.' });
     }
-  }, [draft.paymentLink, flashNotice]);
+  }, [draft.bookingTimingNeedsReview, draft.paymentLink, flashNotice]);
 
   const handleWhatsAppPaymentLink = useCallback(async () => {
-    if (!draft.paymentLink) return;
+    if (!draft.paymentLink || draft.bookingTimingNeedsReview) return;
     const message = buildPaymentMessage(draft.paymentLink, draft, effectiveTotal);
     const url = buildWhatsAppUrl(draft.customer.phone, message) ?? genericWhatsAppUrl(message);
     try {
@@ -2119,8 +1977,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [draft.location.lat, draft.location.lng, flashNotice]);
 
   const handleReviewDispatch = useCallback(() => {
+    const scheduleError = getBookingScheduleError(draft);
+    if (scheduleError) { flashNotice({ kind: 'warn', text: scheduleError }); return; }
     setReviewOpen(true);
-  }, []);
+  }, [draft, flashNotice]);
 
   const handleSendToDriver = useCallback(async () => {
     if (!draft.paymentChoice) return;
@@ -2129,6 +1989,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [dispatch, draft.paymentChoice]);
 
   const handlePrimaryAction = useCallback(async () => {
+    if (draft.bookingTimingNeedsReview) {
+      openBookingsInApp(draft.dispatchedRefNumber);
+      return;
+    }
     if (activeStage === 'LOCATION' && draft.location.method === 'address') {
       const blockedReason = getManualLocationBlockedReason(draft.location);
       if (blockedReason) { flashNotice({ kind: 'info', text: blockedReason }); return; }
@@ -2358,7 +2222,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       });
     }
 
-    if (draft.paymentLink) {
+    if (draft.paymentLink && !draft.bookingTimingNeedsReview) {
       actions.push(
         { id: 'copy-payment-link', label: 'Copy payment link', description: 'Copy the Stripe payment link.', onPress: handleCopyPaymentLink },
         { id: 'open-payment-link', label: 'Open payment link', description: 'Open the Stripe payment link.', onPress: handleOpenPaymentLink },
@@ -2569,9 +2433,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     urgentBookingId,
   ]);
 
-  const primaryLabel = isManualLocationEditing || activeStage === 'PAYMENT' ? 'Done Editing' : editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
-  const primaryDisabled = isManualLocationEditing ? Boolean(manualLocationBlockedReason) : activeStage === 'PAYMENT' ? dispatch.busy || !draft.paymentChoice : editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
-  const primaryDisabledReason = isManualLocationEditing ? manualLocationBlockedReason : activeStage === 'PAYMENT' ? (draft.paymentChoice ? null : 'Choose a payment method before continuing.') : editingStage ? null : workflow.primaryActionDisabledReason;
+  const primaryLabel = draft.bookingTimingNeedsReview ? 'Review in Bookings' : isManualLocationEditing || activeStage === 'PAYMENT' ? 'Done Editing' : editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
+  const primaryDisabled = draft.bookingTimingNeedsReview ? false : isManualLocationEditing ? Boolean(manualLocationBlockedReason) : activeStage === 'PAYMENT' ? dispatch.busy || !draft.paymentChoice : editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
+  const primaryDisabledReason = draft.bookingTimingNeedsReview ? null : isManualLocationEditing ? manualLocationBlockedReason : activeStage === 'PAYMENT' ? (draft.paymentChoice ? null : 'Choose a payment method before continuing.') : editingStage ? null : workflow.primaryActionDisabledReason;
   const hasCustomerSummary = Boolean(
     draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim(),
   );
@@ -2631,6 +2495,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [activeStage]);
   const handleSelectOperatorStep = useCallback(
     (stepId: typeof operatorSteps[number]['id']) => {
+      if (draft.bookingTimingNeedsReview) {
+        openBookingsInApp(draft.dispatchedRefNumber);
+        return;
+      }
       const targetStage = stageForStepId(stepId, {
         quoteConfirmed,
         hasPrice,
@@ -2654,7 +2522,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         setActionNotice(null);
       }
     },
-    [draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, quoteConfirmed],
+    [draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, openBookingsInApp, quoteConfirmed],
   );
   const hasHeaderInvoiceRef = Boolean(draft.dispatchedRefNumber);
   const headerInvoiceBusy = headerInvoiceLoading;
@@ -2666,8 +2534,18 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       ? 'offline'
       : 'ready';
   const heroStage = hasCustomerSummary ? activeStage : 'CUSTOMER';
-  const heroCopy = heroCopyForStage(heroStage, customerName);
-  const activePanelCopy = activePanelCopyForStage(activeStage);
+  const defaultHeroCopy = heroCopyForStage(heroStage, customerName);
+  const heroCopy = draft.bookingTimingNeedsReview
+    ? { ...defaultHeroCopy, title: 'Review Appointment', badge: 'Needs review', helper: 'Open Bookings to verify the saved appointment.' }
+    : draft.bookingType === 'scheduled' && ['READY_TO_DISPATCH', 'DISPATCHED'].includes(heroStage)
+    ? { ...defaultHeroCopy, title: heroStage === 'DISPATCHED' ? 'Scheduled Booking' : 'Review Appointment', badge: 'Scheduled', helper: formatBookingSchedule(draft) }
+    : defaultHeroCopy;
+  const defaultPanelCopy = activePanelCopyForStage(activeStage);
+  const activePanelCopy = draft.bookingTimingNeedsReview
+    ? { ...defaultPanelCopy, title: 'Booking needs review', helper: 'Open Bookings before taking payment or assigning a driver.' }
+    : draft.bookingType === 'scheduled' && ['READY_TO_DISPATCH', 'DISPATCHED'].includes(activeStage)
+    ? { ...defaultPanelCopy, title: activeStage === 'DISPATCHED' ? 'Scheduled booking' : 'Booking review', helper: formatBookingSchedule(draft) }
+    : defaultPanelCopy;
   // Background feeds keep their unread state, but never present another UIKit
   // controller over a screen the operator is opening, using or dismissing.
   const operatorModalActive = Boolean(primaryPresentation.owner || historyOpen || recentOpen || quotesOpen || bookingsOpen
@@ -2843,6 +2721,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           />
 
           {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
+          <CustomerAudienceCard enabled={api.hasAdminToken} projectId={activeProjectId} />
           {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
           {callAttributionError ? <InlineNotice kind="warn">{callAttributionError}</InlineNotice> : null}
           {followUpQueue.data?.enabled && (followUpQueue.data.summary?.openFollowUps ?? 0) > 0 ? (
@@ -2894,6 +2773,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               ? activeIncomingCaller.callId : undefined}
             visible={hydrated && api.hasAdminToken && !operatorModalActive && !urgentPopupOpen && !driverJourneys.visible}
           /> : null}
+          <BookingScheduleCard
+            key={callAssistKey}
+            draft={draft}
+            busy={!hydrated || price.loading || dispatch.busy || Boolean(quoteActions.busy) || Boolean(locationShare.busy)}
+            projectId={activeProjectId}
+            onChange={handleBookingTimingChange}
+          />
 
           <OperatorStepProgress
             steps={operatorSteps}
@@ -2924,11 +2810,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               handleEmailBlur,
               noteInput,
               setNoteInput,
-              callNotesInput,
-              setCallNotesInput,
-              callAssistMessage,
-              setCallAssistMessage,
-              handleApplyCallNotes,
+              callAssistKey,
+              activeProjectId,
+              handleApplyCallReview,
               locationShare,
               price,
               lockingNutCharge,
@@ -2975,6 +2859,17 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             }} />
             {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
               <View style={styles.dispatchedStack}>
+                {draft.bookingTimingNeedsReview ? (
+                  <AppButton label="Open Bookings to review appointment" variant="primary" onPress={() => openBookingsInApp(draft.dispatchedRefNumber)} fullWidth />
+                ) : <>
+                {draft.bookingType === 'scheduled' ? (
+                  <SectionCard title="Scheduled booking saved">
+                    <Text style={styles.bodyText}>{formatBookingSchedule(draft)}</Text>
+                    <Text style={styles.bodyText}>No driver has been sent by creating this appointment. Manage assignment from Bookings when appropriate.</Text>
+                    <AppButton label="Open Bookings" variant="secondary" onPress={() => openBookingsInApp(draft.dispatchedRefNumber)} fullWidth />
+                  </SectionCard>
+                ) : (
+                  <>
                 <DriverAssignSection
                   bookingRef={draft.dispatchedRefNumber}
                   trackingData={bookingTracking.data}
@@ -3005,6 +2900,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
                   disabled={!draft.dispatchedBookingId}
                   fullWidth
                 />
+                  </>
+                )}
 
                 <SectionCard title="Payment">
                   {draft.paymentLink ? (
@@ -3075,6 +2972,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
                     <StatusBanner kind="err" message={paymentLinkActions.error} />
                   ) : null}
                 </SectionCard>
+                </>}
               </View>
             ) : null}
           </ActiveWorkflowPanel>
@@ -3342,11 +3240,9 @@ interface RenderActiveStageArgs {
   handleEmailBlur: () => void;
   noteInput: string;
   setNoteInput: (value: string) => void;
-  callNotesInput: string;
-  setCallNotesInput: (value: string) => void;
-  callAssistMessage: string | null;
-  setCallAssistMessage: (value: string | null) => void;
-  handleApplyCallNotes: () => void;
+  callAssistKey: string;
+  activeProjectId?: string | null;
+  handleApplyCallReview: (review: CallBookingReview) => string | null;
   locationShare: ReturnType<typeof useAssistedChatLocationShare>;
   price: ReturnType<typeof useAssistedChatPrice>;
   lockingNutCharge: number;
@@ -3391,11 +3287,9 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     handleEmailBlur,
     noteInput,
     setNoteInput,
-    callNotesInput,
-    setCallNotesInput,
-    callAssistMessage,
-    setCallAssistMessage,
-    handleApplyCallNotes,
+    callAssistKey,
+    activeProjectId,
+    handleApplyCallReview,
     locationShare,
     price,
     lockingNutCharge,
@@ -3423,6 +3317,15 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     manualPaymentBusy,
     handleCopyPaymentDetails,
   } = args;
+
+  if (draft.bookingTimingNeedsReview) {
+    return (
+      <SectionCard title="Booking needs review">
+        <StatusBanner kind="err" message="The saved appointment could not be verified against the time you selected. Review it in Bookings before taking payment or assigning a driver." />
+        {draft.dispatchedRefNumber ? <DetailRow label="Reference" value={draft.dispatchedRefNumber} /> : null}
+      </SectionCard>
+    );
+  }
 
   if (activeStage === 'CUSTOMER') {
     const emailSuggestions = getEmailDomainSuggestions(draft.customer.email);
@@ -3516,12 +3419,11 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
           </SectionCard>
         </Pressable>
         {returningCustomerCard}
-        <CallNotesCard
-          callNotesInput={callNotesInput}
-          setCallNotesInput={setCallNotesInput}
-          callAssistMessage={callAssistMessage}
-          setCallAssistMessage={setCallAssistMessage}
-          handleApplyCallNotes={handleApplyCallNotes}
+        <CallBookingReviewCard
+          key={callAssistKey}
+          draft={draft}
+          activeProjectId={activeProjectId}
+          onApply={handleApplyCallReview}
         />
       </View>
     );
@@ -3879,8 +3781,9 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
 
   if (activeStage === 'READY_TO_DISPATCH') {
     return (
-      <SectionCard title="Ready to dispatch">
-        <Text style={styles.bodyText}>Review the job before sending it to the driver.</Text>
+      <SectionCard title={draft.bookingType === 'scheduled' ? 'Ready to book' : 'Ready to dispatch'}>
+        <Text style={styles.bodyText}>{draft.bookingType === 'scheduled' ? 'Review the appointment before creating the scheduled booking.' : 'Review the job before sending it to the driver.'}</Text>
+        <DetailRow label="Booking time" value={formatBookingSchedule(draft)} />
         <View style={styles.readySummary}>
           <DetailRow label="Payment" value={paymentChoiceLabel(draft.paymentChoice)} />
           <DetailRow label="Quote" value={savedQuoteRef ? `Quote ${savedQuoteRef}` : 'Saved quote unavailable'} />
@@ -3893,7 +3796,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
   }
 
   return (
-    <SectionCard title="Dispatched">
+    <SectionCard title={draft.bookingType === 'scheduled' ? 'Booking created' : 'Dispatched'}>
       <Text style={styles.bodyText}>Booking {draft.dispatchedRefNumber ?? 'created'} is ready.</Text>
       {draft.dispatchedRefNumber ? (
         <View style={styles.referenceActions}>
@@ -4477,55 +4380,6 @@ function PremiumBottomAction({
   );
 }
 
-function CallNotesCard({
-  callNotesInput,
-  setCallNotesInput,
-  callAssistMessage,
-  setCallAssistMessage,
-  handleApplyCallNotes,
-}: {
-  callNotesInput: string;
-  setCallNotesInput: (value: string) => void;
-  callAssistMessage: string | null;
-  setCallAssistMessage: (value: string | null) => void;
-  handleApplyCallNotes: () => void;
-}) {
-  return (
-    <SectionCard title="Smart call notes" helperText="Paste rough call notes and apply obvious details. Address still needs selecting from suggestions for coordinates.">
-      <TextInput
-        value={callNotesInput}
-        onChangeText={(value) => {
-          setCallNotesInput(value);
-          setCallAssistMessage(null);
-        }}
-        placeholder="Example: customer is Ali, 07700 900123, address 3 Gateside Street, needs 205/55R16 x2, cash, note side street"
-        placeholderTextColor={colors.subtle}
-        style={styles.callNotesInput}
-        multiline
-        textAlignVertical="top"
-      />
-      <View style={styles.callNotesActions}>
-        <AppButton label="Apply notes" variant="secondary" onPress={handleApplyCallNotes} disabled={!callNotesInput.trim()} style={styles.flexActionButton} />
-        <AppButton
-          label="Clear notes"
-          variant="ghost"
-          onPress={() => {
-            setCallNotesInput('');
-            setCallAssistMessage(null);
-          }}
-          disabled={!callNotesInput.trim()}
-          style={styles.flexActionButton}
-        />
-      </View>
-      {callAssistMessage ? (
-        <View style={styles.inlineNoticeTop}>
-          <InlineNotice kind={callAssistMessage.startsWith('Applied:') ? 'info' : 'warn'}>{callAssistMessage}</InlineNotice>
-        </View>
-      ) : null}
-    </SectionCard>
-  );
-}
-
 function paymentLinkStatusColor(status: PaymentLinkLiveStatus | null): string {
   switch (status) {
     case 'paid':
@@ -4962,8 +4816,9 @@ function DispatchReviewSheet({
   const stripeAmountTooLow = stripeCharge != null && stripeCharge < 0.30;
   const bookingAlreadyCreated = Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId || draft.paymentLink);
   const paymentAlreadyConfirmed = activeQuote?.quoteStatus === 'PAID';
-  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !bookingAlreadyCreated && !paymentAlreadyConfirmed && !stripeAmountTooLow);
-  const disabledReason = bookingAlreadyCreated
+  const scheduleError = getBookingScheduleError(draft);
+  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !bookingAlreadyCreated && !paymentAlreadyConfirmed && !stripeAmountTooLow && !scheduleError);
+  const disabledReason = scheduleError ?? (bookingAlreadyCreated
     ? `Booking already created${draft.dispatchedRefNumber ? ` as ${draft.dispatchedRefNumber}` : ''}. Open it from Bookings to review payment.`
     : paymentAlreadyConfirmed
     ? 'Payment is already confirmed. Review the recorded payment before creating another booking.'
@@ -4977,20 +4832,21 @@ function DispatchReviewSheet({
     ? 'Choose a payment option before dispatching.'
     : stripeAmountTooLow && stripeCharge != null
     ? `Payment link cannot be sent for ${formatGbp(stripeCharge)}. Stripe minimum is £0.30. Edit the quote price or choose cash.`
-    : null;
+    : null);
 
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.reviewBackdrop}>
         <View style={styles.reviewSheet}>
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Review dispatch</Text>
+            <Text style={styles.sheetTitle}>{draft.bookingType === 'scheduled' ? 'Review scheduled booking' : 'Review dispatch'}</Text>
             <AppButton label="Close" variant="danger" onPress={onClose} style={styles.sheetCloseButton} />
           </View>
           <ScrollView contentContainerStyle={styles.reviewContent}>
             <DetailRow label="Customer" value={draft.customer.name.trim() || 'New customer'} />
             <DetailRow label="Phone" value={draft.customer.phone.trim() || 'Not set'} />
             <DetailRow label="Service" value={formatAssistedChatServiceType(draft.serviceType)} />
+            <DetailRow label="Booking time" value={formatBookingSchedule(draft)} />
             <DetailRow
               label="Tyres"
               value={
@@ -5015,7 +4871,7 @@ function DispatchReviewSheet({
           </ScrollView>
           <View style={styles.reviewActions}>
             <AppButton
-              label="Send to Driver"
+              label={draft.bookingType === 'scheduled' ? 'Create scheduled booking' : 'Send to Driver'}
               variant={canSend ? 'primary' : 'secondary'}
               onPress={onSend}
               disabled={!canSend || dispatchBusy}
@@ -5656,8 +5512,6 @@ const styles = StyleSheet.create({
   emailModeBtnText: { fontSize: 11, fontWeight: '600' as const, color: colors.subtle, textAlign: 'center' as const },
   emailModeBtnTextActive: { color: colors.accent },
   note: { ...baseInput, minHeight: 96, textAlignVertical: 'top' },
-  callNotesInput: { ...baseInput, minHeight: 92, lineHeight: 20, textAlignVertical: 'top' },
-  callNotesActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   flexActionButton: { flexGrow: 1, flexBasis: 130 },
   inlineNoticeTop: { marginTop: 10 },
   inlineNoticeWrap: { marginBottom: 10 },

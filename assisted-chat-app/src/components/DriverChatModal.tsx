@@ -106,6 +106,12 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const paginationInitializedRef = useRef(false);
+  const followLatestRef = useRef(true);
+  const [retryImage, setRetryImage] = useState<ChatLocalAsset | null>(null);
+  const olderRequestRef = useRef<object | null>(null);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -172,19 +178,67 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
   const fetchMessages = useCallback(async (id: string) => {
     const scope = captureScope();
     const request = ++messageFetchRef.current;
-    const data = await api.get<MessagesResponse>(
+    let data = await api.get<MessagesResponse>(
       `/api/chat/conversations/${encodeURIComponent(id)}/messages?limit=50`,
     );
     if (!isCurrent(scope, id) || request !== messageFetchRef.current) return;
+    const previous = acceptedMessagesRef.current;
+    const knownIds = new Set(previous?.id === id ? previous.messages.map((message) => message.id) : []);
+    // Bridge messages received between polls before advancing the visible snapshot.
+    const visitedCursors = new Set<string>();
+    while (knownIds.size > 0 && data.nextCursor && !(data.messages ?? []).some((message) => knownIds.has(message.id))) {
+      if (visitedCursors.has(data.nextCursor)) break;
+      visitedCursors.add(data.nextCursor);
+      const page = await api.get<MessagesResponse>(
+        `/api/chat/conversations/${encodeURIComponent(id)}/messages?limit=50&cursor=${encodeURIComponent(data.nextCursor)}`,
+      );
+      if (!isCurrent(scope, id) || request !== messageFetchRef.current) return;
+      // Keep the newest page's read marker; older pages must not move it back.
+      data = { ...data, messages: mergeMessages(page.messages ?? [], data.messages ?? []), nextCursor: page.nextCursor };
+    }
     const latest = data.messages ?? [];
     acceptedMessagesRef.current = { id: id, messages: latest };
     setMessages((items) => mergeMessages(items, latest));
+    if (!paginationInitializedRef.current || (previous?.id === id && previous.messages.length === 0)) {
+      paginationInitializedRef.current = true;
+      setNextCursor(data.nextCursor ?? null);
+    }
     observeMessages(latest, id);
     markRead(id, newestServerMessageId(latest));
     const marker = data.peerReadUpTo;
     // Receipts come only from the other side's read marker and never move backwards.
     if (marker) setPeerRead((current) => (current?.conversationId === id && compareServerMessages(current, marker) >= 0 ? current : { conversationId: id, ...marker }));
   }, [captureScope, isCurrent, markRead, observeMessages]);
+
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!conversationId || !nextCursor || olderRequestRef.current) return;
+    const id = conversationId;
+    const scope = captureScope();
+    if (!isCurrent(scope, id)) return;
+    const request = {};
+    olderRequestRef.current = request;
+    setLoadingOlder(true);
+    setError(null);
+    try {
+      const data = await api.get<MessagesResponse>(
+        `/api/chat/conversations/${encodeURIComponent(id)}/messages?limit=50&cursor=${encodeURIComponent(nextCursor)}`,
+      );
+      if (!isCurrent(scope, id) || olderRequestRef.current !== request) return;
+      followLatestRef.current = false;
+      // A late historical page cannot overwrite fresher edits or local outbox state.
+      setMessages((items) => {
+        const existingIds = new Set(items.map((message) => message.id));
+        return mergeMessages(items, (data.messages ?? []).filter((message) => !existingIds.has(message.id)));
+      });
+      setNextCursor(data.nextCursor ?? null);
+    } catch (err) {
+      if (isCurrent(scope, id)) setError(err instanceof Error ? err.message : 'Could not load earlier messages.');
+    } finally {
+      if (olderRequestRef.current === request) olderRequestRef.current = null;
+      if (isCurrent(scope, id)) setLoadingOlder(false);
+    }
+  }, [captureScope, isCurrent, nextCursor, conversationId]);
 
   // A fast response can finish before the new chat's layout effect installs its sound scope.
   // Replay only the accepted snapshot after commit; the tracker suppresses duplicate observations.
@@ -233,6 +287,9 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     sendRequestRef.current = null; messageFetchRef.current += 1;
     scopeRef.current.conversationId = null;
     acceptedMessagesRef.current = null;
+    olderRequestRef.current = null; paginationInitializedRef.current = false; followLatestRef.current = true;
+    pendingSendsRef.current.clear();
+    setNextCursor(null); setLoadingOlder(false); setRetryImage(null);
     setPreviewUri(null);
     setSending(false); setMediaBusy(false); setVoiceBusy(false); setActionBusy(false);
     setConversationId(null);
@@ -357,6 +414,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
     setMediaBusy(true);
     setSending(true);
     setError(null);
+    setRetryImage(asset);
     try {
       const pending = pendingSend(`image:${conversationId}:${asset.uri}`);
       const attachment = pending.attachment ?? await uploadChatImageAttachment(asset);
@@ -370,10 +428,11 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
       if (!isCurrent(scope, conversationId)) return;
       messageFetchRef.current += 1;
       setMessages((prev) => mergeMessages(prev, [sent]));
+      setRetryImage(null);
       playSent(sent.id);
       markRead(conversationId, sent.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send photo');
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not send photo');
     } finally {
       if (sendRequestRef.current === request) sendRequestRef.current = null;
       if (isCurrent(scope, conversationId)) { setSending(false); setMediaBusy(false); }
@@ -535,8 +594,15 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
             contentContainerStyle={styles.messagesContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+            maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+            scrollEventThrottle={100}
+            onScroll={({ nativeEvent }) => {
+              followLatestRef.current = nativeEvent.contentOffset.y + nativeEvent.layoutMeasurement.height >= nativeEvent.contentSize.height - 80;
+            }}
+            onContentSizeChange={() => { if (followLatestRef.current) scrollRef.current?.scrollToEnd({ animated: true }); }}
           >
+            {nextCursor ? <AppButton label={loadingOlder ? 'Loading older messages...' : 'Load older messages'}
+              variant="secondary" onPress={() => { void loadOlderMessages(); }} loading={loadingOlder} disabled={loadingOlder} /> : null}
             {loading && messages.length === 0 ? (
               <View style={styles.loading}>
                 <ActivityIndicator color={colors.accent} />
@@ -619,6 +685,8 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDis
             ) : detail?.status === 'closed' || detail?.status === 'archived' ? (
               <Text style={styles.inputHint}>This conversation is closed.</Text>
             ) : null}
+            {retryImage ? <AppButton label="Retry photo" variant="secondary"
+              onPress={() => { void sendImageAsset(retryImage); }} disabled={inputDisabled} /> : null}
             {recordingComposerActive ? (
               <View style={styles.recordingRow}>
                 <View style={styles.recordingPill}>

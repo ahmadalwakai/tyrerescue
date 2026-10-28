@@ -1,3 +1,4 @@
+import { getBookingTimingPayload, getBookingScheduleError, assertBookingTimingResponse } from '@/lib/booking-schedule';
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import {
@@ -10,7 +11,7 @@ import {
 } from '@/lib/assisted-chat-workflow';
 import {
   ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
-  ASSISTED_CHAT_PRICING_CONTEXT,
+  getAssistedChatPricingContext,
 } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
@@ -72,6 +73,8 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           ? Number(distanceKm)
           : null;
       const quote: AssistedChatQuoteBreakdown = {
+        bookingType: breakdown.bookingType,
+        scheduledAt: breakdown.scheduledAt,
         subtotal: breakdown.subtotal,
         vatAmount: breakdown.vatAmount,
         total: breakdown.total,
@@ -114,6 +117,12 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
   const getPrice = useCallback(async () => {
     if (inflight.current) return;
     setError(null);
+    if (draft.bookingTimingNeedsReview) {
+      setError('Open Bookings to review this booking’s appointment before changing its price.');
+      return;
+    }
+    const scheduleError = getBookingScheduleError(draft);
+    if (scheduleError) { setError(scheduleError); return; }
 
     const serviceType = draft.serviceType ?? 'fit';
     const isServiceOnly = isAssistedChatServiceOnly(serviceType);
@@ -184,11 +193,13 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             items: tyreLines,
             vehicle,
             ...adjustmentPayload,
-            pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+            pricingContext: getAssistedChatPricingContext(draft),
+          ...getBookingTimingPayload(draft),
             adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
             notes: draft.note || undefined,
             virtualLandlineInteractionId: draft.virtualLandlineInteractionId ?? undefined,
           });
+          assertBookingTimingResponse(draft, created.booking);
           return {
             quickBookingId: created.booking.id,
             breakdown: created.booking.priceBreakdown,
@@ -212,9 +223,11 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           vehicle,
           notes: draft.note || null,
           ...adjustmentPayload,
-          pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+          pricingContext: getAssistedChatPricingContext(draft),
+            ...getBookingTimingPayload(draft),
           adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         });
+        assertBookingTimingResponse(draft, patched.booking);
         return {
           quickBookingId: draft.quickBookingId,
           breakdown: patched.booking.priceBreakdown,

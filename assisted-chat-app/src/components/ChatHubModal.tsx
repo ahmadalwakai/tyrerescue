@@ -76,6 +76,7 @@ interface ConversationDetail {
   status: ConversationStatus;
   locked: boolean;
   muted: boolean;
+  participants?: Array<{ role: ChatRole; name: string | null }>;
 }
 
 interface MessageView {
@@ -206,6 +207,8 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const [selected, setSelected] = useState<ConversationSummary | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
+  const [retryImage, setRetryImage] = useState<ChatLocalAsset | null>(null);
+  const olderRequestRef = useRef<object | null>(null);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [channel, setChannel] = useState<InboxTab>('all');
@@ -392,15 +395,29 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
   const fetchMessages = useCallback(async (conversationId: string, options?: { initial?: boolean }) => {
     const scope = captureScope();
     const request = ++messageFetchRef.current;
-    const data = await api.get<MessagesResponse>(
+    let data = await api.get<MessagesResponse>(
       `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=${MESSAGE_PAGE_SIZE}`,
     );
     if (!isCurrent(scope, conversationId) || request !== messageFetchRef.current) return;
+    const previous = acceptedMessagesRef.current;
+    const knownIds = new Set(previous?.id === conversationId ? previous.messages.map((message) => message.id) : []);
+    // Bridge messages received between polls before advancing the visible snapshot.
+    const visitedCursors = new Set<string>();
+    while (knownIds.size > 0 && data.nextCursor && !(data.messages ?? []).some((message) => knownIds.has(message.id))) {
+      if (visitedCursors.has(data.nextCursor)) break;
+      visitedCursors.add(data.nextCursor);
+      const page = await api.get<MessagesResponse>(
+        `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=${MESSAGE_PAGE_SIZE}&cursor=${encodeURIComponent(data.nextCursor)}`,
+      );
+      if (!isCurrent(scope, conversationId) || request !== messageFetchRef.current) return;
+      // Keep the newest page's read marker; older pages must not move it back.
+      data = { ...data, messages: mergeMessages(page.messages ?? [], data.messages ?? []), nextCursor: page.nextCursor };
+    }
     const latest = data.messages ?? [];
     acceptedMessagesRef.current = { id: conversationId, messages: latest };
     // Merge rather than replace: older pages and unsent local messages stay.
     setMessages((items) => mergeMessages(items, latest));
-    if (options?.initial) setOlderCursor(data.nextCursor ?? null);
+    if (options?.initial || (previous?.id === conversationId && previous.messages.length === 0)) setOlderCursor(data.nextCursor ?? null);
     const marker = data.peerReadUpTo;
     if (marker) {
       // A receipt never moves backwards, even if responses arrive out of order.
@@ -411,25 +428,35 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     markRead(conversationId, newestServerMessageId(latest));
   }, [captureScope, isCurrent, markRead, observeMessages]);
 
+
   const loadOlderMessages = useCallback(async () => {
-    if (!selected || !olderCursor || loadingOlder) return;
-    const conversationId = selected.id;
+    if (!selected || !olderCursor || olderRequestRef.current) return;
+    const id = selected.id;
     const scope = captureScope();
+    if (!isCurrent(scope, id)) return;
+    const request = {};
+    olderRequestRef.current = request;
     setLoadingOlder(true);
+    setError(null);
     try {
       const data = await api.get<MessagesResponse>(
-        `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=${MESSAGE_PAGE_SIZE}&cursor=${encodeURIComponent(olderCursor)}`,
+        `/api/chat/conversations/${encodeURIComponent(id)}/messages?limit=${MESSAGE_PAGE_SIZE}&cursor=${encodeURIComponent(olderCursor)}`,
       );
-      if (!isCurrent(scope, conversationId)) return;
+      if (!isCurrent(scope, id) || olderRequestRef.current !== request) return;
       keepScrollPositionRef.current = true;
-      setMessages((items) => mergeMessages(items, data.messages ?? []));
+      // A late historical page cannot overwrite fresher edits or local outbox state.
+      setMessages((items) => {
+        const existingIds = new Set(items.map((message) => message.id));
+        return mergeMessages(items, (data.messages ?? []).filter((message) => !existingIds.has(message.id)));
+      });
       setOlderCursor(data.nextCursor ?? null);
     } catch (err) {
-      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not load earlier messages.');
+      if (isCurrent(scope, id)) setError(err instanceof Error ? err.message : 'Could not load earlier messages.');
     } finally {
-      if (isCurrent(scope, conversationId)) setLoadingOlder(false);
+      if (olderRequestRef.current === request) olderRequestRef.current = null;
+      if (isCurrent(scope, id)) setLoadingOlder(false);
     }
-  }, [captureScope, isCurrent, loadingOlder, olderCursor, selected]);
+  }, [captureScope, isCurrent, olderCursor, selected]);
 
   // A fast response can finish before the new chat's layout effect installs its sound scope.
   // Replay only the accepted snapshot after commit; the tracker suppresses duplicate observations.
@@ -465,6 +492,8 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setDetail(null);
     setMessages([]);
     setOlderCursor(null);
+    setRetryImage(null); olderRequestRef.current = null;
+    mediaSendIdsRef.current.clear();
     setPeerRead(null);
     setLoadingOlder(false);
     scrollMetricsRef.current = { offset: 0, height: 0, content: 0 };
@@ -574,6 +603,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setEditText('');
     setListCursor(null); setLoadingMoreList(false); setOlderCursor(null); setLoadingOlder(false); setBookingContext(null);
     mediaSendIdsRef.current.clear();
+    setRetryImage(null); olderRequestRef.current = null;
     if (visible) setChannel(rememberedInboxTab);
     return () => { scopeRef.current.visible = false; scopeRef.current.generation += 1; };
   }, [entryMode, scopeKey, visible]);
@@ -587,7 +617,8 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     void api.get<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(initialConversationId)}`)
       .then(async (target) => {
         if (!active || !isCurrent(scope) || target.channel !== initialConversationChannel) return;
-        await openConversation({ ...target, scope: target.bookingId ? 'booking' : 'direct_driver', customerName: '', driverId: null, driverName: null,
+        await openConversation({ ...target, scope: target.bookingId ? 'booking' : 'direct_driver', customerName: '', driverId: null,
+          driverName: target.participants?.find((participant) => participant.role === 'driver')?.name ?? null,
           lastMessageBody: null, lastMessageAt: null, lastMessageSenderRole: null, unreadCount: 0, createdAt: '' });
       }).catch((reason) => { if (active && isCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Could not open this chat.'); });
     return () => { active = false; };
@@ -747,6 +778,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
     setMediaBusy(true);
     setSending(true);
     setError(null);
+    setRetryImage(asset);
     try {
       const pending = mediaSendIdsRef.current.get(asset.uri) ?? { id: createClientMessageId() };
       mediaSendIdsRef.current.set(asset.uri, pending);
@@ -762,6 +794,7 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
       mediaSendIdsRef.current.delete(asset.uri);
       messageFetchRef.current += 1;
       setMessages((items) => mergeMessages(items, [sent]));
+      setRetryImage(null);
       playSent(sent.id);
       markRead(selected.id, sent.id);
       void fetchConversations();
@@ -1102,6 +1135,8 @@ export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', i
                 {inputDisabled && !loadingChat && !recordingComposerActive ? (
                   <Text style={styles.inputHint}>This conversation cannot accept new messages right now.</Text>
                 ) : null}
+            {retryImage ? <AppButton label="Retry photo" variant="secondary"
+              onPress={() => { void sendImageAsset(retryImage); }} disabled={inputDisabled} /> : null}
                 {recordingComposerActive ? (
                   <View style={styles.recordingRow}>
                     <View style={styles.recordingPill}>

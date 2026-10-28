@@ -1,3 +1,4 @@
+import { normalizeBookingTiming } from '@/lib/booking-schedule';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePhoneForWhatsApp } from '@/lib/money';
@@ -188,6 +189,9 @@ function normalizePaymentLink(value: unknown): AssistedChatDraft['paymentLink'] 
 
 export const EMPTY_DRAFT: AssistedChatDraft = {
   incomingCallSource: null,
+  bookingType: 'emergency',
+  scheduledAt: null,
+  bookingTimingNeedsReview: false,
   customer: { phone: '', name: '', email: '' },
   location: {
     method: 'address',
@@ -269,6 +273,8 @@ export function useAssistedChatDraft() {
                 ]);
             const merged: AssistedChatDraft = {
               ...EMPTY_DRAFT,
+              ...normalizeBookingTiming(parsedRecord),
+              bookingTimingNeedsReview: parsedRecord.bookingTimingNeedsReview === true,
               customer: normalizeCustomer(parsedRecord.customer),
               location: normalizeLocation(parsedRecord.location),
               serviceType: normalizeServiceType(parsedRecord.serviceType),

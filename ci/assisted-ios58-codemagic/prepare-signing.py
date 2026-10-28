@@ -10,7 +10,7 @@ import plistlib
 import re
 import subprocess
 
-signing = Path(os.environ['ASSISTED_CI_TEMP']) / 'assisted-ios57-signing'
+signing = Path(os.environ['ASSISTED_CI_TEMP']) / 'assisted-ios58-signing'
 signing.mkdir(mode=0o700, exist_ok=False)
 for variable, filename in [('ASSISTED_IOS_P12_BASE64', 'distribution.p12'), ('ASSISTED_IOS_PROFILE_BASE64', 'profile.mobileprovision')]:
     raw = os.environ.get(variable, '')
@@ -45,7 +45,7 @@ public_cert.write_bytes(certificate.stdout)
 der = subprocess.check_output(['openssl', 'x509', '-in', str(public_cert), '-outform', 'DER'], stderr=subprocess.DEVNULL)
 assert der in profile.get('DeveloperCertificates', []), 'The existing certificate does not match the existing profile'
 assert subprocess.run(['openssl', 'x509', '-in', str(public_cert), '-checkend', '86400', '-noout'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0, 'The existing certificate is expired or expires too soon'
-installed = Path.home() / 'Library' / 'MobileDevice' / 'Provisioning Profiles' / ('assisted-ios57-' + uuid + '.mobileprovision')
+installed = Path.home() / 'Library' / 'MobileDevice' / 'Provisioning Profiles' / ('assisted-ios58-' + uuid + '.mobileprovision')
 installed.parent.mkdir(parents=True, exist_ok=True)
 assert not installed.exists(), 'Unexpected existing profile destination'
 installed.write_bytes((signing / 'profile.mobileprovision').read_bytes())

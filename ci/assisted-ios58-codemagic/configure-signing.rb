@@ -3,7 +3,7 @@ require 'xcodeproj'
 require 'pathname'
 
 app = File.join(ENV.fetch('CM_BUILD_DIR'), ENV.fetch('ASSISTED_APP_DIR'))
-metadata = JSON.parse(File.read(File.join(ENV.fetch('ASSISTED_CI_TEMP'), 'assisted-ios57-signing', 'metadata.json')))
+metadata = JSON.parse(File.read(File.join(ENV.fetch('ASSISTED_CI_TEMP'), 'assisted-ios58-signing', 'metadata.json')))
 projects = Dir.glob(File.join(app, 'ios', '*.xcodeproj'))
 raise 'Expected exactly one native app project' unless projects.length == 1
 project = Xcodeproj::Project.open(projects.first)
@@ -19,8 +19,8 @@ target.build_configurations.each do |config|
   settings['CODE_SIGN_IDENTITY'] = metadata.fetch('certificateSha1')
   settings['PROVISIONING_PROFILE_SPECIFIER'] = metadata.fetch('uuid')
   settings['PROVISIONING_PROFILE'] = metadata.fetch('uuid')
-  settings['CURRENT_PROJECT_VERSION'] = '57'
-  settings['MARKETING_VERSION'] = '1.0.13'
+  settings['CURRENT_PROJECT_VERSION'] = '58'
+  settings['MARKETING_VERSION'] = '1.0.14'
   settings['ENABLE_BITCODE'] = 'NO'
   entitlement_path = settings['CODE_SIGN_ENTITLEMENTS']
   raise 'Missing generated app entitlements' unless entitlement_path.is_a?(String) && !entitlement_path.empty?
@@ -38,5 +38,5 @@ scheme_file = File.join(project.path.to_s, 'xcshareddata', 'xcschemes', target.n
 raise 'Expected the Expo generated shared app scheme' unless File.file?(scheme_file)
 workspaces = Dir.glob(File.join(app, 'ios', '*.xcworkspace'))
 raise 'Expected exactly one CocoaPods workspace' unless workspaces.length == 1
-File.write(File.join(ENV.fetch('ASSISTED_CI_TEMP'), 'assisted-ios57-signing', 'xcode-target.json'), JSON.generate({'workspace' => workspaces.first, 'scheme' => target.name}))
+File.write(File.join(ENV.fetch('ASSISTED_CI_TEMP'), 'assisted-ios58-signing', 'xcode-target.json'), JSON.generate({'workspace' => workspaces.first, 'scheme' => target.name}))
 puts 'Manual signing configured on the single Assisted Chat app target.'

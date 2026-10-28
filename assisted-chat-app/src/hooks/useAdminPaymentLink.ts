@@ -182,17 +182,19 @@ export function useAdminPaymentLink({
   const autoWindowStartedAtRef = useRef<number | null>(null);
   const autoWindowLinkKeyRef = useRef<string | null>(null);
   const createIdentityRef = useRef('');
+  const bookingNeedsReviewRef = useRef(draft.bookingTimingNeedsReview === true);
 
   const ref = draft.dispatchedRefNumber ?? draft.paymentLink?.refNumber ?? null;
   const hasLink = draft.paymentLink != null;
-  const createIdentity = `${draft.dispatchedBookingId ?? draft.paymentLink?.bookingId ?? ''}|${ref ?? ''}`;
+  const createIdentity = `${draft.dispatchedBookingId ?? draft.paymentLink?.bookingId ?? ''}|${ref ?? ''}|${draft.bookingTimingNeedsReview === true}`;
   // Fence a cleared/new draft before any passive effect or user event: layout
   // effects run right after commit, ahead of both (refs must not be written
   // during render).
   useLayoutEffect(() => {
     refRef.current = ref;
     createIdentityRef.current = createIdentity;
-  }, [ref, createIdentity]);
+    bookingNeedsReviewRef.current = draft.bookingTimingNeedsReview === true;
+  }, [ref, createIdentity, draft.bookingTimingNeedsReview]);
   const linkKey = draft.paymentLink
     ? [
         ref ?? draft.paymentLink.refNumber,
@@ -483,6 +485,10 @@ export function useAdminPaymentLink({
 
   const createForDispatchedBooking = useCallback(async () => {
     if (!mountedRef.current) return null;
+    if (draft.bookingTimingNeedsReview || bookingNeedsReviewRef.current) {
+      setError('Open Bookings to review this booking’s appointment before taking payment.');
+      return null;
+    }
     if (createInflight.current) return null;
     const ref = draft.dispatchedRefNumber ?? draft.paymentLink?.refNumber;
     if (!ref) {
@@ -550,7 +556,7 @@ export function useAdminPaymentLink({
       if (mountedRef.current) setBusy(false);
       createInflight.current = false;
     }
-  }, [draft.dispatchedBookingId, draft.dispatchedRefNumber, draft.paymentChoice, draft.paymentLink, update]);
+  }, [draft.bookingTimingNeedsReview, draft.dispatchedBookingId, draft.dispatchedRefNumber, draft.paymentChoice, draft.paymentLink, update]);
 
   const checkNow = useCallback(async (): Promise<PaymentLinkLiveStatus | null> => {
     return runStripeCheck('manual');

@@ -51,6 +51,7 @@ function harness() {
     'react/jsx-runtime': { Fragment: 'Fragment', jsx: (type, props, key) => ({ type, props, key }), jsxs: (type, props, key) => ({ type, props, key }) },
     'react-native': native, '@/lib/api': api,
     '@/lib/booking-coordinates': coordinates,
+    '@/lib/booking-schedule': loadSource('lib/booking-schedule.ts'),
     '@/lib/clipboard': loadSource('lib/clipboard.ts', { 'expo-clipboard': { setStringAsync: (value) => { state.clipboard.push(value); return state.write(value); } } }),
     './ui': { AppButton: 'AppButton', StatusBanner: 'StatusBanner' },
     './theme': loadSource('components/theme.ts'),

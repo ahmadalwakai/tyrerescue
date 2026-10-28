@@ -1,0 +1,11 @@
+{
+  "version": "1.0.14",
+  "buildNumber": "58",
+  "bundleIdentifier": "uk.tyrerescue.assistedchat",
+  "teamId": "BXK52CMHR2",
+  "appStoreAppId": "6786223270",
+  "sourceManifestSha256": "09cd27df344328884348d0b00300350f95c61d6f6b45fbe05145997a59e33356",
+  "sourceFiles": 303,
+  "packageLockSha256": "cfb06961cf9367dce0afe7b7899ff14b9a845924d50bc35830a90614ce7b1214",
+  "externalNotificationSoundSha256": "0479a7f42bbb815ba38f824c9b619fd70ace09ea381aa4c80ea692b723628ea2"
+}

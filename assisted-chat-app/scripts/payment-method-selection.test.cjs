@@ -11,8 +11,9 @@ const src = path.join(__dirname, '../src');
 const parse = (relative) => ts.createSourceFile(relative, fs.readFileSync(path.join(src, relative), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const screen = parse('components/AssistedChatScreen.tsx');
 const draftSource = parse('hooks/useAssistedChatDraft.ts');
+const scheduleHelpers = loadSource('lib/booking-schedule.ts', {});
 const geo = loadSource('lib/geo.ts', {});
-const workflow = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo });
+const workflow = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo, './booking-schedule': loadSource('lib/booking-schedule.ts', {}) });
 const pricing = loadSource('lib/pricing-context.ts', {});
 
 function findNode(source, predicate, label) {
@@ -67,6 +68,7 @@ function findNodes(tree, predicate) {
   return [...(predicate(tree) ? [tree] : []), ...findNodes(tree.props?.children, predicate)];
 }
 const uiGlobals = {
+  ...scheduleHelpers,
   ...workflow,
   DEPOSIT_PERCENT: 20,
   PAYMENT_OPTIONS: [{ value: 'FULL_PAYMENT', label: 'Full payment' }, { value: 'CASH_ON_DELIVERY', label: 'Cash on arrival' }],
@@ -340,7 +342,7 @@ function createDispatchHarness(patch = {}) {
   const hook = loadSource('hooks/useAssistedChatDispatch.ts', {
     '@/hooks/useLatestRef': { useLatestRef: (value) => { const ref = react.useRef(value); ref.current = value; return ref; } },
     react, '@/lib/api': { api, ApiError, getApiContextRevision: () => state.revision },
-    '@/lib/pricing-context': pricing, '@/lib/assisted-chat-workflow': workflow,
+    '@/lib/pricing-context': pricing, '@/lib/assisted-chat-workflow': workflow, '@/lib/booking-schedule': loadSource('lib/booking-schedule.ts', {}),
   });
   function read() {
     state.cursor = 0;
@@ -670,6 +672,28 @@ test('a deposit with no confirmed booking ID refuses to create a full balance li
   assert.equal(await h.read().createForDispatchedBooking(), null);
   assert.equal(h.state.posts.length, 0);
   assert.match(h.read().error, /Recover this booking/);
+});
+
+test('persisted appointment review protection blocks independent payment-link creation for all payment methods', async () => {
+  for (const paymentChoice of ['deposit', 'full', 'cash']) {
+    const h = createExistingPaymentHarness(JSON.parse(JSON.stringify({ paymentChoice, bookingTimingNeedsReview: true })));
+    assert.equal(await h.read().createForDispatchedBooking(), null);
+    assert.equal(h.state.posts.length, 0);
+    assert.equal(h.state.updates.length, 0);
+    assert.equal(h.read().busy, false);
+    assert.match(h.read().error, /Open Bookings.*appointment before taking payment/);
+  }
+});
+
+test('an older independent payment callback respects a newly flagged appointment on the same booking', async () => {
+  const h = createExistingPaymentHarness();
+  const previous = h.read().createForDispatchedBooking;
+  h.state.draft = { ...h.state.draft, bookingTimingNeedsReview: true };
+  h.read();
+  assert.equal(await previous(), null);
+  assert.equal(h.state.posts.length, 0);
+  assert.equal(h.state.updates.length, 0);
+  assert.match(h.read().error, /Open Bookings/);
 });
 
 test('a pending retry for an old customer never attaches its payment link to a new draft', async () => {

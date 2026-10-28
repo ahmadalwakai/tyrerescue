@@ -2,6 +2,7 @@
 set -euo pipefail
 umask 077
 test -z "${ASSISTED_IOS_P12_BASE64:-}" && test -z "${ASSISTED_IOS_P12_PASSWORD:-}" && test -z "${ASSISTED_IOS_PROFILE_BASE64:-}" && test -z "${CM_API_TOKEN:-}"
+test -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" && test -z "${APP_STORE_CONNECT_API_KEY:-}" && test -z "${APP_STORE_CONNECT_KEY_IDENTIFIER:-}" && test -z "${APP_STORE_CONNECT_ISSUER_ID:-}"
 test "$(uname -s)" = Darwin
 test "$(uname -m)" = arm64
 test "$(xcodebuild -version | head -n 1)" = 'Xcode 26.2'

@@ -2,6 +2,7 @@
 // `<repo-root>/types/admin-assisted-chat.ts`. Kept local because the Expo app
 // is not in the Next.js tsconfig include path. Field shapes match exactly.
 
+export type AssistedChatBookingType = 'emergency' | 'scheduled';
 export type LockingNutAnswer = 'yes' | 'no' | 'unknown';
 export type AssistedChatServiceType = 'fit' | 'repair' | 'assess' | 'locking_nut';
 export type AssistedChatPaymentChoice = 'cash' | 'deposit' | 'full';
@@ -177,6 +178,8 @@ export interface AssistedChatQuoteLine {
 }
 
 export interface AssistedChatQuoteBreakdown {
+  bookingType?: AssistedChatBookingType;
+  scheduledAt?: string | null;
   subtotal: number;
   vatAmount: number;
   total: number;
@@ -207,6 +210,9 @@ export interface AssistedChatQuoteBreakdown {
 export interface AssistedChatDraft {
   /** Session-scoped provenance only when an incoming call supplied this draft's number. */
   incomingCallSource?: { ledgerId: string; phone: string; scope: string } | null;
+  bookingType: AssistedChatBookingType;
+  scheduledAt: string | null;
+  bookingTimingNeedsReview?: boolean;
   customer: AssistedChatCustomer;
   location: AssistedChatLocation;
   serviceType: AssistedChatServiceType;
@@ -261,6 +267,8 @@ export interface QuickBookCreateResponse {
   whatsappLink: string | null;
   whatsappText: string | null;
   booking: {
+    bookingType?: AssistedChatBookingType;
+    scheduledAt?: string | null;
     id: string;
     status: string;
     locationLat: string | null;
@@ -272,6 +280,8 @@ export interface QuickBookCreateResponse {
     totalPrice: string | null;
     basePrice: string | null;
     priceBreakdown: {
+      bookingType?: AssistedChatBookingType;
+      scheduledAt?: string | null;
       lineItems: AssistedChatQuoteLine[];
       subtotal: number;
       vatAmount: number;
@@ -309,11 +319,15 @@ export interface SendLinkResponse {
 
 export interface QuickBookPatchResponse {
   booking: {
+    bookingType?: AssistedChatBookingType;
+    scheduledAt?: string | null;
     id: string;
     totalPrice: string | null;
     basePrice: string | null;
     distanceKm: string | null;
     priceBreakdown: {
+      bookingType?: AssistedChatBookingType;
+      scheduledAt?: string | null;
       lineItems: AssistedChatQuoteLine[];
       subtotal: number;
       vatAmount: number;
@@ -347,6 +361,8 @@ export interface StripePaymentLinkState {
 }
 
 export interface QuickBookFinalizeResponse {
+  bookingType?: AssistedChatBookingType;
+  scheduledAt?: string | null;
   bookingId: string;
   refNumber: string;
   invoiceNumber?: string;
@@ -356,6 +372,8 @@ export interface QuickBookFinalizeResponse {
   depositAmountPence: number | null;
   remainingBalancePence: number | null;
   breakdown?: {
+    bookingType?: AssistedChatBookingType;
+    scheduledAt?: string | null;
     subtotal: number;
     vatAmount: number;
     total: number;

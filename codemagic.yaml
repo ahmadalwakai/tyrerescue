@@ -1,24 +1,27 @@
 workflows:
-  assisted-ios57-native:
-    name: Assisted Chat 1.0.13 (57) - native build only
+  assisted-ios58-native:
+    name: Assisted Chat 1.0.14 (58) - iOS TestFlight upload
     instance_type: mac_mini_m2
     max_build_duration: 120
+    working_directory: assisted-chat-app
+    integrations:
+      app_store_connect: Vibeset Codemagic
     environment:
       node: 24.22.1
       xcode: '26.2'
       cocoapods: default
       groups:
         - assisted_ios49_public
-        - assisted_ios57_signing
+        - assisted_ios58_signing
       vars:
         CI: '1'
         EXPO_NO_TELEMETRY: '1'
         EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
         ASSISTED_APP_DIR: assisted-chat-app
-        ASSISTED_CI_DIR: ci/assisted-ios57-codemagic
+        ASSISTED_CI_DIR: ci/assisted-ios58-codemagic
         CM_RECURSIVE_SUBMODULE_INIT: 'false'
         DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
-    # No automatic trigger, store integration, publish or email section.
+    # Explicit API dispatch only. Publishing uploads the verified IPA without requesting review.
     scripts:
       - name: Prepare isolated build workspace
         script: |
@@ -34,27 +37,39 @@ workflows:
           origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
           assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
           PY
-          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios57.XXXXXX")"
+          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios58.XXXXXX")"
           printf 'ASSISTED_CI_TEMP=%s\n' "$assisted_ci_temp" >> "$CM_ENV"
 
       - name: Verify frozen app, install exact dependencies and native patch
         script: |
           set -euo pipefail
-          # Do not pass signing credentials or a Codemagic API token to npm scripts.
-          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
             bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/install-dependencies.sh"
+
+      - name: Typecheck and test Assisted Chat release
+        script: |
+          set -euo pipefail
+          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
+            bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/check-assisted.sh"
 
       - name: Generate native iOS project and install CocoaPods
         script: |
           set -euo pipefail
-          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+          env -u ASSISTED_IOS_P12_BASE64 -u ASSISTED_IOS_P12_PASSWORD -u ASSISTED_IOS_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
             bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/prepare-native.sh"
 
-      - name: Sign existing app identity, export IPA and verify
+      - name: Sign existing app identity, export arm64 IPA and verify
         script: |
           set -euo pipefail
-          unset CM_API_TOKEN
-          bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/build-native.sh"
+          env -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
+            bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/build-native.sh"
+
     artifacts:
-      - $ASSISTED_CI_TEMP/assisted-ios57-output/assisted-chat-1.0.13-57.ipa
-      - $ASSISTED_CI_TEMP/assisted-ios57-output/manifest.json
+      - $ASSISTED_CI_TEMP/assisted-ios58-output/assisted-chat-1.0.14-58.ipa
+      - $ASSISTED_CI_TEMP/assisted-ios58-output/manifest.json
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false
