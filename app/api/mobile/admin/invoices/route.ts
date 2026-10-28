@@ -37,7 +37,7 @@ async function generateInvoiceNumber() {
 const COMPANY = {
   name: 'Tyre Rescue',
   address: '3, 10 Gateside St, Glasgow G31 1PD',
-  phone: '0141 266 0690',
+  phone: '01932 509613',
   email: 'support@tyrerescue.uk',
 };
 

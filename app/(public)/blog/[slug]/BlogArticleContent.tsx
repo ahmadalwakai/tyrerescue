@@ -273,7 +273,7 @@ export function BlogArticleContent({
             </Text>
             <Flex gap={4} justify="center" wrap="wrap">
               <Link
-                href="tel:+441412660690"
+                href="tel:+441932509613"
                 onClick={() => trackCallClick(`blog:${article.slug}`)}
                 style={{
                   display: 'inline-block',
@@ -286,7 +286,7 @@ export function BlogArticleContent({
                   textDecoration: 'none',
                 }}
               >
-                Call 0141 266 0690
+                Call 01932 509613
               </Link>
               <Link
                 href="/book"
@@ -374,7 +374,7 @@ export function BlogArticleContent({
               Need a tyre fitter in Scotland?
             </Heading>
             <Text color={colors.textSecondary} fontSize="15px" mb={5}>
-              Tyre Rescue covers all of Scotland — Glasgow to Shetland. Call 0141 266 0690 or book
+              Tyre Rescue covers all of Scotland — Glasgow to Shetland. Call 01932 509613 or book
               online for mobile tyre fitting at your location.
             </Text>
             <Flex gap={3} flexWrap="wrap">

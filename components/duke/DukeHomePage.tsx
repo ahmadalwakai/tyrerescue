@@ -38,7 +38,7 @@ const DUKE = {
   white: '#F5F7FA',
 };
 
-const PHONE_E164 = '+441412660690';
+const PHONE_E164 = '+441932509613';
 const RESPONSE_TIME = '30-40 mins';
 const ADDRESS = '3, 10 Gateside St, Glasgow G31 1PD';
 const GOOGLE_REVIEW_COUNT = 154;

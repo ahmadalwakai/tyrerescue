@@ -243,7 +243,7 @@ export async function PATCH(request: Request, { params }: Props) {
       const customerEmail = driverAssigned({
         customerName: booking.customerName,
         driverName: driverUser?.name || 'Your driver',
-        driverPhone: driverUser?.phone || '0141 266 0690',
+        driverPhone: driverUser?.phone || '01932 509613',
         etaMinutes: booking.bookingType === 'emergency' ? 45 : undefined,
         trackingUrl,
         refNumber: booking.refNumber,

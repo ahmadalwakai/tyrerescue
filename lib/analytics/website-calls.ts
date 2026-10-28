@@ -9,14 +9,16 @@
  * arbitrary page text.
  */
 
+import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_E164, BUSINESS_PHONE_TEL } from '@/lib/config/business-contact';
+
 export const ADS_ACTUAL_WEBSITE_CALL_CONVERSION =
   'AW-18255235286/jSyqCMuSnvAcENaR44BE';
-export const ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE = '0141 266 0690';
+export const ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE = BUSINESS_PHONE_DISPLAY;
 export const GOOGLE_ADS_PHONE_CONVERSION_CALLBACK_NAME =
   '__TR_GOOGLE_ADS_PHONE_CONVERSION_CALLBACK__';
 
-const ACTUAL_WEBSITE_CALL_TEL_DIGITS = '01412660690';
-const ACTUAL_WEBSITE_CALL_INTL_DIGITS = `44${ACTUAL_WEBSITE_CALL_TEL_DIGITS.slice(1)}`;
+const ACTUAL_WEBSITE_CALL_TEL_DIGITS = BUSINESS_PHONE_TEL;
+const ACTUAL_WEBSITE_CALL_INTL_DIGITS = BUSINESS_PHONE_E164.slice(1);
 const WHATSAPP_PHONE_DIGITS = new Set(['07423262955', '447423262955']);
 const WEBSITE_CALL_ALLOWED_HOSTS = new Set(['www.tyrerescue.uk', 'tyrerescue.uk']);
 const WEBSITE_CALL_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
@@ -30,7 +32,7 @@ const WEBSITE_CALL_BLOCKED_ROUTE_PREFIXES = [
 ] as const;
 
 const ACTUAL_PHONE_TEXT_PATTERN =
-  /(?:\+44\s?141\s?266\s?0690|\+441412660690|0141\s?266\s?0690|01412660690)/g;
+  /(?:\+44\s?1932\s?509613|\+441932509613|01932\s?509613|01932509613)/g;
 
 export const WEBSITE_CALL_ORIGINAL_HREF_ATTR = 'data-tr-website-call-original-href';
 export const WEBSITE_CALL_SYNCED_HREF_ATTR = 'data-tr-website-call-synced-href';
@@ -191,7 +193,7 @@ export function isGoogleAdsWebsiteCallEligible({
 }
 
 export function getGoogleAdsWebsiteCallConfig(
-  defaultPhone = ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
+  defaultPhone: string = ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
 ): GoogleAdsWebsiteCallConfig | null {
   const phoneConversionNumber = normalizePhoneConversionNumber(defaultPhone);
   if (!phoneConversionNumber || !isActualWebsiteCallPhone(phoneConversionNumber)) return null;
@@ -209,7 +211,7 @@ export function getWindowGoogleAdsWebsiteCallConfig(): GoogleAdsWebsiteCallConfi
 
 export function buildGoogleAdsWebsiteCallConfigPayload(
   callback?: GoogleAdsWebsiteCallCallback,
-  phoneConversionNumber = ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
+  phoneConversionNumber: string = ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
 ): GoogleAdsWebsiteCallConfigPayload {
   const payload: GoogleAdsWebsiteCallConfigPayload = {
     phone_conversion_number: phoneConversionNumber,

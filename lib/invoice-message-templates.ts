@@ -38,7 +38,7 @@ This is Tyre Rescue. Here are the details of your invoice:
 📋 Invoice: ${ctx.invoiceNumber}${bookingLine}
 💷 Total: ${total}${linkLine}
 
-If you have any questions, just reply to this message or call us on 0141 266 0690.
+If you have any questions, just reply to this message or call us on 01932 509613.
 
 Thanks,
 Tyre Rescue 🛞`;
@@ -67,13 +67,13 @@ Please find your invoice from Tyre Rescue.
 Invoice Number: ${ctx.invoiceNumber}
 ${bookingLine}Total Due: ${total}
 ${linkLine}
-A PDF copy of the invoice is attached to this email. If you have any questions, please call us on 0141 266 0690.
+A PDF copy of the invoice is attached to this email. If you have any questions, please call us on 01932 509613.
 
 Thanks,
 The Tyre Rescue Team
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📞 0141 266 0690
+📞 01932 509613
 🌐 www.tyrerescue.uk
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }

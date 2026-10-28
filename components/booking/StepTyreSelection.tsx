@@ -260,9 +260,9 @@ export function StepTyreSelection({
           <Text color={c.muted} fontSize="sm" mb={4}>
             We can still help! Call us and we will source the right tyres for you.
           </Text>
-          <a href="tel:01412660690" style={{ textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_tyre_selection_no_tyres')}>
+          <a href="tel:01932509613" style={{ textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_tyre_selection_no_tyres')}>
             <Button colorPalette="red" size="sm">
-              Call 0141 266 0690
+              Call 01932 509613
             </Button>
           </a>
         </Box>

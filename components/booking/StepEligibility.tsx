@@ -338,8 +338,8 @@ export function StepEligibility({
           </Text>
           <Text color={c.muted} fontSize="13px" style={{ fontFamily: 'var(--font-body)' }}>
             Call us:{' '}
-            <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 600 }} onClick={() => trackCallClick('booking_step_eligibility')}>
-              0141 266 0690
+            <a href="tel:01932509613" style={{ color: c.accent, fontWeight: 600 }} onClick={() => trackCallClick('booking_step_eligibility')}>
+              01932 509613
             </a>
           </Text>
         </Box>

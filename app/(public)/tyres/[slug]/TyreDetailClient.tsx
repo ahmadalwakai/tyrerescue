@@ -368,7 +368,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
             </Text>
             <HStack justify="center" gap={4}>
               <Button asChild colorPalette="orange" size="lg">
-                <a href="tel:01412660690" onClick={() => trackCallClick('tyre_detail_cta')}>Call 0141 266 0690</a>
+                <a href="tel:01932509613" onClick={() => trackCallClick('tyre_detail_cta')}>Call 01932 509613</a>
               </Button>
               <Button asChild variant="outline" colorPalette="orange" size="lg">
                 <NextLink href="/emergency">Book Emergency Callout</NextLink>

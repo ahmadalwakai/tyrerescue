@@ -228,7 +228,7 @@ function consentEmailHtml(input: {
         ${vehicleLine}
         <div class="info-row"><span class="label">Signed</span><span class="value">${signedAt}</span></div>
       </div>
-      <p>If you have any questions, please contact Tyre Rescue on 0141 266 0690.</p>
+      <p>If you have any questions, please contact Tyre Rescue on 01932 509613.</p>
     `,
   });
 }

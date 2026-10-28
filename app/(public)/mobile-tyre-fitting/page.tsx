@@ -17,7 +17,7 @@ const SITE_URL = 'https://www.tyrerescue.uk';
 export const metadata: Metadata = {
   title: 'Mobile Tyre Fitting Scotland | All Cities | 24/7 | Tyre Rescue',
   description:
-    'Mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Highlands, Borders and Islands. We come to you. Fitting from £20. Emergency callout from £49. Call 0141 266 0690.',
+    'Mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Highlands, Borders and Islands. We come to you. Fitting from £20. Emergency callout from £49. Call 01932 509613.',
   keywords: [
     'mobile tyre fitting scotland',
     'mobile tyre fitter scotland',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Mobile Tyre Fitting Scotland | Tyre Rescue',
-    description: 'We come to your exact location across all of Scotland. Fitting from £20. Emergency callout from £49. Call 0141 266 0690.',
+    description: 'We come to your exact location across all of Scotland. Fitting from £20. Emergency callout from £49. Call 01932 509613.',
     images: [`${SITE_URL}/images/home/slide-1.webp`],
   },
 };
@@ -95,11 +95,11 @@ const faqs = [
   },
   {
     question: 'How quickly can a mobile tyre fitter reach me in Scotland?',
-    answer: `Our response target is ${SEO_RESPONSE_TIME_LABEL} across Scotland, including Greater Glasgow, Edinburgh, the Central Belt, Dundee, Perth, Aberdeen, Inverness, the Highlands and Islands. Call 0141 266 0690 to confirm your exact ETA.`,
+    answer: `Our response target is ${SEO_RESPONSE_TIME_LABEL} across Scotland, including Greater Glasgow, Edinburgh, the Central Belt, Dundee, Perth, Aberdeen, Inverness, the Highlands and Islands. Call 01932 509613 to confirm your exact ETA.`,
   },
   {
     question: 'Do you cover rural Scotland and the Highlands?',
-    answer: `Yes — we cover all of Scotland including rural Highland areas, the NC500 route, and Scottish islands such as Skye, Lewis and Shetland. Advance booking is required for very remote locations and islands: at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to confirm availability and your exact ETA.`,
+    answer: `Yes — we cover all of Scotland including rural Highland areas, the NC500 route, and Scottish islands such as Skye, Lewis and Shetland. Advance booking is required for very remote locations and islands: at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 to confirm availability and your exact ETA.`,
   },
   {
     question: 'Can you fit tyres at my home or workplace?',
@@ -115,7 +115,7 @@ const howTo = getHowToSchema({
   name: 'How to get mobile tyre fitting in Scotland',
   description: 'Simple steps to get a tyre fitted at your location anywhere in Scotland.',
   steps: [
-    { name: 'Call or book online', text: 'Call 0141 266 0690 or use our online booking form. Give your postcode, vehicle registration, and describe the tyre issue.' },
+    { name: 'Call or book online', text: 'Call 01932 509613 or use our online booking form. Give your postcode, vehicle registration, and describe the tyre issue.' },
     { name: 'Confirm your quote', text: 'We will quote a total price covering the tyre, fitting fee, and any callout charge. For emergencies, we confirm before dispatching.' },
     { name: 'Wait at your location', text: 'Stay safely at your car, home, or workplace. For motorway breakdowns, exit the vehicle and stand behind the barrier. We will give you an ETA.' },
     { name: 'Fitter arrives with your tyre', text: 'Our fitter arrives with the correct tyre already loaded on the van. The full fitting including balancing takes 20–40 minutes.' },
@@ -178,7 +178,7 @@ export default function MobileTyreFittingPage() {
               Available 24 hours a day, 7 days a week.
             </p>
             <div style={s.ctaRow}>
-              <a href="tel:01412660690" style={s.ctaPrimary}>Call 0141 266 0690</a>
+              <a href="tel:01932509613" style={s.ctaPrimary}>Call 01932 509613</a>
               <Link href="/book" style={s.ctaSecondary}>Book Online</Link>
               <Link href="/emergency" style={s.ctaSecondary}>Emergency Callout</Link>
             </div>
@@ -253,7 +253,7 @@ export default function MobileTyreFittingPage() {
               <li><strong>Drive away</strong> — new tyre fitted, balanced, torqued. Old tyre recycled.</li>
             </ol>
             <div style={{ ...s.ctaRow, marginTop: '24px' }}>
-              <a href="tel:01412660690" style={s.ctaPrimary}>Call 0141 266 0690</a>
+              <a href="tel:01932509613" style={s.ctaPrimary}>Call 01932 509613</a>
               <Link href="/book" style={s.ctaSecondary}>Book Online Now</Link>
             </div>
           </div>

@@ -341,8 +341,8 @@ export function TyresContent() {
                 </Text>
                 <Text fontWeight="semibold" color={c.text}>
                   Call us:{' '}
-                  <ChakraLink href="tel:01412660690" color={c.accent} onClick={() => trackCallClick('tyres_no_results')}>
-                    0141 266 0690
+                  <ChakraLink href="tel:01932509613" color={c.accent} onClick={() => trackCallClick('tyres_no_results')}>
+                    01932 509613
                   </ChakraLink>
                 </Text>
               </VStack>

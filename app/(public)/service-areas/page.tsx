@@ -131,11 +131,11 @@ const coverageFaqs = [
   },
   {
     question: 'How quickly can you reach areas outside Glasgow and Edinburgh?',
-    answer: `Our response target is ${SEO_RESPONSE_TIME_LABEL} across Scotland, including Hamilton, Falkirk, Stirling, Dundee, Perth, Kirkcaldy, Aberdeen, Inverness, the Highlands and Islands. Very remote Highland locations and island services require advance booking, including at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Call 0141 266 0690 to confirm availability and your exact ETA.`,
+    answer: `Our response target is ${SEO_RESPONSE_TIME_LABEL} across Scotland, including Hamilton, Falkirk, Stirling, Dundee, Perth, Kirkcaldy, Aberdeen, Inverness, the Highlands and Islands. Very remote Highland locations and island services require advance booking, including at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Call 01932 509613 to confirm availability and your exact ETA.`,
   },
   {
     question: 'Do you cover the NC500 tourist route?',
-    answer: 'Yes. Our mobile fitters cover the entire NC500 route — from Inverness, around the north coast, through Torridon and Applecross, and back south. If you have a flat tyre on the NC500, call 0141 266 0690 immediately. Tell us your exact location and we will dispatch the nearest available fitter and give you a realistic ETA.',
+    answer: 'Yes. Our mobile fitters cover the entire NC500 route — from Inverness, around the north coast, through Torridon and Applecross, and back south. If you have a flat tyre on the NC500, call 01932 509613 immediately. Tell us your exact location and we will dispatch the nearest available fitter and give you a realistic ETA.',
   },
   {
     question: 'Is there an extra charge for remote or Highland locations?',
@@ -143,7 +143,7 @@ const coverageFaqs = [
   },
   {
     question: 'Do you cover the Scottish islands?',
-    answer: `Yes — we operate on Skye (accessible by bridge), Lewis and Harris, Shetland and other islands. Island services require advance booking: at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to confirm availability and your exact ETA.`,
+    answer: `Yes — we operate on Skye (accessible by bridge), Lewis and Harris, Shetland and other islands. Island services require advance booking: at least 24 hours for Skye and 48 hours for the Western Isles, Shetland, Orkney and ferry-served Argyll islands. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 to confirm availability and your exact ETA.`,
   },
 ];
 
@@ -198,10 +198,10 @@ export default function ServiceAreasPage() {
             <h1 style={s.h1}>Mobile Tyre Fitting Across All of Scotland</h1>
             <p style={s.lead}>
               We cover every Scottish postcode from G (Glasgow) to ZE (Shetland) — 24 hours a day,
-              7 days a week. Find your area below, or call 0141 266 0690 for an immediate response.
+              7 days a week. Find your area below, or call 01932 509613 for an immediate response.
             </p>
             <div style={s.ctaRow}>
-              <a href="tel:01412660690" style={s.ctaPrimary}>Call 0141 266 0690</a>
+              <a href="tel:01932509613" style={s.ctaPrimary}>Call 01932 509613</a>
               <Link href="/book" style={s.ctaSecondary}>Book Online</Link>
               <Link href="/emergency" style={s.ctaSecondary}>Emergency Callout</Link>
             </div>

@@ -9,7 +9,7 @@ import { WORKSHOP_ADDRESS } from '@/lib/config/business-contact';
 import { getServicePricingKey } from '@/lib/seo/service-pricing';
 
 const DEFAULT_BASE_URL = 'https://www.tyrerescue.uk';
-const PHONE = '+441412660690';
+const PHONE = '+441932509613';
 const EMAIL = 'support@tyrerescue.uk';
 const TRUSTPILOT_RATING_VALUE = '3.5';
 const TRUSTPILOT_REVIEW_COUNT = '3';
@@ -247,7 +247,7 @@ export function getServiceSchema(opts: {
       '@type': 'LocalBusiness',
       name: 'Tyre Rescue',
       url,
-      telephone: '0141 266 0690',
+      telephone: '01932 509613',
       address: ADDRESS,
     },
     areaServed,
@@ -481,7 +481,7 @@ export function getCityLocalBusinessSchema(opts: {
           itemOffered: {
             '@type': 'Service',
             name: `${opts.serviceName} in ${opts.cityName}`,
-            description: `Professional ${opts.serviceName.toLowerCase()} in ${opts.cityName}. Average response time: ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
+            description: `Professional ${opts.serviceName.toLowerCase()} in ${opts.cityName}. Average response time: ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613.`,
           },
           priceCurrency: 'GBP',
           ...(pricing && { price: pricing.from }),

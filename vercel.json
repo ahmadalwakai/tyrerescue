@@ -36,5 +36,10 @@
       "path": "/api/cron/daily-stock-buy-report",
       "schedule": "0 * * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "release/bonline-call-management-20261028": false
+    }
+  }
 }

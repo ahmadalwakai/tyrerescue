@@ -176,7 +176,7 @@ export function HelpContent() {
               </Box>
               <Flex gap={3} wrap="wrap">
                 <ChakraLink
-                  href="tel:01412660690"
+                  href="tel:01932509613"
                   minH="48px"
                   px={6}
                   display="inline-flex"
@@ -190,7 +190,7 @@ export function HelpContent() {
                   _hover={{ opacity: 0.9 }}
                   onClick={() => trackCallClick('help_page')}
                 >
-                  Call 0141 266 0690
+                  Call 01932 509613
                 </ChakraLink>
                 <ChakraLink
                   href="https://wa.me/447423262955"
@@ -251,7 +251,7 @@ export function HelpContent() {
               <Flex direction="column" gap={3}>
                 <Text fontSize="14px" color={colors.textSecondary}>Trading name: Tyre Rescue</Text>
                 <Text fontSize="14px" color={colors.textSecondary}>Garage address: 3, 10 Gateside St, Glasgow G31 1PD</Text>
-                <Text fontSize="14px" color={colors.textSecondary}>Phone: 0141 266 0690</Text>
+                <Text fontSize="14px" color={colors.textSecondary}>Phone: 01932 509613</Text>
                 <Text fontSize="14px" color={colors.textSecondary}>Email: support@tyrerescue.uk</Text>
               </Flex>
             </Box>

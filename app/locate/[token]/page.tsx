@@ -397,7 +397,7 @@ export default function LocatePage() {
             <Text color="#FAFAFA" fontSize="lg">Link expired</Text>
             <Text color="#A1A1AA" fontSize="sm">
               This location sharing link has expired. Please call us on{' '}
-              <Link href="tel:01412660690" color="#F97316">0141 266 0690</Link>.
+              <Link href="tel:01932509613" color="#F97316">01932 509613</Link>.
             </Text>
           </VStack>
         )}
@@ -416,7 +416,7 @@ export default function LocatePage() {
             <Text color="#FAFAFA" fontSize="lg">Invalid link</Text>
             <Text color="#A1A1AA" fontSize="sm">
               This link is not valid. Please check the link or call us on{' '}
-              <Link href="tel:01412660690" color="#F97316">0141 266 0690</Link>.
+              <Link href="tel:01932509613" color="#F97316">01932 509613</Link>.
             </Text>
           </VStack>
         )}

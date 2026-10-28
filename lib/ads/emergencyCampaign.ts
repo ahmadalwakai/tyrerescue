@@ -1,3 +1,5 @@
+import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_TEL } from '@/lib/config/business-contact';
+
 export type CampaignNetwork = 'Search Network Only';
 export type CurrencyCode = 'GBP';
 export type BiddingStrategy = 'Maximize Conversions';
@@ -78,8 +80,8 @@ export interface Campaign {
   readonly adGroups: readonly AdGroup[];
 }
 
-export const EMERGENCY_PHONE_DISPLAY = '0141 266 0690' as const;
-export const EMERGENCY_PHONE_TEL = '01412660690' as const;
+export const EMERGENCY_PHONE_DISPLAY = BUSINESS_PHONE_DISPLAY;
+export const EMERGENCY_PHONE_TEL = BUSINESS_PHONE_TEL;
 export const EMERGENCY_PHONE_HREF = `tel:${EMERGENCY_PHONE_TEL}` as const;
 export const EMERGENCY_RESPONSE_MINUTES = 45 as const;
 

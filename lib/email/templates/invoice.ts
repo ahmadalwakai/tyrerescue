@@ -48,7 +48,7 @@ export function invoiceEmail(data: InvoiceEmailData): { subject: string; html: s
     </p>
 
     <p style="font-size: 14px; color: #666666;">
-      A PDF copy of the invoice is attached to this email. If you have any questions, please contact us on 0141 266 0690.
+      A PDF copy of the invoice is attached to this email. If you have any questions, please contact us on 01932 509613.
     </p>
   `;
 

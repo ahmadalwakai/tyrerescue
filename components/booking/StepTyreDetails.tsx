@@ -709,8 +709,8 @@ export function StepTyreDetails({
               Please search for it before the appointment, or call us to discuss options.
             </Text>
             <Text fontSize="14px" mt={2}>
-              <a href="tel:01412660690" style={{ color: '#fc8181', fontWeight: 600 }} onClick={() => trackCallClick('booking_step_tyre_details_locking_nut')}>
-                0141 266 0690
+              <a href="tel:01932509613" style={{ color: '#fc8181', fontWeight: 600 }} onClick={() => trackCallClick('booking_step_tyre_details_locking_nut')}>
+                01932 509613
               </a>
             </Text>
           </Box>

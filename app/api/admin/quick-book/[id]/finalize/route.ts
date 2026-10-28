@@ -56,7 +56,7 @@ const WALK_IN_DB_EMAIL = 'phone-booking@tyrerescue.uk';
 const COMPANY = {
   name: 'Tyre Rescue',
   address: GARAGE_ADDRESS,
-  phone: '0141 266 0690',
+  phone: '01932 509613',
   email: 'support@tyrerescue.uk',
 };
 

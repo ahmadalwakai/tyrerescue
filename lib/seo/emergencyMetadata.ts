@@ -128,7 +128,7 @@ export function buildEmergencyServiceJsonLd(
     '@type': ['LocalBusiness', 'AutoRepair'],
     name,
     url: absoluteUrl(path),
-    telephone: '+441412660690',
+    telephone: '+441932509613',
     description: area
       ? `${serviceName(kind)} covering ${area.areaName}, ${area.cityName} and all of Scotland — Glasgow to Shetland.`
       : '24/7 emergency mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands.',
@@ -165,7 +165,7 @@ export function buildEmergencyServiceJsonLd(
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+441412660690',
+      telephone: '+441932509613',
       contactType: 'emergency',
       areaServed: 'Mainland Scotland',
       hoursAvailable: {

@@ -13,7 +13,7 @@ describe('contact normalization', () => {
   });
 
   it('does not treat UK landlines as SMS-capable mobile numbers', () => {
-    expect(normalizeUkPhoneNumber('0141 266 0690')).toBeNull();
+    expect(normalizeUkPhoneNumber('01932 509613')).toBeNull();
   });
 
   it('cleans pasted customer email addresses before validation', () => {

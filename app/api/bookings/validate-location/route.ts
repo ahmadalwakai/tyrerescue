@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       selectedDriverId: result.selectedDriverId,
       message: valid
         ? `Location is ${Math.round(distanceMiles)} miles from ${result.distanceSource === 'driver' ? 'nearest driver' : 'garage'}`
-        : `We do not currently cover your area (${Math.round(distanceMiles)} miles). Call 0141 266 0690 to discuss.`,
+        : `We do not currently cover your area (${Math.round(distanceMiles)} miles). Call 01932 509613 to discuss.`,
     });
   } catch (error) {
     console.error('Location validation error:', error);

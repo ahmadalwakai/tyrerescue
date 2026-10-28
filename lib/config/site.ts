@@ -1,3 +1,5 @@
+import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_TEL } from './business-contact';
+
 /** Single source of truth for the canonical production URL. */
 export const SITE_URL = 'https://www.tyrerescue.uk' as const;
 export const DUKE_STREET_SITE_URL = 'https://www.dukestreettyres.com' as const;
@@ -28,8 +30,8 @@ export const CUSTOMER_BRANDS = {
     canonicalHost: 'www.tyrerescue.uk',
     productionUrl: SITE_URL,
     allowedHosts: ['www.tyrerescue.uk', 'tyrerescue.uk'],
-    phoneDisplay: '0141 266 0690',
-    phoneTel: '01412660690',
+    phoneDisplay: BUSINESS_PHONE_DISPLAY,
+    phoneTel: BUSINESS_PHONE_TEL,
     whatsappPhone: '447423262955',
     bookingDraftKey: 'tyrerescue_booking_draft',
   },
@@ -41,8 +43,8 @@ export const CUSTOMER_BRANDS = {
     canonicalHost: 'www.dukestreettyres.com',
     productionUrl: DUKE_STREET_SITE_URL,
     allowedHosts: ['www.dukestreettyres.com', 'dukestreettyres.com'],
-    phoneDisplay: '0141 266 0690',
-    phoneTel: '01412660690',
+    phoneDisplay: BUSINESS_PHONE_DISPLAY,
+    phoneTel: BUSINESS_PHONE_TEL,
     whatsappPhone: '447423262955',
     bookingDraftKey: 'duke_street_tyres_booking_draft',
   },

@@ -566,8 +566,8 @@ export function StepPricing({
             </Text>
             <Text color={c.muted} fontSize="sm">
               Please call us on{' '}
-              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }} onClick={() => trackCallClick('booking_step_pricing_quote_error')}>
-                0141 266 0690
+              <a href="tel:01932509613" style={{ color: c.accent, fontWeight: 500 }} onClick={() => trackCallClick('booking_step_pricing_quote_error')}>
+                01932 509613
               </a>
             </Text>
             {buildSha && buildSha !== 'unknown' && (
@@ -599,8 +599,8 @@ export function StepPricing({
             </Text>
             <Text color={c.muted} fontSize="sm">
               Need help? Call{' '}
-              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }} onClick={() => trackCallClick('booking_step_pricing_timeout')}>
-                0141 266 0690
+              <a href="tel:01932509613" style={{ color: c.accent, fontWeight: 500 }} onClick={() => trackCallClick('booking_step_pricing_timeout')}>
+                01932 509613
               </a>
             </Text>
             {buildSha && buildSha !== 'unknown' && (

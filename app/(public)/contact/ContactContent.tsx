@@ -29,9 +29,9 @@ const colors = {
 const contactMethods = [
   {
     label: 'Phone',
-    title: '0141 266 0690',
+    title: '01932 509613',
     body: 'Fastest option for emergency tyre help, active bookings and same-day support.',
-    href: 'tel:01412660690',
+    href: 'tel:01932509613',
     action: 'Call now',
   },
   {
@@ -115,7 +115,7 @@ export function ContactContent() {
               </Box>
               <Flex gap={3} wrap="wrap">
                 <ChakraLink
-                  href="tel:01412660690"
+                  href="tel:01932509613"
                   minH="48px"
                   px={6}
                   display="inline-flex"
@@ -129,7 +129,7 @@ export function ContactContent() {
                   _hover={{ opacity: 0.9 }}
                   onClick={() => trackCallClick('contact_page_urgent')}
                 >
-                  Call 0141 266 0690
+                  Call 01932 509613
                 </ChakraLink>
                 <ChakraLink
                   asChild

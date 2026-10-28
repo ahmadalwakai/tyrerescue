@@ -102,7 +102,7 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
             <Box className="hero-cta-panel" mt={10} maxW={{ md: '520px' }}>
             <Flex gap={{ base: '14px', md: '16px' }} direction="column">
               <ChakraLink
-                href="tel:01412660690"
+                href="tel:01932509613"
                 onClick={() => trackCallClick(`city_hero:${city.slug}`)}
                 className="hero-cta-call"
                 display="inline-flex"
@@ -633,7 +633,7 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
               NEED {service.name.toUpperCase()} IN {city.name.toUpperCase()}?
             </Text>
             <ChakraLink
-              href="tel:01412660690"
+              href="tel:01932509613"
               onClick={() => trackCallClick(`city_cta_main:${city.slug}`)}
               display="inline-block"
               fontSize={{ base: '28px', md: '48px' }}
@@ -642,11 +642,11 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
               _hover={{ opacity: 0.7 }}
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              CALL 0141 266 0690
+              CALL 01932 509613
             </ChakraLink>
             <Flex direction={{ base: 'column', sm: 'row' }} gap={4} justify="center" mt={6}>
               <ChakraLink
-                href="tel:01412660690"
+                href="tel:01932509613"
                 onClick={() => trackCallClick(`city_cta_button:${city.slug}`)}
                 px={8} py={4} bg={c.bg} color={c.accent}
                 fontSize="18px" letterSpacing="0.05em" borderRadius="4px"

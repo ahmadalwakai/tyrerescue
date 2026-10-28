@@ -172,7 +172,7 @@ export function baseEmailTemplate({ preheader, content, isMarketing = false, sit
       <div style="font-size: 14px; color: #A1A1AA; margin-top: 8px;">Emergency Mobile Tyre Fitting</div>
       <div style="font-size: 12px; color: #888888; margin-top: 4px; line-height: 1.4;">
         3, 10 Gateside St, Glasgow G31 1PD<br>
-        0141 266 0690
+        01932 509613
       </div>
     </div>
     <div class="content">
@@ -181,7 +181,7 @@ export function baseEmailTemplate({ preheader, content, isMarketing = false, sit
     <div class="footer">
       <p><strong>Tyre Rescue</strong></p>
       <p>3, 10 Gateside St, Glasgow G31 1PD</p>
-      <p>Phone: 0141 266 0690</p>
+      <p>Phone: 01932 509613</p>
       <p>Open: 8am to Midnight, Every Day</p>
       <div class="footer-links">
         <a href="${url}/privacy-policy">Privacy Policy</a> |

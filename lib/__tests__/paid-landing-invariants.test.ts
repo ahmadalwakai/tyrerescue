@@ -42,7 +42,8 @@ describe('paid landing contact and availability invariants', () => {
     expect(source).toContain("'/puncture-repair/'");
     expect(source).toContain('HIDDEN_ROUTES.includes(pathname)');
     expect(source).toContain('pathname.startsWith(p)');
-    expect(source).toContain("process.env.NEXT_PUBLIC_PHONE_NUMBER || '0141 266 0690'");
+    expect(source).toContain('const PHONE_NUMBER = BUSINESS_PHONE_DISPLAY;');
+    expect(source).not.toContain('process.env.NEXT_PUBLIC_PHONE_NUMBER');
     expect(source).toContain('buildWhatsAppHref(FALLBACK_WHATSAPP_MESSAGE, WHATSAPP_PHONE)');
   });
 

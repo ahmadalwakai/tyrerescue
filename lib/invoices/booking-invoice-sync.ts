@@ -261,7 +261,7 @@ async function ensureBookingInvoiceOnce(bookingRef: string, options: SyncOptions
       (invoice_number,booking_id,user_id,status,customer_name,customer_email,customer_phone,customer_address,
        company_name,company_address,company_phone,company_email,issue_date,due_date,subtotal,vat_rate,vat_amount,
        total_amount,notes,internal_notes,created_by,updated_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Tyre Rescue',$9,'0141 266 0690','support@tyrerescue.uk',NOW(),NOW(),$13,$14,$15,$10,NULL,$11,$12,$12)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Tyre Rescue',$9,'01932 509613','support@tyrerescue.uk',NOW(),NOW(),$13,$14,$15,$10,NULL,$11,$12,$12)
       RETURNING *`, [invoiceNumber, booking.id, booking.userId, paid ? 'paid' : 'issued', booking.customerName,
       booking.customerEmail, booking.customerPhone, booking.addressLine, GARAGE_ADDRESS, totalAmount,
       `Generated from booking ${booking.refNumber} final payable amount.`, options.actorUserId,

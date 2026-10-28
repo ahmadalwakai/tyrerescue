@@ -52,7 +52,7 @@ export function bookingCancelled(data: BookingCancelledData): { subject: string;
 
     <p>If a payment was taken, a refund will be processed separately and you will receive a confirmation email once it has been issued.</p>
 
-    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you have any questions or believe this was done in error, please contact us on <strong>0141 266 0690</strong> or email <strong>support@tyrerescue.uk</strong>.</p>
+    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you have any questions or believe this was done in error, please contact us on <strong>01932 509613</strong> or email <strong>support@tyrerescue.uk</strong>.</p>
   `;
 
   return {

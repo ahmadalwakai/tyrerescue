@@ -14,7 +14,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Move to the hard shoulder or emergency refuge', text: 'Pull as far left as possible onto the hard shoulder. If on a smart motorway, aim for an Emergency Refuge Area (ERA). Switch on hazard lights immediately.' },
       { name: 'Exit the vehicle on the left side', text: 'Always exit via the left (passenger-side) door, away from live traffic. Leave pets inside the vehicle. Take your phone with you.' },
       { name: 'Stand behind the barrier and away from the carriageway', text: 'Move well beyond the nearside barrier. Do not stand beside the vehicle facing traffic. Wait on the embankment or grass bank.' },
-      { name: 'Call 0141 266 0690 for Tyre Rescue', text: 'Call 0141 266 0690 and describe your location — the motorway name, direction of travel, and the nearest junction number or blue SOS marker. We will dispatch a fitter to you.' },
+      { name: 'Call 01932 509613 for Tyre Rescue', text: 'Call 01932 509613 and describe your location — the motorway name, direction of travel, and the nearest junction number or blue SOS marker. We will dispatch a fitter to you.' },
       { name: 'Wait safely until help arrives', text: 'Remain behind the barrier. Keep monitoring traffic and be prepared to move further away if a vehicle approaches the hard shoulder. Do not return to your car until the fitter arrives and the area is safe.' },
     ],
   },
@@ -27,7 +27,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Allow the car to slow naturally', text: 'Keep the accelerator steady or reduce it gently. Let engine braking and air resistance slow the car gradually. Stay in your lane as long as it is safe.' },
       { name: 'Signal and pull over safely', text: 'Indicate left and steer progressively to the left. Aim for a layby, hard shoulder, or safe stopping area. Do not stop on live lanes.' },
       { name: 'Switch on hazard lights', text: 'As soon as the car is stationary and safe, switch on hazard lights and apply the handbrake. If you have a warning triangle, place it 45 metres behind the car (but not on motorways).' },
-      { name: 'Call Tyre Rescue on 0141 266 0690', text: 'Call 0141 266 0690 and describe your location. We cover all of Scotland including Highland roads and the NC500. A fitter will be dispatched with your replacement tyre.' },
+      { name: 'Call Tyre Rescue on 01932 509613', text: 'Call 01932 509613 and describe your location. We cover all of Scotland including Highland roads and the NC500. A fitter will be dispatched with your replacement tyre.' },
     ],
   },
   'tyre-tread-depth-guide-scotland': {
@@ -39,7 +39,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Check whether the outer rim is visible', text: 'If you can see the outer rim of the coin above the tread, your depth is below 3mm and approaching the limit. If the rim is hidden, you have good tread remaining.' },
       { name: 'Check the tread wear indicators', text: 'Look for small raised bars in the tread grooves — they sit at exactly 1.6mm. If the tread surface is flush with these bars, replace the tyre immediately.' },
       { name: 'Check across the full tyre width', text: 'Uneven wear can mean one edge is legal while another is not. Check the tread depth at the inner edge, centre, and outer edge of each tyre.' },
-      { name: 'Check all four tyres', text: 'Walk around the car and check each tyre. If any tyre is at or below 3mm on Scottish roads, book a replacement — call 0141 266 0690 for mobile fitting at your location.' },
+      { name: 'Check all four tyres', text: 'Walk around the car and check each tyre. If any tyre is at or below 3mm on Scottish roads, book a replacement — call 01932 509613 for mobile fitting at your location.' },
     ],
   },
   'tyre-pressure-guide-scotland': {
@@ -63,7 +63,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Check for cracking or crazing', text: 'Fine cracks in the tread groove walls or sidewall are common on older tyres. Deep cracks or any crack with visible cord beneath is a fail.' },
       { name: 'Verify all tyres are the same type', text: 'Mixing radial and cross-ply (bias-ply) tyres on the same axle is an MOT fail. All your tyres should be the same construction type (radial for all modern passenger cars).' },
       { name: 'Check the tyre DOT age code', text: 'Find the four-digit date code on the sidewall (week + year of manufacture). Tyres over 10 years old may fail — some testers now note this even on advisory.' },
-      { name: 'Book mobile tyre fitting if replacements are needed', text: 'If any tyre needs replacing before MOT, call Tyre Rescue on 0141 266 0690 to fit replacements at your home or work — often faster and cheaper than dealing with a MOT fail and re-test fee.' },
+      { name: 'Book mobile tyre fitting if replacements are needed', text: 'If any tyre needs replacing before MOT, call Tyre Rescue on 01932 509613 to fit replacements at your home or work — often faster and cheaper than dealing with a MOT fail and re-test fee.' },
     ],
   },
   'tyre-sidewall-damage-scotland': {
@@ -74,7 +74,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Inspect the outer sidewall in good light', text: 'Crouch down beside the wheel and examine the outer sidewall (the side you can see). Look for any bulge or bubble protruding from the flat surface, any cut or gash in the rubber, or any scuff where rubber has been abraded away.' },
       { name: 'Check for internal cord damage', text: 'A tyre bubble means the internal cords have broken and air is pushing through. If you can see white or metallic cord material through a cut, the tyre is structurally compromised. Either of these means do not drive on the tyre.' },
       { name: 'Check the inner sidewall if accessible', text: 'Angle a torch between the tyre and the wheel arch and inspect the inner sidewall for the same signs. Kerb strikes often damage the inner sidewall while leaving the outer looking normal.' },
-      { name: 'Make your decision', text: 'If you see a bubble, bulge, or any cut showing cord: do not drive on the tyre. Call Tyre Rescue on 0141 266 0690 for mobile fitting. If the sidewall is only superficially scuffed with no cut or deformation, drive carefully to have it professionally inspected — do not use the motorway.' },
+      { name: 'Make your decision', text: 'If you see a bubble, bulge, or any cut showing cord: do not drive on the tyre. Call Tyre Rescue on 01932 509613 for mobile fitting. If the sidewall is only superficially scuffed with no cut or deformation, drive carefully to have it professionally inspected — do not use the motorway.' },
       { name: 'Call for a replacement tyre if needed', text: 'Tyre Rescue attends locations across all of Scotland. Give us your postcode or location description. We carry replacement tyres in our vans and can fit them at the roadside, in a car park, or at your home.' },
     ],
   },
@@ -99,7 +99,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Check the wheel for visible damage', text: 'Look at the alloy or steel wheel rim for cracks, deep gouges, or a bent lip where the tyre bead seats. A damaged rim may cause slow air loss even if the tyre looks intact.' },
       { name: 'Check tyre pressure on all four tyres', text: 'Use a tyre pressure gauge to check all four tyres. A tyre that has lost significant pressure from the impact needs immediate attention — do not reinflate a damaged tyre and drive on it.' },
       { name: 'Drive slowly and monitor carefully if tyres appear undamaged', text: 'If visual inspection finds no damage and pressures are normal, drive slowly for the first mile and monitor for vibration, pulling, or pressure loss. Return home or to a safe destination and recheck before any long journey.' },
-      { name: 'Arrange professional inspection or mobile tyre fitting', text: 'Any sidewall damage, bubble, or significant pressure loss means you need a replacement tyre. Call Tyre Rescue on 0141 266 0690 — we attend pothole-related callouts across all of Scotland and carry common replacement tyre sizes in our vans.' },
+      { name: 'Arrange professional inspection or mobile tyre fitting', text: 'Any sidewall damage, bubble, or significant pressure loss means you need a replacement tyre. Call Tyre Rescue on 01932 509613 — we attend pothole-related callouts across all of Scotland and carry common replacement tyre sizes in our vans.' },
     ],
   },
   'aquaplaning-prevention-scotland': {
@@ -111,7 +111,7 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Hold the steering wheel straight and steady', text: 'Keep the wheel pointing straight ahead — the direction you want to go. Turning the wheel while aquaplaning achieves nothing until grip is restored, and can cause a sudden swerve when it does recover.' },
       { name: 'Wait for grip to return before steering', text: 'You will feel when the tyres reconnect with the road — the steering will feel more solid and responsive. Only at this point should you make any steering corrections.' },
       { name: 'Brake gently if needed, once grip is restored', text: 'Once you have grip, you can apply gentle braking to reduce speed. Modern ABS will help — allow it to function by pressing the pedal firmly rather than pumping it.' },
-      { name: 'After the incident — check tyre tread depth', text: 'Aquaplaning becomes far more likely below 3mm of tread depth. After experiencing aquaplaning, check your tyre tread depth as soon as possible. If any tyre is below 3mm, book a replacement — call Tyre Rescue on 0141 266 0690 for same-day mobile fitting.' },
+      { name: 'After the incident — check tyre tread depth', text: 'Aquaplaning becomes far more likely below 3mm of tread depth. After experiencing aquaplaning, check your tyre tread depth as soon as possible. If any tyre is below 3mm, book a replacement — call Tyre Rescue on 01932 509613 for same-day mobile fitting.' },
     ],
   },
 };

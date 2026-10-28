@@ -543,8 +543,8 @@ export function StepLocation({
               </Text>
               <Text fontSize="13px" color="red.400" mt={1} style={{ fontFamily: 'var(--font-body)' }}>
                 Call us:{' '}
-                <a href="tel:01412660690" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }} onClick={() => trackCallClick('booking_step_location_out_of_area')}>
-                  0141 266 0690
+                <a href="tel:01932509613" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }} onClick={() => trackCallClick('booking_step_location_out_of_area')}>
+                  01932 509613
                 </a>
               </Text>
             </Box>

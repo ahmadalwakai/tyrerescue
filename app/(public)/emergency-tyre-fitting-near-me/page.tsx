@@ -8,10 +8,10 @@ import {
 import { EmergencyTyreLanding } from '@/components/marketing/EmergencyTyreLanding';
 import { EMERGENCY_PAGE_FAQS } from '@/components/marketing/emergency-faq-data';
 import type { ServiceArea } from '@/components/marketing/EmergencyServiceAreas';
+import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_TEL } from '@/lib/config/business-contact';
 
-const PHONE_DISPLAY =
-  process.env.NEXT_PUBLIC_PHONE_NUMBER ?? '0141 266 0690';
-const PHONE_HREF = `tel:${PHONE_DISPLAY.replace(/\s/g, '')}`;
+const PHONE_DISPLAY = BUSINESS_PHONE_DISPLAY;
+const PHONE_HREF = `tel:${BUSINESS_PHONE_TEL}`;
 
 const SERVICE_AREAS: ServiceArea[] = [
   { name: 'Glasgow', href: '/services/glasgow' },
@@ -39,7 +39,7 @@ const SERVICE_AREAS: ServiceArea[] = [
 export const metadata: Metadata = {
   title: 'Emergency Mobile Tyre Fitting Near Me | All of Scotland | Tyre Rescue',
   description:
-    'Need urgent tyre help? Our mobile fitters come to your exact location for flat tyres and tyre replacement across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands, Borders and Islands. 24/7. Call 0141 266 0690.',
+    'Need urgent tyre help? Our mobile fitters come to your exact location for flat tyres and tyre replacement across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands, Borders and Islands. 24/7. Call 01932 509613.',
   alternates: {
     canonical: 'https://www.tyrerescue.uk/emergency-tyre-fitting-near-me',
   },

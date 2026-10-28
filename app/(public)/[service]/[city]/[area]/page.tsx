@@ -72,11 +72,11 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ se
     },
     {
       question: `How much does ${service.name.toLowerCase()} cost in ${area.name}?`,
-      answer: `${service.name} in ${area.name}: ${service.priceFrom}. We confirm the full quote before starting work. Call 0141 266 0690 for an instant quote.`,
+      answer: `${service.name} in ${area.name}: ${service.priceFrom}. We confirm the full quote before starting work. Call 01932 509613 for an instant quote.`,
     },
     {
       question: `Do you cover ${area.name} 24 hours a day?`,
-      answer: `Yes — we provide ${service.name.toLowerCase()} in ${area.name} 24 hours a day, 7 days a week including bank holidays. Emergency callouts are prioritised. Call 0141 266 0690 at any time.`,
+      answer: `Yes — we provide ${service.name.toLowerCase()} in ${area.name} 24 hours a day, 7 days a week including bank holidays. Emergency callouts are prioritised. Call 01932 509613 at any time.`,
     },
     {
       question: `Where exactly in ${area.name} do you come to?`,

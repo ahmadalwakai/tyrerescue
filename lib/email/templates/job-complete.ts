@@ -30,7 +30,7 @@ export function jobComplete(data: JobCompleteData): { subject: string; html: str
 
     <p>Thank you again for your business. We look forward to serving you in the future.</p>
 
-    <p style="font-size: 14px; color: #666666;">If you have any questions or concerns about the service you received, please do not hesitate to contact us on 0141 266 0690.</p>
+    <p style="font-size: 14px; color: #666666;">If you have any questions or concerns about the service you received, please do not hesitate to contact us on 01932 509613.</p>
   `;
 
   return {

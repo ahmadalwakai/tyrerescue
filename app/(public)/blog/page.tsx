@@ -9,7 +9,7 @@ const SITE_URL = 'https://www.tyrerescue.uk';
 export const metadata: Metadata = {
   title: 'Tyre Advice & City Guides | Scotland Mobile Tyre Fitting | Tyre Rescue',
   description:
-    'Expert tyre guides for Scotland — emergency tips, city-by-city coverage guides for Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Ayrshire, Borders, Highlands, Islands and beyond. Call 0141 266 0690.',
+    'Expert tyre guides for Scotland — emergency tips, city-by-city coverage guides for Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Ayrshire, Borders, Highlands, Islands and beyond. Call 01932 509613.',
   alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
     title: 'Tyre Advice & Scotland City Guides | Tyre Rescue',

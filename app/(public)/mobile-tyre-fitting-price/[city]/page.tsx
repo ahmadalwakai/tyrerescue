@@ -84,11 +84,11 @@ export default async function CityPricePage({
     },
     {
       question: `How quickly can a mobile tyre fitter reach me in ${city.name}?`,
-      answer: `Our average response time in ${city.name} is ${SEO_RESPONSE_TIME_LABEL}. We dispatch the nearest available fitter to your exact location. You'll receive an accurate ETA when you call 0141 266 0690.`,
+      answer: `Our average response time in ${city.name} is ${SEO_RESPONSE_TIME_LABEL}. We dispatch the nearest available fitter to your exact location. You'll receive an accurate ETA when you call 01932 509613.`,
     },
     {
       question: `Do you offer 24-hour emergency tyre fitting in ${city.name}?`,
-      answer: `Yes — we provide 24/7 emergency mobile tyre fitting in ${city.name}. Call 0141 266 0690 at any time, day or night, and we'll dispatch a fitter to your location. Emergency callouts start from £${SERVICE_PRICING.emergency.from}. The tyre and any additional work are charged separately.`,
+      answer: `Yes — we provide 24/7 emergency mobile tyre fitting in ${city.name}. Call 01932 509613 at any time, day or night, and we'll dispatch a fitter to your location. Emergency callouts start from £${SERVICE_PRICING.emergency.from}. The tyre and any additional work are charged separately.`,
     },
     {
       question: `What tyre brands do you carry in ${city.name}?`,
@@ -213,8 +213,8 @@ export default async function CityPricePage({
           <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem', fontWeight: 600 }}>
             Need a tyre in {city.name} now?
           </p>
-          <a href="tel:01412660690" style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', textDecoration: 'none', letterSpacing: '0.05em' }}>
-            0141 266 0690
+          <a href="tel:01932509613" style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', textDecoration: 'none', letterSpacing: '0.05em' }}>
+            01932 509613
           </a>
           <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.9 }}>Available 24/7 — emergency and scheduled</p>
         </section>

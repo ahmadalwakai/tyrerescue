@@ -109,7 +109,7 @@ Thanks,
 The Tyre Rescue Team
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📞 0141 266 0690
+📞 01932 509613
 🌐 www.tyrerescue.uk
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
@@ -132,7 +132,7 @@ This link expires in ${expiry} hours.
 
 Thanks,
 Tyre Rescue
-0141 266 0690`;
+01932 509613`;
 }
 
 /**

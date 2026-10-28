@@ -112,7 +112,7 @@ export function bookingConfirmed(data: BookingConfirmedData): { subject: string;
       <a href="${trackingUrl}" class="button">Track Your Booking</a>
     </div>
 
-    <p style="font-size: 14px; color: #666666;">If you have any questions, please call us on 0141 266 0690.</p>
+    <p style="font-size: 14px; color: #666666;">If you have any questions, please call us on 01932 509613.</p>
   `;
 
   return {

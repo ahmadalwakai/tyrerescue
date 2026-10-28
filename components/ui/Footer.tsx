@@ -142,7 +142,7 @@ export function Footer() {
           </Box>
           <Flex direction="column" gap={2} align={{ base: 'flex-start', md: 'flex-end' }}>
             <ChakraLink
-              href="tel:01412660690"
+              href="tel:01932509613"
               onClick={() => trackCallClick('footer')}
               fontSize={{ base: '24px', md: '32px' }}
               color={colors.accent}
@@ -150,7 +150,7 @@ export function Footer() {
               transition="opacity 0.2s"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              0141 266 0690
+              01932 509613
             </ChakraLink>
             <ChakraLink
               href="https://wa.me/447423262955"

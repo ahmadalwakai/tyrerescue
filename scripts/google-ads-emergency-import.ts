@@ -5,8 +5,8 @@ import { getCityBySlug } from '../lib/cities';
 
 const outputDir = path.join(process.cwd(), 'artifacts', 'google-ads', 'emergency-search-2026-06-28');
 const baseUrl = 'https://www.tyrerescue.uk';
-const phone = '0141 266 0690';
-const phoneCompact = '01412660690';
+const phone = '01932 509613';
+const phoneCompact = '01932509613';
 const campaignStatus = 'Paused';
 const adGroupStatus = 'Enabled';
 const itemStatus = 'Enabled';
@@ -698,7 +698,7 @@ function buildFiles() {
       '- Network: Google Search only',
       '- Initial bidding: Maximize conversions',
       '- Status: Paused for safe review before launch',
-      '- Phone: 0141 266 0690',
+      '- Phone: 01932 509613',
       '- Coverage: mainland Scotland only; island exclusions included',
       '',
       'Fast import:',

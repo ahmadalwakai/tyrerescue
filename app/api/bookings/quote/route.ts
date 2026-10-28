@@ -123,13 +123,13 @@ function slotUnavailableResponse() {
 function pricingErrorResponse(breakdown: PricingBreakdown): NextResponse<ErrorResponse> {
   if (breakdown.error === 'WEATHER_MANUAL_QUOTE_REQUIRED') {
     const message =
-      'Current weather conditions need a manual quote. Please call 0141 266 0690 for assistance.';
+      'Current weather conditions need a manual quote. Please call 01932 509613 for assistance.';
     return NextResponse.json({ ok: false, error: message, code: 'MANUAL_QUOTE_REQUIRED', message }, { status: 422 });
   }
 
   if (breakdown.error === FITTING_LOCATION_MANUAL_QUOTE_ERROR) {
     const message =
-      `This fitting location is over ${MOBILE_AUTO_PRICING_MAX_MILES} miles away and needs a manual quote. Please call 0141 266 0690 for assistance.`;
+      `This fitting location is over ${MOBILE_AUTO_PRICING_MAX_MILES} miles away and needs a manual quote. Please call 01932 509613 for assistance.`;
     return NextResponse.json({ ok: false, error: message, code: 'OUTSIDE_AUTO_PRICING_AREA', message }, { status: 422 });
   }
 

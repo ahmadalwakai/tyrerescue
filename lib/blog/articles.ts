@@ -28,7 +28,7 @@ export const articles: BlogArticle[] = [
     slug: 'emergency-tyre-fitting-glasgow-complete-guide',
     title: 'Emergency Tyre Fitting in Glasgow: The Complete Guide',
     description:
-      'Flat tyre in Glasgow? Call 0141 266 0690. This guide covers emergency tyre fitting costs, response times, what happens when we arrive, and how to stay safe while you wait.',
+      'Flat tyre in Glasgow? Call 01932 509613. This guide covers emergency tyre fitting costs, response times, what happens when we arrive, and how to stay safe while you wait.',
     category: 'emergency',
     publishDate: '2026-03-20',
     lastModified: '2026-03-20',
@@ -48,7 +48,7 @@ export const articles: BlogArticle[] = [
 
 Emergency tyre fitting is a mobile service where a certified fitter drives to your exact location — roadside, driveway, car park, or motorway hard shoulder — and replaces your damaged tyre on the spot. In Glasgow, Tyre Rescue provides this service 24 hours a day, 7 days a week, 365 days a year.
 
-**The short answer:** Call 0141 266 0690, tell us where you are, and a fitter reaches you in approximately ${SEO_RESPONSE_TIME_LABEL} with the right tyre for your vehicle.
+**The short answer:** Call 01932 509613, tell us where you are, and a fitter reaches you in approximately ${SEO_RESPONSE_TIME_LABEL} with the right tyre for your vehicle.
 
 ## How Much Does Emergency Tyre Fitting Cost in Glasgow?
 
@@ -91,7 +91,7 @@ If you have a flat tyre on a road or motorway:
 2. **Hazard lights on** — make yourself visible immediately
 3. **Exit carefully** — leave the vehicle from the side furthest from traffic
 4. **Stand behind the barrier** on motorways, or well away from the carriageway in town
-5. **Call us** on 0141 266 0690 — stay on the line and we dispatch a fitter while you talk
+5. **Call us** on 01932 509613 — stay on the line and we dispatch a fitter while you talk
 6. **Do not attempt** to change the tyre yourself on a live road or motorway
 
 ## When Should You Call for Emergency Tyre Fitting?
@@ -132,7 +132,7 @@ If we can repair the puncture instead of replacing the tyre, you pay £25 for th
     slug: 'what-to-do-flat-tyre-motorway',
     title: 'What to Do If You Get a Flat Tyre on the Motorway',
     description:
-      'Flat tyre on the M8 or M74? Call 0141 266 0690. Step-by-step safety guide for motorway tyre blowouts in Scotland, plus how to get emergency tyre fitting fast.',
+      'Flat tyre on the M8 or M74? Call 01932 509613. Step-by-step safety guide for motorway tyre blowouts in Scotland, plus how to get emergency tyre fitting fast.',
     category: 'safety',
     publishDate: '2026-03-20',
     lastModified: '2026-03-20',
@@ -152,7 +152,7 @@ If we can repair the puncture instead of replacing the tyre, you pay £25 for th
 
 A flat tyre on the motorway is frightening but manageable. Follow these steps in order and you'll be safe.
 
-**Immediate answer:** Do NOT brake hard. Grip the steering wheel firmly, ease off the accelerator, signal left, and coast to the hard shoulder or emergency refuge area. Then call 0141 266 0690 for emergency tyre fitting.
+**Immediate answer:** Do NOT brake hard. Grip the steering wheel firmly, ease off the accelerator, signal left, and coast to the hard shoulder or emergency refuge area. Then call 01932 509613 for emergency tyre fitting.
 
 ## Step-by-Step: Flat Tyre on a Scottish Motorway
 
@@ -180,7 +180,7 @@ A flat tyre on the motorway is frightening but manageable. Follow these steps in
 
 ### Step 4: Call for Emergency Tyre Fitting
 
-Call Tyre Rescue on **0141 266 0690**. We need:
+Call Tyre Rescue on **01932 509613**. We need:
 
 1. Your exact location (motorway name + direction + nearest junction or marker post)
 2. Your vehicle make, model, and registration
@@ -239,7 +239,7 @@ Our average response on Glasgow motorways is ${SEO_RESPONSE_TIME_LABEL}. We'll g
     slug: 'mobile-tyre-fitting-vs-garage',
     title: 'Mobile Tyre Fitting vs Going to a Garage: Which Is Better?',
     description:
-      'Comparing mobile tyre fitting to garage visits. Cost, convenience, speed, and quality compared for Glasgow drivers. Call 0141 266 0690 for mobile fitting.',
+      'Comparing mobile tyre fitting to garage visits. Cost, convenience, speed, and quality compared for Glasgow drivers. Call 01932 509613 for mobile fitting.',
     category: 'fitting',
     publishDate: '2026-03-20',
     lastModified: '2026-03-20',
@@ -470,7 +470,7 @@ Replace soon if:
 Monthly and before any journey over 100 miles. It takes 5 minutes.
 
 ### Where can I get my tyres checked in Glasgow?
-Tyre Rescue offers free tyre condition assessments with any mobile fitting appointment. Call 0141 266 0690 to book.
+Tyre Rescue offers free tyre condition assessments with any mobile fitting appointment. Call 01932 509613 to book.
 
 ### Do I need winter tyres in Glasgow?
 For city driving, all-season tyres are usually sufficient. If you regularly drive to the Highlands or rural areas in winter, dedicated winter tyres provide significantly better grip below 7°C.
@@ -502,7 +502,7 @@ Look on the tyre sidewall — you'll see markings like **205/55R16 91V**. This t
 
 Your tyres are the only part of your vehicle touching the road. When they're worn, everything suffers — braking, cornering, fuel economy, and safety. Here are the signs you need new tyres.
 
-**Quick answer:** If your tread is at or below 3mm, you have sidewall damage, or your tyres are over 5 years old, it's time for replacements. Call 0141 266 0690 for mobile tyre fitting in Glasgow.
+**Quick answer:** If your tread is at or below 3mm, you have sidewall damage, or your tyres are over 5 years old, it's time for replacements. Call 01932 509613 for mobile tyre fitting in Glasgow.
 
 ## 1. Low Tread Depth
 
@@ -569,7 +569,7 @@ First check that all four tyres are at the correct pressure. If the pull persist
 
 If you've spotted any of these signs, don't wait. Driving on damaged or worn tyres in Scotland's wet conditions is dangerous and potentially illegal.
 
-**For Glasgow and Edinburgh:** Call Tyre Rescue on 0141 266 0690. We'll come to your location, assess all four tyres, and replace whatever's needed. Mobile fitting from £20 per tyre + the tyre price (varies by size and brand), available 24/7.
+**For Glasgow and Edinburgh:** Call Tyre Rescue on 01932 509613. We'll come to your location, assess all four tyres, and replace whatever's needed. Mobile fitting from £20 per tyre + the tyre price (varies by size and brand), available 24/7.
 
 ## Frequently Asked Questions
 
@@ -762,7 +762,7 @@ Black Circles is an online tyre marketplace — you buy the tyre at a competitiv
 
 With Tyre Rescue, booking takes under 2 minutes:
 
-1. **Visit tyrerescue.uk/book** or call 0141 266 0690
+1. **Visit tyrerescue.uk/book** or call 01932 509613
 2. **Enter your tyre size** (found on tyre sidewall, e.g. 205/55 R16)
 3. **Choose your tyre** from budget, mid-range, or premium options
 4. **Pick a time** or select emergency callout for immediate service
@@ -790,7 +790,7 @@ Yes, if the puncture is in the repairable area of the tyre (the central tread). 
 
 For mobile tyre fitting in Scotland, the choice depends on your priorities. If you need 24/7 emergency service, fast response times, and the convenience of a mobile-first provider, Tyre Rescue is the standout option. For planned, in-store fitting during business hours, national chains like Kwik Fit or Halfords offer a familiar experience.
 
-**Need a tyre fitted now?** Call Tyre Rescue on **0141 266 0690** or book online at **tyrerescue.uk/book**. We're available 24/7 and cover all of Scotland — ${SEO_RESPONSE_TIME_MINUTES}-minute response times in the Central Belt, ${SEO_RESPONSE_TIME_LABEL} to Aberdeen and Inverness.`,
+**Need a tyre fitted now?** Call Tyre Rescue on **01932 509613** or book online at **tyrerescue.uk/book**. We're available 24/7 and cover all of Scotland — ${SEO_RESPONSE_TIME_MINUTES}-minute response times in the Central Belt, ${SEO_RESPONSE_TIME_LABEL} to Aberdeen and Inverness.`,
   },
   {
     slug: 'tyre-fitting-costs-scotland-pricing-guide',
@@ -965,13 +965,13 @@ Run-flat tyres typically add £5–£10 to the fitting cost per tyre because the
 
 ## Get a Quote Now
 
-For an instant, transparent quote on mobile tyre fitting in Scotland, visit **tyrerescue.uk/book** or call **0141 266 0690**. No hidden fees, no surprises — just honest pricing and 24/7 availability.`,
+For an instant, transparent quote on mobile tyre fitting in Scotland, visit **tyrerescue.uk/book** or call **01932 509613**. No hidden fees, no surprises — just honest pricing and 24/7 availability.`,
   },
   {
     slug: 'mobile-tyre-fitting-edinburgh-guide',
     title: 'Mobile Tyre Fitting in Edinburgh: Prices, Response Times & How to Book',
     description:
-      'Need a tyre fitter in Edinburgh? Complete guide to mobile tyre fitting in Edinburgh — costs, response times, areas covered, and how to get a fitter to you fast. Call 0141 266 0690.',
+      'Need a tyre fitter in Edinburgh? Complete guide to mobile tyre fitting in Edinburgh — costs, response times, areas covered, and how to get a fitter to you fast. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-07-10',
     lastModified: '2026-08-15',
@@ -993,7 +993,7 @@ For an instant, transparent quote on mobile tyre fitting in Scotland, visit **ty
 
 Edinburgh is Scotland's capital and our second-busiest service city. Whether you have a flat tyre on Princes Street, a slow puncture in Leith, or a blowout on the A720 City Bypass, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
 
-**Quick answer:** Call 0141 266 0690. A fitter reaches most Edinburgh locations within ${SEO_RESPONSE_TIME_LABEL}. Fitting starts from £20 per tyre (plus tyre cost) and there's no hidden M8 surcharge.
+**Quick answer:** Call 01932 509613. A fitter reaches most Edinburgh locations within ${SEO_RESPONSE_TIME_LABEL}. Fitting starts from £20 per tyre (plus tyre cost) and there's no hidden M8 surcharge.
 
 ## Response Times Across Edinburgh
 
@@ -1068,7 +1068,7 @@ Edinburgh's road surfaces create specific tyre problems:
 
 ## How to Book
 
-**Emergency:** Call 0141 266 0690 — available 24/7. Give us your location, vehicle details, and which tyre is affected.
+**Emergency:** Call 01932 509613 — available 24/7. Give us your location, vehicle details, and which tyre is affected.
 
 **Scheduled fitting:** Book online at tyrerescue.uk/book. Choose your tyre size, pick a time slot, and we confirm a 2-hour arrival window.
 
@@ -1088,13 +1088,13 @@ We cover the airport approach roads and the rental car areas. If you're at the t
 
 ## Book Mobile Tyre Fitting in Edinburgh
 
-Visit our [Edinburgh mobile tyre fitting](/mobile-tyre-fitting/edinburgh) page for EH postcode coverage and local booking, or call **0141 266 0690** for immediate emergency service.`,
+Visit our [Edinburgh mobile tyre fitting](/mobile-tyre-fitting/edinburgh) page for EH postcode coverage and local booking, or call **01932 509613** for immediate emergency service.`,
   },
   {
     slug: 'puncture-repair-glasgow-when-replace',
     title: 'Puncture Repair in Glasgow: When Can It Be Fixed & When Do You Need a New Tyre?',
     description:
-      'Got a puncture in Glasgow? Find out whether your tyre can be repaired or needs replacing. Expert mobile puncture repair from £25. Call 0141 266 0690 — 24/7.',
+      'Got a puncture in Glasgow? Find out whether your tyre can be repaired or needs replacing. Expert mobile puncture repair from £25. Call 01932 509613 — 24/7.',
     category: 'emergency',
     publishDate: '2026-07-15',
     lastModified: '2026-08-15',
@@ -1183,7 +1183,7 @@ If the puncture is not repairable, we'll tell you before doing any work and quot
 1. **Don't panic** — if the tyre deflates gradually, you have time to pull over safely
 2. **Hazard lights on** and move to a safe location
 3. **Do not drive on a flat** — even a short distance can destroy the tyre and damage the wheel
-4. **Call 0141 266 0690** — we'll dispatch a fitter to your location
+4. **Call 01932 509613** — we'll dispatch a fitter to your location
 5. **Wait safely** away from traffic while we're on the way
 
 ## Frequently Asked Questions
@@ -1204,7 +1204,7 @@ A TPMS warning can mean a slow puncture, low pressure, or a faulty sensor. Our f
     slug: 'mobile-tyre-fitting-hamilton-lanarkshire',
     title: 'Mobile Tyre Fitting in Hamilton & Lanarkshire: Fast Local Service',
     description:
-      `Mobile tyre fitting in Hamilton, Motherwell, East Kilbride and all ML postcodes. Emergency and scheduled service — ${SEO_RESPONSE_TIME_MINUTES} min average response. Call 0141 266 0690.`,
+      `Mobile tyre fitting in Hamilton, Motherwell, East Kilbride and all ML postcodes. Emergency and scheduled service — ${SEO_RESPONSE_TIME_MINUTES} min average response. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2026-08-01',
     lastModified: '2026-08-15',
@@ -1226,7 +1226,7 @@ A TPMS warning can mean a slow puncture, low pressure, or a faulty sensor. Our f
 
 Lanarkshire is one of our busiest service areas outside Glasgow. With easy M74 and M8 access from our Parkhead depot, we cover Hamilton, Motherwell, East Kilbride, Wishaw, Bellshill, and all surrounding ML and G74 postcodes.
 
-**Quick answer:** Call 0141 266 0690. Most Lanarkshire locations are reached within ${SEO_RESPONSE_TIME_LABEL}. Prices are the same as Glasgow — no distance surcharge.
+**Quick answer:** Call 01932 509613. Most Lanarkshire locations are reached within ${SEO_RESPONSE_TIME_LABEL}. Prices are the same as Glasgow — no distance surcharge.
 
 ## Areas Covered in Lanarkshire
 
@@ -1300,7 +1300,7 @@ Yes. We carry van tyres for Transit, Sprinter, Vivaro, Transporter, and other co
     slug: 'mobile-tyre-fitting-livingston-west-lothian',
     title: 'Mobile Tyre Fitting in Livingston & West Lothian: Same-Day Service',
     description:
-      `Mobile tyre fitting in Livingston, Bathgate, Broxburn and all EH54 postcodes. ${SEO_RESPONSE_TIME_MINUTES} min average response. Emergency and scheduled. Call 0141 266 0690.`,
+      `Mobile tyre fitting in Livingston, Bathgate, Broxburn and all EH54 postcodes. ${SEO_RESPONSE_TIME_MINUTES} min average response. Emergency and scheduled. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2026-08-05',
     lastModified: '2026-08-15',
@@ -1322,7 +1322,7 @@ Yes. We carry van tyres for Transit, Sprinter, Vivaro, Transporter, and other co
 
 Livingston sits midway along the M8 between Glasgow and Edinburgh, making it one of the easiest Tyre Rescue dispatch points in central Scotland. Our typical response target in Livingston is ${SEO_RESPONSE_TIME_LABEL}. Our Glasgow and Edinburgh operations also cover West Lothian.
 
-**Quick answer:** Call 0141 266 0690. We cover all of Livingston and West Lothian with no distance surcharge.
+**Quick answer:** Call 01932 509613. We cover all of Livingston and West Lothian with no distance surcharge.
 
 ## Areas Covered in West Lothian
 
@@ -1370,7 +1370,7 @@ No additional charge for West Lothian — same pricing as Glasgow.
 
 ## How to Book
 
-**Emergency:** Call 0141 266 0690 — 24/7. Tell us your location (street address or nearest junction), vehicle details, and which tyre is flat.
+**Emergency:** Call 01932 509613 — 24/7. Tell us your location (street address or nearest junction), vehicle details, and which tyre is flat.
 
 **Scheduled:** Book at tyrerescue.uk/book. Choose your tyre size, time, and we confirm a 2-hour arrival window.
 
@@ -1389,7 +1389,7 @@ We dispatch whichever fitter is closer and available. During busy periods, West 
     slug: 'mobile-tyre-fitting-aberdeen-guide',
     title: 'Mobile Tyre Fitting in Aberdeen: Emergency & Scheduled Service',
     description:
-      'Need a tyre fitter in Aberdeen? Complete guide to mobile tyre fitting in Aberdeen — costs, response times, AB postcode coverage and how to get a fitter to you fast. Call 0141 266 0690.',
+      'Need a tyre fitter in Aberdeen? Complete guide to mobile tyre fitting in Aberdeen — costs, response times, AB postcode coverage and how to get a fitter to you fast. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -1413,7 +1413,7 @@ We dispatch whichever fitter is closer and available. During busy periods, West 
 
 Aberdeen is Scotland's third-largest city and one of our major service hubs in the north-east. Whether you have a flat tyre on the A90, a slow puncture in Westhill, or a blowout on the A96 out of the city, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
 
-**Quick answer:** Call 0141 266 0690. A fitter reaches most Aberdeen city centre locations within ${SEO_RESPONSE_TIME_LABEL}. Fitting starts from £20 per tyre (plus tyre cost) with no Aberdeen surcharge.
+**Quick answer:** Call 01932 509613. A fitter reaches most Aberdeen city centre locations within ${SEO_RESPONSE_TIME_LABEL}. Fitting starts from £20 per tyre (plus tyre cost) with no Aberdeen surcharge.
 
 ## Response Times Across Aberdeen
 
@@ -1489,7 +1489,7 @@ Aberdeen's road conditions create specific tyre problems:
 
 ## How to Book in Aberdeen
 
-**Emergency:** Call 0141 266 0690 — available 24/7. Give us your location (street, industrial estate, or nearest A road junction), vehicle details, and which tyre is affected.
+**Emergency:** Call 01932 509613 — available 24/7. Give us your location (street, industrial estate, or nearest A road junction), vehicle details, and which tyre is affected.
 
 **Scheduled fitting:** Book online at tyrerescue.uk/book. Choose your tyre size, pick a time slot, and we confirm a 2-hour arrival window. Advance booking recommended for Aberdeen to ensure stock is on the van.
 
@@ -1508,17 +1508,17 @@ Yes. Aberdeen has a high proportion of BMW and Land Rover vehicles (oil industry
 We cover landside addresses at or near the harbour. If you're on a vessel or offshore installation, you'll need to arrange transportation to a land address first.
 
 ### What if I'm on the AWPR with a flat tyre?
-Pull onto the hard shoulder or the next emergency refuge and call 0141 266 0690. The AWPR is one of our most frequent emergency call-out routes. Give us the nearest junction number or mile marker.
+Pull onto the hard shoulder or the next emergency refuge and call 01932 509613. The AWPR is one of our most frequent emergency call-out routes. Give us the nearest junction number or mile marker.
 
 ## Book Mobile Tyre Fitting in Aberdeen
 
-Ready to book? Visit our [Aberdeen mobile tyre fitting](/mobile-tyre-fitting/aberdeen) page for local pricing, area coverage and same-day booking, or call **0141 266 0690** for immediate emergency service.`,
+Ready to book? Visit our [Aberdeen mobile tyre fitting](/mobile-tyre-fitting/aberdeen) page for local pricing, area coverage and same-day booking, or call **01932 509613** for immediate emergency service.`,
   },
   {
     slug: 'mobile-tyre-fitting-inverness-highlands',
     title: 'Mobile Tyre Fitting in Inverness & the Highlands: What to Expect',
     description:
-      'Mobile tyre fitting in Inverness, the Scottish Highlands and beyond. Response times, IV postcode coverage, Highland-specific advice and how to book. Call 0141 266 0690.',
+      'Mobile tyre fitting in Inverness, the Scottish Highlands and beyond. Response times, IV postcode coverage, Highland-specific advice and how to book. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -1542,7 +1542,7 @@ Ready to book? Visit our [Aberdeen mobile tyre fitting](/mobile-tyre-fitting/abe
 
 Inverness is the capital of the Highlands and our northernmost major service hub. From the city itself to the Great Glen, the Black Isle, and the shores of Loch Ness, Tyre Rescue covers the Highlands with professional mobile tyre fitting — available 24 hours a day.
 
-**Quick answer:** Call 0141 266 0690. Inverness city centre locations typically reached within ${SEO_RESPONSE_TIME_LABEL}. For remote Highland locations, advance booking is recommended. No extra charge for IV postcodes.
+**Quick answer:** Call 01932 509613. Inverness city centre locations typically reached within ${SEO_RESPONSE_TIME_LABEL}. For remote Highland locations, advance booking is recommended. No extra charge for IV postcodes.
 
 ## Response Times Across Inverness and the Highlands
 
@@ -1609,7 +1609,7 @@ Driving in the Highlands presents unique tyre challenges:
 **NC500 (North Coast 500):** This popular tourist route passes through some of the most remote road surfaces in the UK. Visitors in rental cars and campervans frequently experience tyre problems on the route. If you're driving the NC500, we recommend:
 - Checking all four tyres before setting off
 - Carrying a can of tyre sealant as a temporary backup in the most remote sections
-- Having our number saved: 0141 266 0690
+- Having our number saved: 01932 509613
 
 **Red deer and livestock:** Highland roads see regular deer and sheep collisions, especially at dawn and dusk. Post-collision tyre and wheel inspections are advisable.
 
@@ -1621,21 +1621,21 @@ The North Coast 500 is spectacular but remote. Some sections of the route are 30
 
 1. **Check all four tyres** — tread depth minimum 3mm recommended for Highland driving
 2. **Check spare wheel** — some modern cars don't have one; check for run-flat tyres or inflator kit
-3. **Save our number:** 0141 266 0690 — available 24/7 for NC500 emergencies
+3. **Save our number:** 01932 509613 — available 24/7 for NC500 emergencies
 4. **Consider your route** — some of the most remote sections (Durness to Thurso) have very limited mobile signal
 
 We have dispatched fitters to NC500 emergencies on the A838 near Durness, the A894 in Assynt, and the A835 through Ullapool. Call us — we'll do our best to get to you wherever you are.
 
 ## How to Book in Inverness
 
-**Emergency:** Call 0141 266 0690 — 24/7. Tell us your exact location (postcode, road name, or nearest landmark), vehicle details, and which tyre is affected. For remote Highland locations, a GPS pin is very helpful.
+**Emergency:** Call 01932 509613 — 24/7. Tell us your exact location (postcode, road name, or nearest landmark), vehicle details, and which tyre is affected. For remote Highland locations, a GPS pin is very helpful.
 
 **Scheduled fitting:** Book at tyrerescue.uk/book. For Inverness and nearby areas, same-day booking is often possible. For locations beyond 30 miles from Inverness, please book at least 24 hours in advance to ensure stock availability.
 
 ## Frequently Asked Questions
 
 ### How do I get a tyre fitted if I'm on a remote Highland road?
-Call 0141 266 0690 immediately. Pull safely off the road, turn on hazard lights, and tell us your exact location as precisely as possible — postcode, road number, nearest village, or what3words address. We'll dispatch the nearest available fitter and give you a realistic ETA.
+Call 01932 509613 immediately. Pull safely off the road, turn on hazard lights, and tell us your exact location as precisely as possible — postcode, road number, nearest village, or what3words address. We'll dispatch the nearest available fitter and give you a realistic ETA.
 
 ### Do you cover Aviemore and the Cairngorm National Park?
 Yes — Aviemore, Kingussie, Newtonmore, and the Cairngorm ski resort area are within our coverage. Response times from Inverness are typically ${SEO_RESPONSE_TIME_LABEL}.
@@ -1644,20 +1644,20 @@ Yes — Aviemore, Kingussie, Newtonmore, and the Cairngorm ski resort area are w
 Yes. We stock winter tyres for common sizes. Winter tyre fitting appointments are recommended for September–October before winter conditions arrive.
 
 ### What if my car breaks down on the A82 through Glencoe?
-The A82 is one of our most scenic and most hazardous routes. Pull off the road as far as possible, turn on hazard lights, and call 0141 266 0690. The A82 has limited stopping places in some sections — stay with your vehicle and await assistance.
+The A82 is one of our most scenic and most hazardous routes. Pull off the road as far as possible, turn on hazard lights, and call 01932 509613. The A82 has limited stopping places in some sections — stay with your vehicle and await assistance.
 
 ### Do you cover the Black Isle and Cromarty?
 Yes — Muir of Ord, Fortrose, Rosemarkie, Cromarty, and the Cromarty ferry crossing area are in our coverage. Response time is approximately ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Book Mobile Tyre Fitting in Inverness
 
-Visit our [Inverness mobile tyre fitting](/mobile-tyre-fitting/inverness) page for local response times, Highland coverage details and advance booking, or call **0141 266 0690** for immediate emergency assistance.`,
+Visit our [Inverness mobile tyre fitting](/mobile-tyre-fitting/inverness) page for local response times, Highland coverage details and advance booking, or call **01932 509613** for immediate emergency assistance.`,
   },
   {
     slug: 'mobile-tyre-fitting-dundee-guide',
     title: 'Mobile Tyre Fitting in Dundee: Emergency & Scheduled Service',
     description:
-      'Mobile tyre fitting in Dundee and Angus. Fast response across all DD postcodes — emergency and scheduled. Call 0141 266 0690 for Dundee tyre fitting 24/7.',
+      'Mobile tyre fitting in Dundee and Angus. Fast response across all DD postcodes — emergency and scheduled. Call 01932 509613 for Dundee tyre fitting 24/7.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -1680,7 +1680,7 @@ Visit our [Inverness mobile tyre fitting](/mobile-tyre-fitting/inverness) page f
 
 Dundee is Scotland's fourth-largest city and a key centre for our east Scotland operations. From the Waterfront and city centre to Broughty Ferry, Monifieth, and the Angus commuter belt, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
 
-**Quick answer:** Call 0141 266 0690. Most Dundee city locations reached within ${SEO_RESPONSE_TIME_LABEL}. Fitting from £20 per tyre plus tyre cost, no DD postcode surcharge.
+**Quick answer:** Call 01932 509613. Most Dundee city locations reached within ${SEO_RESPONSE_TIME_LABEL}. Fitting from £20 per tyre plus tyre cost, no DD postcode surcharge.
 
 ## Response Times Across Dundee and Angus
 
@@ -1733,7 +1733,7 @@ No surcharge for Dundee or Angus postcodes.
 
 ## How to Book in Dundee
 
-**Emergency:** Call 0141 266 0690 — 24/7. Tell us your location, vehicle registration, and which tyre is flat or damaged.
+**Emergency:** Call 01932 509613 — 24/7. Tell us your location, vehicle registration, and which tyre is flat or damaged.
 
 **Scheduled:** Book at tyrerescue.uk/book. Same-day slots often available for Dundee city locations.
 
@@ -1756,13 +1756,13 @@ Yes — the Waterfront, Slessor Gardens and the V&A car parks are easily accessi
 
 ## Book Mobile Tyre Fitting in Dundee
 
-Visit our [Dundee mobile tyre fitting](/mobile-tyre-fitting/dundee) page for local pricing, DD postcode coverage and same-day booking, or call **0141 266 0690** for immediate help.`,
+Visit our [Dundee mobile tyre fitting](/mobile-tyre-fitting/dundee) page for local pricing, DD postcode coverage and same-day booking, or call **01932 509613** for immediate help.`,
   },
   {
     slug: 'mobile-tyre-fitting-ayr-ayrshire',
     title: 'Mobile Tyre Fitting in Ayr, Kilmarnock & Ayrshire: Fast Local Service',
     description:
-      'Mobile tyre fitting across Ayrshire — Ayr, Kilmarnock, Irvine, Troon and all KA postcodes. Emergency and scheduled service, 24/7. Call 0141 266 0690.',
+      'Mobile tyre fitting across Ayrshire — Ayr, Kilmarnock, Irvine, Troon and all KA postcodes. Emergency and scheduled service, 24/7. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -1786,7 +1786,7 @@ Visit our [Dundee mobile tyre fitting](/mobile-tyre-fitting/dundee) page for loc
 
 Ayrshire is one of our busiest service areas south of Glasgow. With quick M77 access from our Parkhead depot, we cover Kilmarnock, Ayr, Irvine, Troon, Prestwick and all KA postcodes — typically within ${SEO_RESPONSE_TIME_LABEL}.
 
-**Quick answer:** Call 0141 266 0690. Most Ayrshire locations are reached within ${SEO_RESPONSE_TIME_LABEL}. Prices are the same as Glasgow — no distance surcharge.
+**Quick answer:** Call 01932 509613. Most Ayrshire locations are reached within ${SEO_RESPONSE_TIME_LABEL}. Prices are the same as Glasgow — no distance surcharge.
 
 ## Response Times Across Ayrshire
 
@@ -1863,7 +1863,7 @@ Yes — Girvan (KA26) is in our coverage area, with a typical response of ${SEO_
 Yes — race day callouts at Ayr are among our regular Ayrshire jobs. The racecourse car parks are large and flat — ideal for mobile tyre fitting.
 
 ### Do you cover the ferry port at Ardrossan?
-Yes — Ardrossan Harbour and the surrounding KA22 postcode are covered. If you have a flat tyre before or after the Arran ferry, call us at 0141 266 0690.
+Yes — Ardrossan Harbour and the surrounding KA22 postcode are covered. If you have a flat tyre before or after the Arran ferry, call us at 01932 509613.
 
 ### What about Largs and the Clyde Coast?
 Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats are in our coverage. Our typical response target is ${SEO_RESPONSE_TIME_LABEL}.`,
@@ -1872,7 +1872,7 @@ Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats
     slug: 'mobile-tyre-fitting-perth-perthshire',
     title: 'Mobile Tyre Fitting in Perth & Perthshire: Local & Rural Coverage',
     description:
-      'Mobile tyre fitting in Perth, Pitlochry, Crieff and across Perthshire. Emergency and scheduled service for PH postcodes. Call 0141 266 0690, 24/7.',
+      'Mobile tyre fitting in Perth, Pitlochry, Crieff and across Perthshire. Emergency and scheduled service for PH postcodes. Call 01932 509613, 24/7.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -1895,7 +1895,7 @@ Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats
 
 Perth is the gateway to the Scottish Highlands, and Tyre Rescue serves the city and the wide county of Perthshire — from the M90 to Pitlochry, from Crieff to the outskirts of the Cairngorms. Whether you're on the A9 northbound, exploring Loch Lomond and The Trossachs, or driving through Strathtay, our mobile fitters reach you with professional tyres and equipment.
 
-**Quick answer:** Call 0141 266 0690. Perth city centre typically reached within ${SEO_RESPONSE_TIME_LABEL}. Pitlochry and mid-Perthshire within ${SEO_RESPONSE_TIME_LABEL}.
+**Quick answer:** Call 01932 509613. Perth city centre typically reached within ${SEO_RESPONSE_TIME_LABEL}. Pitlochry and mid-Perthshire within ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Response Times Across Perthshire
 
@@ -1964,7 +1964,7 @@ Perthshire is home to Gleneagles, one of the world's finest golf and resort dest
 
 ## How to Book in Perth
 
-**Emergency:** Call 0141 266 0690 — 24/7. Tell us your location, vehicle, and which tyre needs attention.
+**Emergency:** Call 01932 509613 — 24/7. Tell us your location, vehicle, and which tyre needs attention.
 
 **Scheduled:** Book at tyrerescue.uk/book. Same-day appointments often available for Perth city. For Highland Perthshire, 24 hours' advance notice is preferred.
 
@@ -1986,7 +1986,7 @@ The A93 Glenshee road is in our coverage area. In winter, please be aware that r
     slug: 'mobile-tyre-fitting-stirling-falkirk',
     title: 'Mobile Tyre Fitting in Stirling & Falkirk: Central Scotland Service',
     description:
-      `Mobile tyre fitting in Stirling, Falkirk, Alloa and across Central Scotland. Fast emergency response — ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690, available 24/7.`,
+      `Mobile tyre fitting in Stirling, Falkirk, Alloa and across Central Scotland. Fast emergency response — ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613, available 24/7.`,
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -2009,7 +2009,7 @@ The A93 Glenshee road is in our coverage area. In winter, please be aware that r
 
 Stirling and Falkirk sit at the heart of Scotland's motorway network — the M9, M80, M876 and A9 all meet near Stirling, making it one of our fastest dispatch points in Central Scotland. Whether you're on the M80 near Bonnybridge, driving through Stirling's historic centre, or stuck on the Kincardine Bridge road, we reach you quickly.
 
-**Quick answer:** Call 0141 266 0690. Our typical response target in Falkirk, Stirling city centre and Alloa is ${SEO_RESPONSE_TIME_LABEL}. No surcharge for FK or Central Scotland postcodes.
+**Quick answer:** Call 01932 509613. Our typical response target in Falkirk, Stirling city centre and Alloa is ${SEO_RESPONSE_TIME_LABEL}. No surcharge for FK or Central Scotland postcodes.
 
 ## Response Times Across Central Scotland
 
@@ -2089,7 +2089,7 @@ Dunblane (FK15) and its surrounding areas are covered, with a typical response t
   {
     slug: '24-hour-emergency-tyre-fitting-scotland',
     title: '24-Hour Emergency Tyre Fitting in Scotland: What to Expect & How to Book',
-    description: `Emergency tyre fitting available 24 hours a day across all of Scotland. Average ${SEO_RESPONSE_TIME_MINUTES}-minute response in Glasgow and Edinburgh. Call 0141 266 0690 anytime — day or night.`,
+    description: `Emergency tyre fitting available 24 hours a day across all of Scotland. Average ${SEO_RESPONSE_TIME_MINUTES}-minute response in Glasgow and Edinburgh. Call 01932 509613 anytime — day or night.`,
     category: 'emergency',
     publishDate: '2025-08-01',
     lastModified: '2025-08-01',
@@ -2101,7 +2101,7 @@ Dunblane (FK15) and its surrounding areas are covered, with a typical response t
 
 Getting a flat tyre is stressful enough. Getting one at 3am on the M8, or on a dark Highland road, adds another layer of anxiety. The good news: Tyre Rescue operates a genuine 24/7 emergency mobile tyre fitting service across all of Scotland — no after-hours surcharge, no answerphone, just a real fitter dispatched to your location.
 
-**Quick answer:** Call **0141 266 0690**. We answer 24 hours a day, 7 days a week, 365 days a year. Give your location, tyre size (or vehicle registration), and we'll dispatch a fitter immediately.
+**Quick answer:** Call **01932 509613**. We answer 24 hours a day, 7 days a week, 365 days a year. Give your location, tyre size (or vehicle registration), and we'll dispatch a fitter immediately.
 
 ## What Does "24-Hour Tyre Fitting" Actually Mean?
 
@@ -2132,7 +2132,7 @@ Our typical response is ${SEO_RESPONSE_TIME_LABEL}. We confirm your exact ETA ba
 
 ## What Happens When You Call
 
-1. **Call 0141 266 0690** — lines open 24/7/365
+1. **Call 01932 509613** — lines open 24/7/365
 2. Give your **exact location** — a postcode, Google Maps share, or a road number and direction
 3. Give your **vehicle registration** — we'll look up the tyre size (or you can read it from the sidewall: e.g. 205/55R16)
 4. We **confirm availability** and give you an accurate ETA
@@ -2182,7 +2182,7 @@ For very remote locations, we'll always tell you honestly whether we can reach y
 
 ## Tips for a Faster Callout
 
-1. **Share your location via Google Maps** — open Maps, tap your location dot, tap "Share," and send us the link via WhatsApp (0141 266 0690)
+1. **Share your location via Google Maps** — open Maps, tap your location dot, tap "Share," and send us the link via WhatsApp (01932 509613)
 2. **Note your tyre size** — it's on the sidewall of your current tyre and in your owner's manual
 3. **Stay with your vehicle** if it's safe to do so — but move well away from traffic if you're on a motorway or A-road
 4. **Switch on your hazard lights** — on motorways, do NOT use a warning triangle (Highway Code Rule 274); on ordinary roads only, place one 45 metres behind the car if safe to do so
@@ -2207,7 +2207,7 @@ Yes — we regularly attend indoor car parks. Height clearance is sometimes an i
 
 ## Book 24-Hour Emergency Tyre Fitting Now
 
-Call **0141 266 0690** — we answer 24 hours a day, every day of the year. For non-urgent bookings, you can also book online at [tyrerescue.uk/book](/book).
+Call **01932 509613** — we answer 24 hours a day, every day of the year. For non-urgent bookings, you can also book online at [tyrerescue.uk/book](/book).
 
 Covering all of Scotland — from Glasgow to Shetland.`,
   },
@@ -2289,7 +2289,7 @@ These brands consistently rank top in independent Scottish and UK winter tyre te
 - **Tyfoon Wintersport** — acceptable for Central Belt cities
 - **Barum Polaris 5** — entry-level winter option
 
-*Tyre Rescue stocks a wide range of winter tyres across budget, mid-range and premium brands. Call 0141 266 0690 for a quote on your specific size.*
+*Tyre Rescue stocks a wide range of winter tyres across budget, mid-range and premium brands. Call 01932 509613 for a quote on your specific size.*
 
 ## How Much Do Winter Tyres Cost in Scotland?
 
@@ -2340,7 +2340,7 @@ Technically, but not advisable. Winter tyres wear faster in warmer weather (abov
 
 Don't wait until the first snowfall. Book your winter tyre fitting now:
 
-- **Call:** 0141 266 0690 (24/7)
+- **Call:** 01932 509613 (24/7)
 - **Online:** [tyrerescue.uk/book](/book)
 
 We cover all of Scotland — [Glasgow](/mobile-tyre-fitting/glasgow), [Edinburgh](/mobile-tyre-fitting/edinburgh), [Aberdeen](/mobile-tyre-fitting/aberdeen), [Inverness](/mobile-tyre-fitting/inverness), [Dundee](/mobile-tyre-fitting/dundee), [Perth](/mobile-tyre-fitting/perth) and everywhere in between.`,
@@ -2348,7 +2348,7 @@ We cover all of Scotland — [Glasgow](/mobile-tyre-fitting/glasgow), [Edinburgh
   {
     slug: 'mobile-tyre-fitting-paisley-renfrewshire',
     title: 'Mobile Tyre Fitting in Paisley & Renfrewshire: Same-Day Service, PA Postcodes',
-    description: `Mobile tyre fitting in Paisley, Renfrew, Johnstone, Linwood and all Renfrewshire PA postcodes. Same-day fitting, 24/7 emergency callout. Typical response target: ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
+    description: `Mobile tyre fitting in Paisley, Renfrew, Johnstone, Linwood and all Renfrewshire PA postcodes. Same-day fitting, 24/7 emergency callout. Typical response target: ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2025-08-15',
     lastModified: '2025-08-15',
@@ -2360,7 +2360,7 @@ We cover all of Scotland — [Glasgow](/mobile-tyre-fitting/glasgow), [Edinburgh
 
 Paisley is one of our busiest service areas — just 7 miles from Glasgow, it's a fast dispatch from our base. We cover all of Renfrewshire including Paisley town centre, Renfrew, Johnstone, Linwood, Erskine, Bridge of Weir and Bishopton.
 
-**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day or scheduled fitting.
+**Call 01932 509613** for immediate emergency response, or [book online](/book) for same-day or scheduled fitting.
 
 ## Response Times in Renfrewshire
 
@@ -2441,7 +2441,7 @@ No. Paisley and Renfrewshire are within our standard callout area. The £49 call
 
 ## Book Mobile Tyre Fitting in Paisley
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Mobile tyre fitting in Glasgow](/mobile-tyre-fitting/glasgow) | [Greenock & Inverclyde](/mobile-tyre-fitting/greenock) | [All service areas](/service-areas)`,
@@ -2449,7 +2449,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'tyre-blowout-emergency-guide-scotland',
     title: 'Tyre Blowout: What to Do, How to Stay Safe & When to Call for Help',
-    description: `What to do if a tyre blows out on a Scottish road or motorway. Step-by-step safety guide plus how to get emergency mobile tyre fitting across Scotland in ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
+    description: `What to do if a tyre blows out on a Scottish road or motorway. Step-by-step safety guide plus how to get emergency mobile tyre fitting across Scotland in ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613.`,
     category: 'safety',
     publishDate: '2025-08-20',
     lastModified: '2025-08-20',
@@ -2484,7 +2484,7 @@ Put on your hazard lights immediately. Signal left and move to the hard shoulder
 On a motorway, exit via the left-side door (never the right — traffic side), climb the embankment or stand behind the barrier. On a standard road, move well away from traffic. **Stationary vehicles on hard shoulders are at high risk of being struck from behind.**
 
 ### 7. Call for help
-From a motorway: use an emergency SOS phone (every 1 mile) or call 999 if unsafe, then call Tyre Rescue on **0141 266 0690**. From a standard road, call Tyre Rescue directly.
+From a motorway: use an emergency SOS phone (every 1 mile) or call 999 if unsafe, then call Tyre Rescue on **01932 509613**. From a standard road, call Tyre Rescue directly.
 
 ## Blowout vs. Slow Puncture: How to Tell
 
@@ -2526,7 +2526,7 @@ Tyre Rescue can assess both the tyre and the rim at the roadside. In most cases,
 
 ## Emergency Tyre Fitting After a Blowout
 
-Call **0141 266 0690** — we operate 24/7 across all of Scotland:
+Call **01932 509613** — we operate 24/7 across all of Scotland:
 - Average ${SEO_RESPONSE_TIME_MINUTES}-minute response in Glasgow and Edinburgh
 - Average ${SEO_RESPONSE_TIME_LABEL} in Dundee, Perth, and Stirling
 - Average ${SEO_RESPONSE_TIME_LABEL} in Aberdeen and Inverness
@@ -2554,12 +2554,12 @@ Yes — check tyre pressures monthly (including the spare), inspect for cracks o
 
 [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Glasgow emergency](/emergency-tyre-fitting/glasgow/city-centre) | [Edinburgh emergency](/emergency-tyre-fitting/edinburgh/city-centre) | [Aberdeen emergency](/emergency-tyre-fitting/aberdeen/city-centre) | [All service areas](/service-areas)
 
-**Call now: 0141 266 0690 — 24 hours a day, 7 days a week.**`,
+**Call now: 01932 509613 — 24 hours a day, 7 days a week.**`,
   },
   {
     slug: 'mobile-tyre-fitting-east-kilbride',
     title: 'Mobile Tyre Fitting in East Kilbride: Fast Response, G74 & G75 Coverage',
-    description: `Mobile tyre fitting in East Kilbride, Nerston, Hairmyres and all G74/G75 postcodes. Glasgow-based operations — typical response target ${SEO_RESPONSE_TIME_LABEL}. 24/7 emergency callout. Call 0141 266 0690.`,
+    description: `Mobile tyre fitting in East Kilbride, Nerston, Hairmyres and all G74/G75 postcodes. Glasgow-based operations — typical response target ${SEO_RESPONSE_TIME_LABEL}. 24/7 emergency callout. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2025-08-25',
     lastModified: '2025-08-25',
@@ -2571,7 +2571,7 @@ Yes — check tyre pressures monthly (including the spare), inspect for cracks o
 
 East Kilbride is Scotland's largest new town with a population of around 75,000 — and one of our busiest service areas south of Glasgow. We cover the full G74 and G75 postcode area including the town centre, Nerston, Hairmyres, Westwood, Calderwood and St Leonards.
 
-**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day or scheduled fitting.
+**Call 01932 509613** for immediate emergency response, or [book online](/book) for same-day or scheduled fitting.
 
 ## Response Times in East Kilbride
 
@@ -2631,7 +2631,7 @@ If safe, pull off the A726 expressway at the nearest junction or layby. Call us 
 
 ## Book Mobile Tyre Fitting in East Kilbride
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Mobile tyre fitting in Glasgow](/mobile-tyre-fitting/glasgow) | [Hamilton & Lanarkshire](/mobile-tyre-fitting/hamilton) | [All service areas](/service-areas)`,
@@ -2639,7 +2639,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-greenock-inverclyde',
     title: 'Mobile Tyre Fitting in Greenock & Inverclyde: PA15–PA19 Coverage',
-    description: `Mobile tyre fitting in Greenock, Port Glasgow, Gourock, Inverkip and all Inverclyde PA15–PA19 postcodes. Fast dispatch, 24/7 emergency callout. Typical response target: ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
+    description: `Mobile tyre fitting in Greenock, Port Glasgow, Gourock, Inverkip and all Inverclyde PA15–PA19 postcodes. Fast dispatch, 24/7 emergency callout. Typical response target: ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2025-08-28',
     lastModified: '2025-08-28',
@@ -2651,7 +2651,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
 
 Tyre Rescue covers all of Inverclyde — Greenock, Port Glasgow, Gourock, Inverkip and Wemyss Bay. Our coverage routes include the A8/M8 and the A78 coastal road from Glasgow. Our typical response target in Greenock town centre is ${SEO_RESPONSE_TIME_LABEL}.
 
-**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
+**Call 01932 509613** for immediate emergency response, or [book online](/book) for same-day fitting.
 
 ## Response Times in Inverclyde
 
@@ -2708,7 +2708,7 @@ No surcharge. The standard £49 callout fee applies throughout Inverclyde.
 
 ## Book Mobile Tyre Fitting in Greenock
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Paisley & Renfrewshire](/mobile-tyre-fitting/greenock) | [Glasgow](/mobile-tyre-fitting/glasgow) | [All service areas](/service-areas)`,
@@ -2716,7 +2716,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-kirkcaldy-fife',
     title: 'Mobile Tyre Fitting in Kirkcaldy & Fife: KY Postcodes, Fast Response',
-    description: `Mobile tyre fitting in Kirkcaldy, Glenrothes, Dunfermline, St Andrews and all Fife KY postcodes. Fast dispatch — typically ${SEO_RESPONSE_TIME_LABEL}. 24/7 emergency callout. Call 0141 266 0690.`,
+    description: `Mobile tyre fitting in Kirkcaldy, Glenrothes, Dunfermline, St Andrews and all Fife KY postcodes. Fast dispatch — typically ${SEO_RESPONSE_TIME_LABEL}. 24/7 emergency callout. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -2728,7 +2728,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
 
 Tyre Rescue covers the whole of Fife — all KY postcodes from KY1 (Kirkcaldy) to KY16 (St Andrews). We dispatch from Glasgow via the Kincardine Bridge or from Edinburgh via the Queensferry Crossing, making Fife one of our most flexible coverage zones.
 
-**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
+**Call 01932 509613** for immediate emergency response, or [book online](/book) for same-day fitting.
 
 ## Response Times Across Fife
 
@@ -2796,7 +2796,7 @@ Yes. Kinross is at the junction of the M90 and sits between Glasgow and Perth. R
 
 ## Book Mobile Tyre Fitting in Kirkcaldy & Fife
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Mobile tyre fitting in Dunfermline](/mobile-tyre-fitting/dunfermline) | [Edinburgh](/mobile-tyre-fitting/edinburgh) | [Dundee](/mobile-tyre-fitting/dundee) | [All service areas](/service-areas)`,
@@ -2804,7 +2804,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-dumfries-galloway',
     title: 'Mobile Tyre Fitting in Dumfries & Galloway: DG Postcodes, SW Scotland',
-    description: 'Mobile tyre fitting in Dumfries, Stranraer, Castle Douglas, Newton Stewart and all DG postcodes across Dumfries & Galloway. Advance booking recommended. Call 0141 266 0690.',
+    description: 'Mobile tyre fitting in Dumfries, Stranraer, Castle Douglas, Newton Stewart and all DG postcodes across Dumfries & Galloway. Advance booking recommended. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -2816,7 +2816,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
 
 Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG1 (Dumfries town) to DG16 (Gretna area). Our coverage follows the A74(M) from Glasgow, with a typical response target of ${SEO_RESPONSE_TIME_LABEL} in Dumfries town. For more remote areas of the region — Stranraer, Newton Stewart, Kirkudbright — advance booking is strongly recommended.
 
-**Call 0141 266 0690** for emergency response or [book online](/book) for scheduled fitting.
+**Call 01932 509613** for emergency response or [book online](/book) for scheduled fitting.
 
 ## Response Times Across Dumfries & Galloway
 
@@ -2855,7 +2855,7 @@ Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG
 
 The A74(M) / M74 is Scotland's main southbound motorway, running from Glasgow through Lockerbie to the English border at Gretna. It's one of Scotland's busiest freight routes and generates a significant number of tyre callouts, especially from HGVs and motorhomes.
 
-If you break down on the A74(M), use a motorway emergency phone or call 999 first if in immediate danger. Then call us on 0141 266 0690. Our typical response target in the Lockerbie area is ${SEO_RESPONSE_TIME_LABEL}.
+If you break down on the A74(M), use a motorway emergency phone or call 999 first if in immediate danger. Then call us on 01932 509613. Our typical response target in the Lockerbie area is ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Stranraer and the Cairnryan Ferry
 
@@ -2878,7 +2878,7 @@ For standard callouts to Dumfries and Annan, the £49 callout fee applies. For m
 
 ## Book Mobile Tyre Fitting in Dumfries & Galloway
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Ayrshire coverage](/mobile-tyre-fitting/ayr) | [All service areas](/service-areas)`,
@@ -2886,7 +2886,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-fort-william-highlands',
     title: 'Mobile Tyre Fitting in Fort William & Lochaber: PH33 & Highland Coverage',
-    description: 'Mobile tyre fitting in Fort William, Spean Bridge, Glencoe, Ballachulish and Lochaber. Fast response for Ben Nevis visitors, NC500 travellers and Highland residents. Call 0141 266 0690.',
+    description: 'Mobile tyre fitting in Fort William, Spean Bridge, Glencoe, Ballachulish and Lochaber. Fast response for Ben Nevis visitors, NC500 travellers and Highland residents. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -2900,7 +2900,7 @@ Fort William is the gateway to the Scottish Highlands — Ben Nevis, Glencoe, th
 
 Tyre Rescue covers Fort William and the full Lochaber area. Our typical response target in Fort William town centre is ${SEO_RESPONSE_TIME_LABEL}.
 
-**Call 0141 266 0690** or [book in advance](/book) — advance booking is recommended for this area.
+**Call 01932 509613** or [book in advance](/book) — advance booking is recommended for this area.
 
 ## Response Times in Lochaber
 
@@ -2958,7 +2958,7 @@ Yes — for the Fort William area and beyond, there is a distance supplement of 
 
 ## Book Mobile Tyre Fitting in Fort William
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book in advance](/book) for scheduled Highland fitting.
 
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
@@ -2966,7 +2966,7 @@ Or [book in advance](/book) for scheduled Highland fitting.
   {
     slug: 'mobile-tyre-fitting-east-lothian',
     title: 'Mobile Tyre Fitting in East Lothian: EH39–EH42 Postcodes, Fast Edinburgh Dispatch',
-    description: `Mobile tyre fitting in Haddington, North Berwick, Dunbar, Musselburgh and all East Lothian EH postcodes. Fast ${SEO_RESPONSE_TIME_MINUTES}-minute response from Edinburgh. 24/7 emergency callout. Call 0141 266 0690.`,
+    description: `Mobile tyre fitting in Haddington, North Berwick, Dunbar, Musselburgh and all East Lothian EH postcodes. Fast ${SEO_RESPONSE_TIME_MINUTES}-minute response from Edinburgh. 24/7 emergency callout. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -2978,7 +2978,7 @@ Or [book in advance](/book) for scheduled Highland fitting.
 
 East Lothian is Edinburgh's eastern commuter belt — a mix of affluent coastal towns, golf resorts, retail parks and busy main roads. Tyre Rescue covers all of East Lothian dispatching from Edinburgh, typically reaching Haddington in ${SEO_RESPONSE_TIME_LABEL} and North Berwick in ${SEO_RESPONSE_TIME_LABEL}.
 
-**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
+**Call 01932 509613** for immediate emergency response, or [book online](/book) for same-day fitting.
 
 ## Response Times in East Lothian
 
@@ -3038,7 +3038,7 @@ No. East Lothian is within our standard Edinburgh service area. The £49 callout
 
 ## Book Mobile Tyre Fitting in East Lothian
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Mobile tyre fitting in Edinburgh](/mobile-tyre-fitting/edinburgh) | [Fife coverage](/mobile-tyre-fitting/kirkcaldy) | [All service areas](/service-areas)`,
@@ -3046,7 +3046,7 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
   {
     slug: 'mobile-tyre-fitting-elgin-moray',
     title: 'Mobile Tyre Fitting in Elgin & Moray: IV30 and AB Postcode Coverage',
-    description: `Mobile tyre fitting in Elgin, Forres, Keith, Buckie and all Moray IV30-IV36 postcodes. Advance booking recommended. Emergency response ${SEO_RESPONSE_TIME_LABEL} from Aberdeen. Call 0141 266 0690.`,
+    description: `Mobile tyre fitting in Elgin, Forres, Keith, Buckie and all Moray IV30-IV36 postcodes. Advance booking recommended. Emergency response ${SEO_RESPONSE_TIME_LABEL} from Aberdeen. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2025-09-01',
     lastModified: '2025-09-01',
@@ -3060,7 +3060,7 @@ Elgin is the principal town of Moray — an area of outstanding natural beauty a
 
 Dispatch is from both our Aberdeen base via the A96 and our Inverness network via the A96 westbound. We send the nearest available fitter and confirm your exact ETA when you call.
 
-**Call 0141 266 0690** or [book in advance](/book) — advance booking is recommended for the Moray area.
+**Call 01932 509613** or [book in advance](/book) — advance booking is recommended for the Moray area.
 
 ## Response Times Across Moray
 
@@ -3116,7 +3116,7 @@ Yes. Keith sits between Aberdeen and Elgin and is accessible from both direction
 
 ## Book Mobile Tyre Fitting in Elgin & Moray
 
-Call **0141 266 0690** — 24 hours a day, every day.
+Call **01932 509613** — 24 hours a day, every day.
 Or [book in advance](/book) for scheduled Moray fitting.
 
 [Aberdeen coverage](/mobile-tyre-fitting/aberdeen) | [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
@@ -3188,7 +3188,7 @@ We work on cars, SUVs, vans, and 4x4s. If you're not sure we stock your tyre siz
 
 ## Emergency Callout in Motherwell
 
-If you have a flat or blowout right now, call **0141 266 0690** — available 24 hours a day. We'll confirm the callout fee upfront (from £49) before dispatch.
+If you have a flat or blowout right now, call **01932 509613** — available 24 hours a day. We'll confirm the callout fee upfront (from £49) before dispatch.
 
 For a slow puncture or minor damage, we can often repair the tyre from £25, saving you the cost of a full replacement.
 
@@ -3203,7 +3203,7 @@ For a slow puncture or minor damage, we can often repair the tyre from £25, sav
 
 ## Book a Tyre Fitting in North Lanarkshire
 
-For a scheduled appointment, [book online](/book) or call **0141 266 0690**. We'll confirm your tyre size, quote a price including tyre and fitting, and come to your home, workplace, or any safe location.
+For a scheduled appointment, [book online](/book) or call **01932 509613**. We'll confirm your tyre size, quote a price including tyre and fitting, and come to your home, workplace, or any safe location.
 
 [Hamilton & Lanarkshire](/mobile-tyre-fitting/hamilton) | [East Kilbride](/mobile-tyre-fitting/east-kilbride) | [Glasgow](/mobile-tyre-fitting/glasgow) | [All service areas](/service-areas)`,
   },
@@ -3280,7 +3280,7 @@ Times depend on traffic through the Forth crossing and on the M90.
 
 ## Emergency Tyre Fitting Dunfermline
 
-For immediate help, call **0141 266 0690** — available 24 hours a day. We'll confirm a callout fee from £49 before sending our fitter.
+For immediate help, call **01932 509613** — available 24 hours a day. We'll confirm a callout fee from £49 before sending our fitter.
 
 Slow puncture that hasn't fully deflated? We can often repair it from £25 if the damage is in the legal repair zone.
 
@@ -3355,7 +3355,7 @@ Traffic on the A737 and A78 affects response times.
 
 ## Emergency Callout in North Ayrshire
 
-For immediate help with a flat or blowout, call **0141 266 0690** — 24 hours a day. We confirm the callout fee (from £49) before dispatch and arrive with your tyre on board.
+For immediate help with a flat or blowout, call **01932 509613** — 24 hours a day. We confirm the callout fee (from £49) before dispatch and arrive with your tyre on board.
 
 Can't identify the exact fault? We'll check the tyre on arrival and advise whether a repair (from £25) or replacement is the right option.
 
@@ -3436,7 +3436,7 @@ We'll always give you an honest estimate when you call. Response times depend on
 
 ## Emergency Tyre Help on Skye
 
-If you have a flat on Skye right now, call **0141 266 0690**. We're available 24 hours a day. Given the distances involved, please call as soon as you notice a problem rather than waiting to see if the tyre deflates further.
+If you have a flat on Skye right now, call **01932 509613**. We're available 24 hours a day. Given the distances involved, please call as soon as you notice a problem rather than waiting to see if the tyre deflates further.
 
 We'll confirm the callout fee before dispatch and aim to reach you with a replacement tyre.
 
@@ -3530,7 +3530,7 @@ The A68 and A7 are generally clear roads, but winter conditions and agricultural
 
 ## Emergency Help in the Borders
 
-Call **0141 266 0690** any time — 24 hours a day. We serve the Borders from both our Glasgow and Edinburgh-area operations, whichever is closer to your location.
+Call **01932 509613** any time — 24 hours a day. We serve the Borders from both our Glasgow and Edinburgh-area operations, whichever is closer to your location.
 
 If you're broken down on a rural road with no reception, try to drive slowly to the nearest town or layby before calling. Many single-track roads in the Borders have no mobile coverage.
 
@@ -3617,7 +3617,7 @@ If you're heading to an Oban ferry and discover a problem, call immediately. We'
 
 ## Emergency Help in Argyll
 
-Call **0141 266 0690** — 24 hours a day. We cover Argyll from our Glasgow operations and can coordinate with our Highland team for northern Argyll areas.
+Call **01932 509613** — 24 hours a day. We cover Argyll from our Glasgow operations and can coordinate with our Highland team for northern Argyll areas.
 
 For slow leaks on long Argyll journeys, foam tyre sealant can buy you extra miles to reach a safer location — but always call us to arrange a proper repair or replacement.
 
@@ -3673,7 +3673,7 @@ The M80 is the main link between Glasgow and Stirling, passing through Cumbernau
 
 1. Move to the hard shoulder or emergency refuge area
 2. Exit the vehicle on the left side (away from traffic)
-3. Call **0141 266 0690** and give your motorway location reference
+3. Call **01932 509613** and give your motorway location reference
 4. We'll coordinate with the relevant motorway management
 
 **Never attempt to change a tyre on a live motorway carriageway.**
@@ -3688,7 +3688,7 @@ Cumbernauld's proximity to Glasgow makes it one of our faster response areas out
 
 ## Emergency Callout in Cumbernauld
 
-Flat tyre right now? Call **0141 266 0690** — 24 hours a day. We'll confirm the callout fee (from £49) and dispatch a fitter with your tyre size if we can confirm it from your registration.
+Flat tyre right now? Call **01932 509613** — 24 hours a day. We'll confirm the callout fee (from £49) and dispatch a fitter with your tyre size if we can confirm it from your registration.
 
 For a slow puncture that hasn't fully deflated, we may be able to repair it from £25 rather than replace the whole tyre.
 
@@ -3760,7 +3760,7 @@ The North Coast 500 route passes through Caithness along the A99 and A836. The c
 
 If you pick up a tyre fault on the NC500 in Caithness:
 - Pull off the road where safe — many stretches have no hard shoulder
-- Call **0141 266 0690** immediately and describe your location (nearest village or kilometre marker)
+- Call **01932 509613** immediately and describe your location (nearest village or kilometre marker)
 - We'll give you an honest ETA and advise on next steps
 
 ## The Orkney Ferry Connection
@@ -3778,7 +3778,7 @@ We're transparent about these times. For remote callouts, we recommend calling t
 
 ## Emergency Help in the Far North
 
-Call **0141 266 0690** — 24 hours a day. For Caithness callouts, we coordinate through our Highland operations to dispatch the nearest available fitter.
+Call **01932 509613** — 24 hours a day. For Caithness callouts, we coordinate through our Highland operations to dispatch the nearest available fitter.
 
 We always confirm the callout fee before dispatch. For very remote locations, a premium distance surcharge may apply — we'll always tell you before sending anyone.
 
@@ -3845,7 +3845,7 @@ Tyre Rescue responds to A90 callouts between the Dundee bypass and Stonehaven. I
 
 1. Slow down immediately — drive on the rim only as a last resort
 2. Use the nearest layby or slip road
-3. Call **0141 266 0690** with your location (nearest junction or signpost)
+3. Call **01932 509613** with your location (nearest junction or signpost)
 
 ## Offshore and Industrial Callouts
 
@@ -3862,7 +3862,7 @@ Traffic on the A90 and A92 affects all times.
 
 ## Emergency Callout in Angus
 
-Flat tyre in Angus right now? Call **0141 266 0690** — available 24 hours a day. We dispatch from both Dundee and Aberdeen to cover Angus, ensuring the nearest fitter reaches you.
+Flat tyre in Angus right now? Call **01932 509613** — available 24 hours a day. We dispatch from both Dundee and Aberdeen to cover Angus, ensuring the nearest fitter reaches you.
 
 Can the tyre be repaired? We check on arrival. A repair costs from £25 and is only done where the tyre meets legal safety standards.
 
@@ -3950,7 +3950,7 @@ We'll always give you an honest timeline when you call. Ferry schedules and weat
 
 ## Emergency Help in the Western Isles
 
-Call **0141 266 0690** — 24 hours a day. For island callouts, we'll assess the quickest route (whether that's dispatching via Stornoway airport or the Ullapool–Stornoway ferry) and give you a realistic timeline.
+Call **01932 509613** — 24 hours a day. For island callouts, we'll assess the quickest route (whether that's dispatching via Stornoway airport or the Ullapool–Stornoway ferry) and give you a realistic timeline.
 
 For drivers on Lewis or Harris who know a local tyre fitter, we recommend combining a local repair with our supply of the correct tyre size if stocking is limited on-island.
 
@@ -4037,7 +4037,7 @@ We will always give you an honest assessment when you call. For genuine breakdow
 
 ## Emergency Tyre Help in Shetland
 
-Call **0141 266 0690** — 24 hours a day. For Shetland callouts, we'll assess the fastest route to you (we maintain a local partner network for island emergencies) and give you a realistic timeline.
+Call **01932 509613** — 24 hours a day. For Shetland callouts, we'll assess the fastest route to you (we maintain a local partner network for island emergencies) and give you a realistic timeline.
 
 For drivers in Lerwick itself, response is typically fastest as we maintain a local stock presence in the capital.
 
@@ -4140,7 +4140,7 @@ The **C** designation indicates commercial rating — these are caravan-specific
 Many older caravans have a spare wheel. If you have one and know how to use it safely (without destabilising the caravan during jacking), this is the quickest solution. Always use proper caravan-rated axle stands, not just a scissor jack.
 
 ### If you do not have a spare (many modern caravans do not)
-Call **0141 266 0690** immediately. We carry common caravan tyre sizes and can attend to the site of the breakdown. Give your location as precisely as possible — a postcode, the nearest village, or a what3words address on remote routes.
+Call **01932 509613** immediately. We carry common caravan tyre sizes and can attend to the site of the breakdown. Give your location as precisely as possible — a postcode, the nearest village, or a what3words address on remote routes.
 
 ### On the NC500 or remote Highland roads
 Caravanning the NC500 with a flat is one of the most challenging rural breakdown scenarios in the UK. Very few local businesses carry caravan tyre sizes. Call us as soon as you notice the problem — the earlier you call, the better the ETA we can give.
@@ -4157,7 +4157,7 @@ The tyres on the car towing your caravan are at least as important as the carava
 
 Tyre Rescue can attend to caravan breakdowns across Scotland including remote Highland and island routes. We carry common caravan sizes and can source less common ones with advance notice.
 
-**Call 0141 266 0690** to confirm stock of your specific caravan tyre size, especially for the NC500 or island routes where advance planning is important.
+**Call 01932 509613** to confirm stock of your specific caravan tyre size, especially for the NC500 or island routes where advance planning is important.
 
 [Tyre age guide](/blog/tyre-age-when-to-replace-scotland) | [Spare tyre law Scotland](/blog/spare-tyre-uk-law-scotland) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
   },
@@ -4165,7 +4165,7 @@ Tyre Rescue can attend to caravan breakdowns across Scotland including remote Hi
     slug: 'land-rover-range-rover-tyres-scotland',
     title: 'Land Rover & Range Rover Tyre Fitting Scotland: All Models',
     description:
-      'Mobile Land Rover and Range Rover tyre fitting across Scotland. Large-size tyres for Defender, Discovery, Range Rover Sport and Velar. All-terrain options. Call 0141 266 0690.',
+      'Mobile Land Rover and Range Rover tyre fitting across Scotland. Large-size tyres for Defender, Discovery, Range Rover Sport and Velar. All-terrain options. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-03-01',
     lastModified: '2026-03-01',
@@ -4251,7 +4251,7 @@ Highland breakdown? Estate road flat? We cover all of Scotland — from the M8 t
 - **Aberdeen and Inverness**: ${SEO_RESPONSE_TIME_LABEL}
 - **Highland and remote routes**: Call immediately and we will confirm an accurate ETA
 
-Call **0141 266 0690** — 24 hours a day, all of Scotland.
+Call **01932 509613** — 24 hours a day, all of Scotland.
 
 [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me)`,
   },
@@ -4259,7 +4259,7 @@ Call **0141 266 0690** — 24 hours a day, all of Scotland.
     slug: 'bmw-tyre-fitting-scotland',
     title: 'BMW Tyre Fitting Scotland: Run-Flats, TPMS & All Models',
     description:
-      'Specialist mobile BMW tyre fitting across Scotland. Run-flat tyres, TPMS reset, load-rated tyres for all BMW models — 1 Series, 3 Series, 5 Series, X5, iX and more. Call 0141 266 0690.',
+      'Specialist mobile BMW tyre fitting across Scotland. Run-flat tyres, TPMS reset, load-rated tyres for all BMW models — 1 Series, 3 Series, 5 Series, X5, iX and more. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-03-01',
     lastModified: '2026-03-01',
@@ -4313,11 +4313,11 @@ BMW SUV models (X3, X5, X7) require tyres with high load indices. Check your cur
 
 ## TPMS Warning Light After BMW Tyre Change
 
-If your BMW TPMS light came on after a tyre change, the sensor was not reset — the most common BMW-specific call we receive. Call **0141 266 0690** and we will come to reset the TPMS at your location.
+If your BMW TPMS light came on after a tyre change, the sensor was not reset — the most common BMW-specific call we receive. Call **01932 509613** and we will come to reset the TPMS at your location.
 
 ## Emergency BMW Tyre Fitting in Scotland
 
-Flat BMW tyre on the M8, M74, A9, or anywhere else in Scotland? Call **0141 266 0690** — we carry RSC run-flat tyres for all major BMW models, 24 hours a day.
+Flat BMW tyre on the M8, M74, A9, or anywhere else in Scotland? Call **01932 509613** — we carry RSC run-flat tyres for all major BMW models, 24 hours a day.
 
 [Run-flat tyres Scotland guide](/blog/run-flat-tyres-scotland-guide) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me)`,
   },
@@ -4325,7 +4325,7 @@ Flat BMW tyre on the M8, M74, A9, or anywhere else in Scotland? Call **0141 266 
     slug: 'tesla-tyre-fitting-scotland',
     title: 'Tesla Tyre Fitting Scotland: Model 3, Y, S & X',
     description:
-      'Mobile Tesla tyre replacement across Scotland. EV load-rated tyres for all Tesla models. TPMS guide, no-spare-wheel advice, emergency callout. Call 0141 266 0690.',
+      'Mobile Tesla tyre replacement across Scotland. EV load-rated tyres for all Tesla models. TPMS guide, no-spare-wheel advice, emergency callout. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-03-01',
     lastModified: '2026-03-01',
@@ -4379,7 +4379,7 @@ Many Tesla-spec tyres include acoustic foam on the inner surface to reduce tyre 
 
 1. Do not drive on a flat — Teslas have no run-flat capability
 2. Pull to a safe location as soon as it is safe to do so
-3. Call **0141 266 0690** — state you have a Tesla and your model
+3. Call **01932 509613** — state you have a Tesla and your model
 4. We will confirm stock of your specific size and give an accurate ETA
 5. After fitting, reset TPMS via Tesla touchscreen: Controls > Service > Tyre Pressure Reset
 
@@ -4391,7 +4391,7 @@ Tyre Rescue covers all of Scotland — from Edinburgh and Glasgow where Tesla ow
     slug: 'mobile-tyre-fitting-falkirk-central-scotland',
     title: 'Mobile Tyre Fitting in Falkirk & Central Scotland | Tyre Rescue',
     description:
-      'Mobile tyre fitting across Falkirk, Grangemouth, Bo\'ness, Larbert and Central Scotland. Fast response via M9 and M80. Emergency 24/7 cover. Call 0141 266 0690.',
+      'Mobile tyre fitting across Falkirk, Grangemouth, Bo\'ness, Larbert and Central Scotland. Fast response via M9 and M80. Emergency 24/7 cover. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-02-01',
     lastModified: '2026-02-01',
@@ -4432,7 +4432,7 @@ Falkirk sits at the exact centre of Scotland's motorway network — the M9, M80,
 
 The M9 (Edinburgh–Stirling) and M80 (Glasgow–Stirling) both pass through the Falkirk area. We attend motorway breakdowns across the full Falkirk section of both routes.
 
-For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity, exit left, stand behind the barrier, then call **0141 266 0690**. Response to M9/M80 Falkirk sections is typically ${SEO_RESPONSE_TIME_LABEL}.
+For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity, exit left, stand behind the barrier, then call **01932 509613**. Response to M9/M80 Falkirk sections is typically ${SEO_RESPONSE_TIME_LABEL}.
 
 ## Response Times
 
@@ -4445,7 +4445,7 @@ For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity,
 | Denny (FK6) | ${SEO_RESPONSE_TIME_MINUTES} min |
 | Polmont (FK2) | ${SEO_RESPONSE_TIME_MINUTES} min |
 
-**Call 0141 266 0690** for immediate tyre fitting in Falkirk and Central Scotland, or [book online](/book).
+**Call 01932 509613** for immediate tyre fitting in Falkirk and Central Scotland, or [book online](/book).
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Stirling coverage](/blog/mobile-tyre-fitting-stirling-central-scotland)`,
   },
@@ -4453,7 +4453,7 @@ For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity,
     slug: 'mobile-tyre-fitting-hamilton-south-lanarkshire',
     title: 'Mobile Tyre Fitting in Hamilton & South Lanarkshire | Tyre Rescue',
     description:
-      `Mobile tyre fitting across Hamilton, East Kilbride, Rutherglen and South Lanarkshire. Coverage via M74, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690.`,
+      `Mobile tyre fitting across Hamilton, East Kilbride, Rutherglen and South Lanarkshire. Coverage via M74, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2026-02-01',
     lastModified: '2026-02-01',
@@ -4503,7 +4503,7 @@ The M74 between Glasgow and Hamilton (Junction 5) is among the busiest sections 
 | Wishaw (ML2) | ${SEO_RESPONSE_TIME_MINUTES} min |
 | Lanark (ML11) | ${SEO_RESPONSE_TIME_MINUTES} min |
 
-**Call 0141 266 0690** for immediate emergency tyre fitting in Hamilton and South Lanarkshire. [Book online](/book) for scheduled appointments.
+**Call 01932 509613** for immediate emergency tyre fitting in Hamilton and South Lanarkshire. [Book online](/book) for scheduled appointments.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Motherwell & North Lanarkshire](/blog/mobile-tyre-fitting-motherwell-north-lanarkshire) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me)`,
   },
@@ -4511,7 +4511,7 @@ The M74 between Glasgow and Hamilton (Junction 5) is among the busiest sections 
     slug: 'mobile-tyre-fitting-kilmarnock-ayrshire',
     title: 'Mobile Tyre Fitting in Kilmarnock & Ayrshire | Tyre Rescue',
     description:
-      `Mobile tyre fitting across Kilmarnock, Ayr, Irvine, Troon and all of Ayrshire. Coverage via M77, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. Emergency 24/7 cover. Call 0141 266 0690.`,
+      `Mobile tyre fitting across Kilmarnock, Ayr, Irvine, Troon and all of Ayrshire. Coverage via M77, with a typical response target of ${SEO_RESPONSE_TIME_LABEL}. Emergency 24/7 cover. Call 01932 509613.`,
     category: 'fitting',
     publishDate: '2026-02-01',
     lastModified: '2026-02-01',
@@ -4584,7 +4584,7 @@ We carry common sizes for all these vehicles and can source less common sizes wi
 
 ## Book Ayrshire Mobile Tyre Fitting
 
-Call **0141 266 0690** for immediate emergency fitting anywhere in Kilmarnock and Ayrshire. [Book online](/book) for a scheduled appointment at your home or workplace.
+Call **01932 509613** for immediate emergency fitting anywhere in Kilmarnock and Ayrshire. [Book online](/book) for a scheduled appointment at your home or workplace.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Tyre fitting Irvine North Ayrshire](/blog/mobile-tyre-fitting-irvine-north-ayrshire)`,
   },
@@ -4683,7 +4683,7 @@ This is why we recommend:
 
 ## Tyre Prices at Tyre Rescue
 
-When you call **0141 266 0690** or [book online](/book), we will quote options across all three price tiers:
+When you call **01932 509613** or [book online](/book), we will quote options across all three price tiers:
 - **Budget**: from approximately £40–£60 per tyre fitted
 - **Mid-range**: from approximately £65–£90 per tyre fitted
 - **Premium**: from approximately £90–£150+ per tyre fitted
@@ -4791,7 +4791,7 @@ If your tyres are directional (they have a specific rotation direction marked on
 
 ## Can Tyre Rescue Rotate Tyres?
 
-Yes — rotation is included when we visit for any tyre change. If you want rotation only (no new tyres), this requires removing and remounting existing tyres on different positions. Call **0141 266 0690** and we will advise whether a mobile rotation visit is practical for your vehicle and tyres.
+Yes — rotation is included when we visit for any tyre change. If you want rotation only (no new tyres), this requires removing and remounting existing tyres on different positions. Call **01932 509613** and we will advise whether a mobile rotation visit is practical for your vehicle and tyres.
 
 **Cost of tyre rotation at Tyre Rescue**: from approximately £30–£40 for a full set (four wheels), included in any tyre fitting visit.
 
@@ -4893,7 +4893,7 @@ Water as shallow as 15cm can cause control loss. If you cannot see the road surf
 
 ## After an Aquaplaning Incident
 
-If the aquaplaning was severe, or your tyres are worn (below 3mm), call Tyre Rescue on **0141 266 0690**. We can assess your tyres and fit replacements at your location across Scotland.
+If the aquaplaning was severe, or your tyres are worn (below 3mm), call Tyre Rescue on **01932 509613**. We can assess your tyres and fit replacements at your location across Scotland.
 
 [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
   },
@@ -4976,13 +4976,13 @@ Any 4x4 driven on Highland roads from October to April benefits from winter or a
 
 Many SUVs carry significant weight — passengers, luggage, roof boxes, tow bars. Check that any tyre you fit has adequate load index. A Range Rover Defender 110 can weigh over 2,500kg fully loaded, requiring tyres with very high load ratings (102–107 or above per tyre).
 
-When calling **0141 266 0690** about 4x4 or SUV tyres, give your vehicle make, model, and trim. We will confirm the correct load index and speed rating before supplying.
+When calling **01932 509613** about 4x4 or SUV tyres, give your vehicle make, model, and trim. We will confirm the correct load index and speed rating before supplying.
 
 ## Mobile 4x4 Tyre Fitting in Scotland
 
 Tyre Rescue fits all tyre types for 4x4s and SUVs across Scotland, including all-terrain tyres. We carry common 4x4 sizes (16", 17", 18", 20" rims) and can source specialist sizes within a few hours.
 
-For Highland breakdowns — including Land Rovers and Defenders on estate roads — call **0141 266 0690**. We cover all of Scotland including Argyll, the far Highlands, and island routes accessible by road.
+For Highland breakdowns — including Land Rovers and Defenders on estate roads — call **01932 509613**. We cover all of Scotland including Argyll, the far Highlands, and island routes accessible by road.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Winter tyres Scotland](/blog/winter-tyres-when-to-switch-scotland) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
   },
@@ -5076,7 +5076,7 @@ For damage on trunk roads (A9, A82, M8, M74 etc.), the claim goes to Transport S
 
 ## Emergency Tyre Replacement After a Pothole
 
-If your tyre is damaged beyond use and you cannot drive, call **0141 266 0690**. Tyre Rescue attends pothole-related tyre emergencies across all of Scotland — from city streets to remote Highland roads. We carry replacement tyres and will assess whether the wheel itself needs attention before fitting.
+If your tyre is damaged beyond use and you cannot drive, call **01932 509613**. Tyre Rescue attends pothole-related tyre emergencies across all of Scotland — from city streets to remote Highland roads. We carry replacement tyres and will assess whether the wheel itself needs attention before fitting.
 
 **Typical response times after a pothole emergency:**
 - Glasgow and Central Belt: ${SEO_RESPONSE_TIME_LABEL}
@@ -5185,7 +5185,7 @@ For Scottish roads — particularly in wet conditions, on the NC500, or in winte
 
 ## Get an Honest Quote for New Tyres
 
-Call **0141 266 0690** or [book online](/book) and tell us your tyre size. We will quote both new tyre options (budget, mid-range, premium) and let you make an informed decision.
+Call **01932 509613** or [book online](/book) and tell us your tyre size. We will quote both new tyre options (budget, mid-range, premium) and let you make an informed decision.
 
 [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
   },
@@ -5268,7 +5268,7 @@ The traditional solution. Some vehicles — particularly large SUVs and pickup t
 1. **Assess the tyre**: Is it slowly losing air (puncture) or rapidly flat (blowout/sidewall)?
 2. **Check for a repair kit**: If your car has one and the puncture is in the tread, attempt inflation and sealant
 3. **Do not drive on a flat tyre**: Driving even 100 metres on a completely flat tyre can destroy the tyre, the rim, and potentially the brake caliper
-4. **Call Tyre Rescue**: 0141 266 0690 — we come to you anywhere in Scotland, 24 hours a day
+4. **Call Tyre Rescue**: 01932 509613 — we come to you anywhere in Scotland, 24 hours a day
 
 If you are on a remote Highland road, Argyll coast, or island route, call immediately. Do not wait to see if the sealant works on a serious puncture — losing pressure on a remote road is the more dangerous outcome.
 
@@ -5284,7 +5284,7 @@ For **Highland and remote Scottish drivers**, carrying a space-saver spare is st
 
 ## Emergency Tyre Help Anywhere in Scotland
 
-Whether you have a spare tyre or not, Tyre Rescue can reach you with a replacement tyre anywhere in Scotland. Call **0141 266 0690** — 24 hours a day, 7 days a week.
+Whether you have a spare tyre or not, Tyre Rescue can reach you with a replacement tyre anywhere in Scotland. Call **01932 509613** — 24 hours a day, 7 days a week.
 
 [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Run-flat tyres guide](/blog/run-flat-tyres-scotland-guide) | [What to do flat tyre motorway](/blog/what-to-do-flat-tyre-motorway)`,
   },
@@ -5382,7 +5382,7 @@ Caravan and trailer tyres age faster than vehicle tyres because they are typical
 
 Tyre Rescue will assess tyre age and condition at the time of any callout. If we identify aged tyres during a fitting visit, we will advise — and can fit replacements at the same visit.
 
-**Call 0141 266 0690** to arrange a tyre age check and replacement across Scotland.
+**Call 01932 509613** to arrange a tyre age check and replacement across Scotland.
 
 [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
   },
@@ -5494,7 +5494,7 @@ Winter tyres are legal in the UK. Fitting them does not invalidate your insuranc
 
 Tyre Rescue fits winter tyres across all of Scotland — at your home, work, or roadside. We carry a range of winter tyres and can supply and fit at short notice.
 
-**Call 0141 266 0690** or [book online](/book) to arrange winter tyre fitting before the cold weather arrives.
+**Call 01932 509613** or [book online](/book) to arrange winter tyre fitting before the cold weather arrives.
 
 [Winter tyres Scotland guide](/blog/winter-tyres-scotland-guide) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
   },
@@ -5502,7 +5502,7 @@ Tyre Rescue fits winter tyres across all of Scotland — at your home, work, or 
     slug: 'van-tyre-fitting-scotland',
     title: 'Van Tyre Fitting Scotland: Commercial Vehicles & Fleets',
     description:
-      'Mobile van tyre fitting across Scotland for tradespeople, delivery drivers, and fleets. Load-rated tyres for Transit, Sprinter, Vivaro and more. Call 0141 266 0690.',
+      'Mobile van tyre fitting across Scotland for tradespeople, delivery drivers, and fleets. Load-rated tyres for Transit, Sprinter, Vivaro and more. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2025-11-01',
     lastModified: '2025-11-01',
@@ -5551,7 +5551,7 @@ Tyre Rescue carries common commercial tyre sizes for the most popular vans in Sc
 - **Citroën Dispatch / Peugeot Expert**: 215/60R17C, 235/60R17C
 - **Nissan NV200**: 185R14C, 195R14C
 
-For less common sizes, call **0141 266 0690** with your registration number. We can check your exact size and source it within a few hours if not on our vans.
+For less common sizes, call **01932 509613** with your registration number. We can check your exact size and source it within a few hours if not on our vans.
 
 ## Emergency Van Tyre Fitting Scotland
 
@@ -5574,7 +5574,7 @@ For businesses running multiple vans or commercial vehicles, Tyre Rescue can pro
 - **Priority response for fleet vehicles**: Faster dispatch and priority parts sourcing for contract customers
 - **Fleet billing**: Monthly invoicing available for businesses with multiple vehicles
 
-Contact us on **0141 266 0690** to discuss fleet tyre management arrangements for your Scotland operation.
+Contact us on **01932 509613** to discuss fleet tyre management arrangements for your Scotland operation.
 
 ## Tyre Quality Options for Commercial Vehicles
 
@@ -5586,7 +5586,7 @@ Michelin Agilis, Continental VanContact, and Bridgestone Duravis offer superior 
 
 ## Van Tyre Fitting at Your Location
 
-Whether you are a sole trader in Glasgow, a courier operation running vans from Edinburgh to Aberdeen, or a Highland trade contractor — call **0141 266 0690** and we will dispatch the right van with the right tyres for your vehicle.
+Whether you are a sole trader in Glasgow, a courier operation running vans from Edinburgh to Aberdeen, or a Highland trade contractor — call **01932 509613** and we will dispatch the right van with the right tyres for your vehicle.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Tyre fitting costs Scotland](/blog/tyre-fitting-costs-scotland-pricing-guide)`,
   },
@@ -5678,7 +5678,7 @@ Tyre Rescue can fit tyres on all EV makes and models across Scotland, including:
 - Polestar 2
 - Renault Zoe
 
-When calling **0141 266 0690**, mention that you drive an EV and your vehicle model. We will confirm the correct load index and speed rating for your specific car and let you know which EV-optimised tyres we have in stock.
+When calling **01932 509613**, mention that you drive an EV and your vehicle model. We will confirm the correct load index and speed rating for your specific car and let you know which EV-optimised tyres we have in stock.
 
 Note: EV tyres are generally 10–30% more expensive than standard equivalent tyres due to their specialised construction. We stock budget, mid-range, and premium EV-compatible options.
 
@@ -5791,7 +5791,7 @@ A slow puncture is usually caused by a nail or screw embedded in the tread area 
 
 **Do not ignore a slow puncture** — the object causing the leak will work deeper into the tyre with continued use, eventually causing rapid deflation or making the tyre unrepairable.
 
-Tyre Rescue can diagnose and repair a slow puncture at your location across all of Scotland. Call **0141 266 0690**.
+Tyre Rescue can diagnose and repair a slow puncture at your location across all of Scotland. Call **01932 509613**.
 
 ## Key Numbers to Remember
 
@@ -5920,7 +5920,7 @@ If you are unsure what size you need:
 
 ## Ordering Tyres Through Tyre Rescue
 
-When you call **0141 266 0690** or [book online](/book), have your tyre size ready. We will confirm availability, quote a price for your chosen brand tier (budget, mid-range, or premium), and dispatch a fitter to your location across Scotland.
+When you call **01932 509613** or [book online](/book), have your tyre size ready. We will confirm availability, quote a price for your chosen brand tier (budget, mid-range, or premium), and dispatch a fitter to your location across Scotland.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland)`,
   },
@@ -6013,7 +6013,7 @@ If your tyres are borderline or failing, the most cost-effective approach is to 
 
 Tyre Rescue can fit new tyres at your home, workplace, or even at the MOT centre before your appointment:
 
-- **Call 0141 266 0690** with your tyre size
+- **Call 01932 509613** with your tyre size
 - **Same-day or emergency fitting** available if your MOT is imminent
 - **Budget options from approximately £55–£70 fitted** for common sizes
 
@@ -6030,7 +6030,7 @@ Before presenting your vehicle for MOT, verify:
 - [ ] No visible tread wear indicators exposed
 - [ ] Tyre age under 10 years (check DOT date code)
 
-**Call 0141 266 0690** to book pre-MOT tyre fitting anywhere in Scotland. We will bring the right tyres to you and have you ready for your appointment.
+**Call 01932 509613** to book pre-MOT tyre fitting anywhere in Scotland. We will bring the right tyres to you and have you ready for your appointment.
 
 [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
   },
@@ -6126,7 +6126,7 @@ Replace soon if:
 
 Need new tyres fitted? Tyre Rescue brings the tyres and fitting equipment to your location — home, work, or roadside — across all of Scotland.
 
-- **Call 0141 266 0690** to check tyre availability and get a quote
+- **Call 01932 509613** to check tyre availability and get a quote
 - **[Book online](/book)** to schedule a fitting at your convenience
 - **[Emergency callout](/emergency-tyre-fitting-near-me)** if you need immediate assistance
 
@@ -6227,7 +6227,7 @@ Two-wheel (front axle) alignment: approximately **£40–£60**. Four-wheel alig
 
 ## Can Tyre Rescue Help?
 
-Tyre Rescue carries balancing equipment on every van. When we fit a new tyre, balancing is included. If you need balancing only (no new tyre), call **0141 266 0690** and we can come to you.
+Tyre Rescue carries balancing equipment on every van. When we fit a new tyre, balancing is included. If you need balancing only (no new tyre), call **01932 509613** and we can come to you.
 
 For wheel alignment, you will need a specialist garage with a four-wheel alignment rig. If you are unsure whether your issue is balancing or alignment, call us — the symptoms usually make it clear, and we will advise honestly even if it means sending you to a garage.
 
@@ -6296,7 +6296,7 @@ Check all four tyres for obvious flat spots. Even if a tyre looks inflated, it m
 Many petrol stations have air pumps with built-in pressure gauges. Your recommended pressure is on a sticker inside the driver's door, in the handbook, or on the fuel cap. Inflate the low tyre to the correct pressure.
 
 ### Step 6: If you cannot inflate or the tyre is flat, call for help
-In Scotland, this is where remote location matters. Whether you are on the A9 north of Inverness, the NC500 near Tongue, or on the road to Applecross — Tyre Rescue can reach you. Call **0141 266 0690** and give your location.
+In Scotland, this is where remote location matters. Whether you are on the A9 north of Inverness, the NC500 near Tongue, or on the road to Applecross — Tyre Rescue can reach you. Call **01932 509613** and give your location.
 
 ## TPMS and Tyre Changes in Scotland
 
@@ -6310,7 +6310,7 @@ Direct TPMS sensors have a battery life of approximately 7–10 years. When a se
 
 Replacement TPMS sensors cost from approximately £25–£70 per wheel depending on the vehicle make. For premium vehicles (BMW, Mercedes, Audi), OEM sensors cost more. Aftermarket sensors are available and work with most vehicles.
 
-Tyre Rescue carries and can fit TPMS sensors across Scotland. If you are unsure whether your TPMS light indicates a pressure problem or a sensor fault, call **0141 266 0690** and we will help you diagnose it.
+Tyre Rescue carries and can fit TPMS sensors across Scotland. If you are unsure whether your TPMS light indicates a pressure problem or a sensor fault, call **01932 509613** and we will help you diagnose it.
 
 ## Driving with the TPMS Light On: Is It Safe?
 
@@ -6330,7 +6330,7 @@ Tyre Rescue carries and can fit TPMS sensors across Scotland. If you are unsure 
 - Sensor replacement cost: from £25 per corner
 - TPMS reset after tyre change: included free with all Tyre Rescue fittings
 
-Need help with a TPMS warning, flat tyre, or tyre pressure issue in Scotland? Call **0141 266 0690** — 24/7, all of Scotland.
+Need help with a TPMS warning, flat tyre, or tyre pressure issue in Scotland? Call **01932 509613** — 24/7, all of Scotland.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Run-flat tyres guide](/blog/run-flat-tyres-scotland-guide) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me)`,
   },
@@ -6437,7 +6437,7 @@ Signs to replace sooner:
 
 Need new tyres fitted without going to a garage? Tyre Rescue brings the tyre to you — home, work, or roadside — across all of Scotland.
 
-**Call 0141 266 0690** to check which brands and sizes we carry for your vehicle, or [book online](/book) for a scheduled fitting.
+**Call 01932 509613** to check which brands and sizes we carry for your vehicle, or [book online](/book) for a scheduled fitting.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Tyre fitting costs guide](/blog/tyre-fitting-costs-scotland-pricing-guide) | [Winter tyres guide](/blog/winter-tyres-scotland-guide)`,
   },
@@ -6487,7 +6487,7 @@ However, this assumes:
 - You are driving on normal roads (not demanding terrain)
 - You do not exceed the 50mph limit
 
-**For Scottish Highland drivers**: 50 miles may not be enough to reach a tyre fitter, particularly if you are on the NC500 north of Thurso, in the Outer Hebrides, or on a remote Argyll road. Call Tyre Rescue (0141 266 0690) as soon as you notice the fault.
+**For Scottish Highland drivers**: 50 miles may not be enough to reach a tyre fitter, particularly if you are on the NC500 north of Thurso, in the Outer Hebrides, or on a remote Argyll road. Call Tyre Rescue (01932 509613) as soon as you notice the fault.
 
 ## Can Run-Flat Tyres Be Repaired?
 
@@ -6505,7 +6505,7 @@ Exceptions are rare: a run-flat tyre that was noticed immediately (before being 
 
 Replacing a run-flat tyre requires stocking the correct size — and run-flat sizes (indicated by BMW's 'RSC', Bridgestone's 'RFT', Continental's 'SSR' etc.) are not always carried in standard stock.
 
-Tyre Rescue carries common run-flat sizes for popular Scottish vehicles including BMW 1, 3, 4, 5 Series, MINI Hatch, Countryman, and others. If your size is less common, call **0141 266 0690** before we dispatch and we will confirm availability.
+Tyre Rescue carries common run-flat sizes for popular Scottish vehicles including BMW 1, 3, 4, 5 Series, MINI Hatch, Countryman, and others. If your size is less common, call **01932 509613** before we dispatch and we will confirm availability.
 
 ## Cost of Run-Flat Tyre Replacement in Scotland
 
@@ -6531,7 +6531,7 @@ After fitting a replacement run-flat tyre, the TPMS sensor must be reset or repl
 4. **Consider keeping a spare** if you regularly drive very remote routes — a space-saver spare or even a full-size conventional spare can be a lifesaver beyond the 50-mile run-flat range
 5. **Don't assume it's repairable** — have it assessed before insisting on repair
 
-Need run-flat tyre replacement in Scotland? Call **0141 266 0690** and confirm your tyre size. We'll tell you what we have in stock and give you an accurate ETA to your location.
+Need run-flat tyre replacement in Scotland? Call **01932 509613** and confirm your tyre size. We'll tell you what we have in stock and give you an accurate ETA to your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
   },
@@ -6673,7 +6673,7 @@ If you have a flat Ford tyre anywhere in Scotland:
 
 1. **Move off the road** safely — hard shoulder, car park, layby
 2. **Do not drive on a flat** — it will destroy the tyre and potentially the wheel
-3. **Call 0141 266 0690** — we'll confirm your tyre size from your registration number and give you an ETA
+3. **Call 01932 509613** — we'll confirm your tyre size from your registration number and give you an ETA
 4. We carry Focus, Fiesta, Kuga, Puma, and Transit tyres on every van
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
@@ -6685,7 +6685,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **Commercial Ford Transit tyres in stock** — C-rated commercial tyres ready
 - **All of Scotland covered** — from your driveway in Glasgow to a layby in the Highlands
 
-Call **0141 266 0690** or [book online](/book) to arrange mobile Ford tyre fitting at your location.
+Call **01932 509613** or [book online](/book) to arrange mobile Ford tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
   },
@@ -6842,7 +6842,7 @@ If you have a flat tyre on your Volkswagen anywhere in Scotland:
 
 1. **Move off the road safely** — car park, layby, or hard shoulder
 2. **Do not drive on a completely flat tyre** — you will damage the wheel rim
-3. **Call 0141 266 0690** — we confirm tyre size from your VW registration and give you an ETA
+3. **Call 01932 509613** — we confirm tyre size from your VW registration and give you an ETA
 4. We carry Golf, Polo, Tiguan, ID.4, and Transporter tyres across all service areas
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
@@ -6855,7 +6855,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **TPMS reset included** — your VW warning light won't stay on after we've finished
 - **All of Scotland covered** — from Glasgow to the Highlands
 
-Call **0141 266 0690** or [book online](/book) for mobile VW tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile VW tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland)`,
   },
@@ -6990,7 +6990,7 @@ Tyre Rescue carries Vauxhall-compatible TPMS reset tools. Reset is included with
 If you have a flat tyre on your Vauxhall anywhere in Scotland:
 
 1. **Pull off the road safely** — do not drive on a flat rim
-2. **Call 0141 266 0690** — give us your registration number and we'll identify the correct tyre size
+2. **Call 01932 509613** — give us your registration number and we'll identify the correct tyre size
 3. We'll confirm an ETA and price before dispatching
 4. We carry Corsa, Astra, Mokka, Grandland, and Vivaro tyres across all areas
 
@@ -7004,7 +7004,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **All Scottish postcodes covered** — G to ZE
 - **No hidden fees** — we quote the total price before any work begins
 
-Call **0141 266 0690** or [book online](/book) for mobile Vauxhall tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Vauxhall tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland) | [Ford tyre fitting Scotland](/blog/ford-tyre-fitting-scotland)`,
   },
@@ -7137,7 +7137,7 @@ If you have a flat tyre on your Nissan anywhere in Scotland:
 
 1. **Stop safely** — hard shoulder, layby, or car park
 2. **Do not drive on the rim** — it will destroy the wheel
-3. **Call 0141 266 0690** — give your registration number; we will identify the tyre spec instantly
+3. **Call 01932 509613** — give your registration number; we will identify the tyre spec instantly
 4. **Nissan Leaf / Ariya owners**: No spare wheel in the car — mobile fitting is your only option
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
@@ -7150,7 +7150,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **Commercial Navara stock** — light-truck rated tyres for the Navara pick-up
 - **All of Scotland** — 34 cities and areas covered
 
-Call **0141 266 0690** or [book online](/book) for mobile Nissan tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Nissan tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [VW tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland)`,
   },
@@ -7253,7 +7253,7 @@ The Toyota Prius (Mk5, 2023–present):
 
 Older Prius (Mk4, 2015–2022): 195/65R15 base, 215/45R17 upper.
 
-**Prius note**: The Prius 195/60R17 is an unusual size — we check stock for this specifically before dispatching. Call ahead on 0141 266 0690.
+**Prius note**: The Prius 195/60R17 is an unusual size — we check stock for this specifically before dispatching. Call ahead on 01932 509613.
 
 ## Toyota Land Cruiser Tyre Sizes
 
@@ -7294,7 +7294,7 @@ If you have a flat tyre on your Toyota anywhere in Scotland:
 3. **GR Yaris**: No conventional spare — call us immediately.
 4. **Hilux, Land Cruiser**: These often carry a full-size spare mounted underneath — attempt the change only if it's safe to do so and you're off a busy road.
 
-Call **0141 266 0690** — give us your registration number and we will identify your tyre specification and confirm an ETA.
+Call **01932 509613** — give us your registration number and we will identify your tyre specification and confirm an ETA.
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -7306,7 +7306,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **GR Yaris performance tyres** — we stock and fit performance spec where available
 - **All of Scotland covered** — from your driveway in Glasgow to a layby on the NC500
 
-Call **0141 266 0690** or [book online](/book) for mobile Toyota tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Toyota tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [Nissan tyre fitting Scotland](/blog/nissan-tyre-fitting-scotland)`,
   },
@@ -7446,7 +7446,7 @@ Audi's electric vehicle range has specific tyre requirements:
 | RS Q3 | 255/40R20 |
 | RS Q8 | 285/40R22 or 295/35R22 |
 
-**RS performance note**: RS models use Michelin Pilot Sport 4S, Continental SportContact 6, or Pirelli P Zero as OE tyres. We carry performance-grade equivalents for RS models — call ahead on 0141 266 0690 to confirm stock for your specific size.
+**RS performance note**: RS models use Michelin Pilot Sport 4S, Continental SportContact 6, or Pirelli P Zero as OE tyres. We carry performance-grade equivalents for RS models — call ahead on 01932 509613 to confirm stock for your specific size.
 
 ## Audi TPMS Reset
 
@@ -7464,7 +7464,7 @@ If you have a flat tyre on your Audi anywhere in Scotland:
 1. **A3, A4, Q3, Q5**: Check if your Audi has a run-flat tyre (marked DSST or ROF on the sidewall) — if so, you can drive carefully to a safe location at no more than 50mph
 2. **e-tron, Q4 e-tron**: No spare wheel — call immediately
 3. **RS models**: Performance tyres are not run-flats; stop safely and call us
-4. **Call 0141 266 0690** — give your registration number for instant tyre identification
+4. **Call 01932 509613** — give your registration number for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -7476,7 +7476,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **All of Scotland covered** — from your garage in Edinburgh's New Town to the A9 in Perthshire
 - **No surprise fees** — full itemised quote before any work begins
 
-Call **0141 266 0690** or [book online](/book) for mobile Audi tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Audi tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Tesla tyre fitting Scotland](/blog/tesla-tyre-fitting-scotland)`,
   },
@@ -7639,7 +7639,7 @@ If you have a flat tyre on your Mercedes anywhere in Scotland:
 2. **C-Class, E-Class, S-Class run-flats**: Move to a safe location then call us
 3. **EQC, EQS, EQE**: No spare wheel — call us immediately
 4. **AMG staggered fitments**: Confirm whether you need front or rear when you call
-5. **Call 0141 266 0690** — give your registration number for instant tyre identification
+5. **Call 01932 509613** — give your registration number for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -7652,7 +7652,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **PHEV load index compliance** — we always check and confirm load index for PHEV models
 - **All of Scotland** — from Glasgow's West End to Highland estates
 
-Call **0141 266 0690** or [book online](/book) for mobile Mercedes tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Mercedes tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
   },
@@ -7789,7 +7789,7 @@ If you have a flat tyre on your Kia anywhere in Scotland:
 
 1. **EV6, Niro EV**: No spare wheel — call us immediately
 2. **Sportage, Sorento, Ceed**: May have a space-saver spare — check your boot
-3. **Call 0141 266 0690** — give your registration number and we will identify your tyre specification
+3. **Call 01932 509613** — give your registration number and we will identify your tyre specification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -7801,7 +7801,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **TPMS reset included** — dashboard warnings cleared before we leave
 - **All of Scotland** — from Glasgow to the Highlands
 
-Call **0141 266 0690** or [book online](/book) for mobile Kia tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Kia tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Hyundai tyre fitting Scotland](/blog/hyundai-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
@@ -7876,7 +7876,7 @@ The Hyundai Ioniq 6 (CE1, 2023–present) — electric saloon:
 | Ioniq 6 Long Range AWD | 245/40R19 |
 | Ioniq 6 SE Connect | 245/45R18 |
 
-**Ioniq 6 note**: The Ioniq 6 uses a distinctive wide-but-short-profile tyre. The unusual combination of high load index and low profile means not all retailers carry these in stock — call ahead on 0141 266 0690 to confirm stock.
+**Ioniq 6 note**: The Ioniq 6 uses a distinctive wide-but-short-profile tyre. The unusual combination of high load index and low profile means not all retailers carry these in stock — call ahead on 01932 509613 to confirm stock.
 
 ## Hyundai i30 Tyre Sizes
 
@@ -7947,7 +7947,7 @@ If you have a flat tyre on your Hyundai anywhere in Scotland:
 1. **Ioniq 5, Ioniq 6**: No spare wheel — call us immediately
 2. **Tucson, Santa Fe, Kona**: Check your boot for a space-saver spare
 3. **i30, i10, i20**: Likely has a space-saver spare — check before calling
-4. **Call 0141 266 0690** — give your registration for instant tyre identification
+4. **Call 01932 509613** — give your registration for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -7959,7 +7959,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **All of Scotland** — 34 cities and service areas covered
 - **No surprises** — full itemised quote before we start
 
-Call **0141 266 0690** or [book online](/book) for mobile Hyundai tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Hyundai tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Kia tyre fitting Scotland](/blog/kia-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
@@ -8079,11 +8079,11 @@ Tyre Rescue carries Peugeot-compatible TPMS reset tools. Reset is included at no
 
 1. **e-208, e-2008, E3008**: No spare wheel — call us immediately
 2. **208, 2008, 3008, 308**: May have a space-saver spare or tyre inflation kit — check your boot
-3. **Call 0141 266 0690** — we identify your tyre specification from your registration number
+3. **Call 01932 509613** — we identify your tyre specification from your registration number
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Peugeot tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Peugeot tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Vauxhall tyre fitting Scotland](/blog/vauxhall-tyre-fitting-scotland) | [Ford tyre fitting Scotland](/blog/ford-tyre-fitting-scotland)`,
   },
@@ -8227,11 +8227,11 @@ Tyre Rescue carries compatible TPMS reset tools for all Renault and Dacia models
 1. **Zoe, Megane E-TECH**: No spare wheel — call us immediately
 2. **Duster 4x4**: Check beneath the vehicle for the spare (mounted underneath on some models)
 3. **Clio, Captur, Sandero**: Likely has a tyre inflation kit only — call us for a proper fitting
-4. **Call 0141 266 0690** — give your registration number for instant identification
+4. **Call 01932 509613** — give your registration number for instant identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Renault or Dacia tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Renault or Dacia tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Vauxhall tyre fitting Scotland](/blog/vauxhall-tyre-fitting-scotland)`,
   },
@@ -8350,11 +8350,11 @@ Tyre Rescue carries Volvo-compatible TPMS reset tools. Reset is included at no a
 
 1. **XC40 Recharge, C40, EX30, EX40**: No spare wheel — call us immediately
 2. **XC60, XC90, V60, V90**: May have a space-saver spare or puncture kit — check your boot
-3. **Call 0141 266 0690** — give your registration number for instant tyre identification
+3. **Call 01932 509613** — give your registration number for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Volvo tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Volvo tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
   },
@@ -8483,11 +8483,11 @@ Tyre Rescue carries Skoda-compatible (VW Group) TPMS reset tools. Reset is inclu
 
 1. **Enyaq iV, Enyaq Coupé**: No spare wheel — call us immediately
 2. **Octavia, Karoq, Kodiaq**: May have a space-saver spare — check your boot
-3. **Call 0141 266 0690** — give your registration number for instant tyre identification
+3. **Call 01932 509613** — give your registration number for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Skoda tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Skoda tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Volkswagen tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
   },
@@ -8598,11 +8598,11 @@ Tyre Rescue carries MINI/BMW-compatible TPMS reset tools. Reset is included at n
 1. **MINI Electric, Countryman Electric**: No spare wheel — call us immediately
 2. **MINI Hatchback, Convertible, Clubman**: Most have a space-saver spare or inflation kit — check your boot
 3. **JCW models**: Performance tyres are not run-flat — stop safely and call us
-4. **Call 0141 266 0690** — give your registration for instant identification
+4. **Call 01932 509613** — give your registration for instant identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile MINI tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile MINI tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
@@ -8715,11 +8715,11 @@ Tyre Rescue carries Honda-compatible TPMS reset tools. Reset is included at no a
 1. **Honda e**: No spare — call us immediately
 2. **Jazz, HR-V, Civic**: Check for a space-saver spare or inflation kit in the boot
 3. **CR-V**: Likely has a space-saver spare in the boot beneath the floor
-4. **Call 0141 266 0690** — give your registration for instant tyre identification
+4. **Call 01932 509613** — give your registration for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Honda tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Honda tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Nissan tyre fitting Scotland](/blog/nissan-tyre-fitting-scotland)`,
   },
@@ -8853,11 +8853,11 @@ Tyre Rescue carries VW Group-compatible TPMS reset tools for all SEAT and CUPRA 
 1. **CUPRA Born**: No spare wheel — call us immediately
 2. **CUPRA Formentor, Leon**: May have a space-saver spare or inflation kit
 3. **SEAT Ibiza, Arona, Leon**: Check boot for space-saver spare
-4. **Call 0141 266 0690** — give your registration for instant identification
+4. **Call 01932 509613** — give your registration for instant identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile SEAT or CUPRA tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile SEAT or CUPRA tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Volkswagen tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland) | [Skoda tyre fitting Scotland](/blog/skoda-tyre-fitting-scotland)`,
   },
@@ -8976,11 +8976,11 @@ This is shared with the Peugeot/Stellantis group procedure. Tyre Rescue carries 
 1. **ë-C3 Electric**: No spare — call us immediately
 2. **C3, C3 Aircross**: May have an inflation kit only — call us for a proper fitting
 3. **Berlingo van**: Check if it has a spare under the floor panel
-4. **Call 0141 266 0690** — give your registration for instant identification
+4. **Call 01932 509613** — give your registration for instant identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Citroen tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Citroen tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
   },
@@ -9108,11 +9108,11 @@ Tyre Rescue carries Mazda-compatible TPMS reset tools. Reset is included at no a
 1. **MX-30 Electric**: No spare — call us immediately
 2. **CX-5, CX-30, Mazda3**: May have a space-saver spare or inflation kit — check your boot
 3. **MX-5**: Typically has no spare due to the small boot — check for an inflation kit
-4. **Call 0141 266 0690** — give your registration for instant tyre identification
+4. **Call 01932 509613** — give your registration for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Mazda tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Mazda tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Honda tyre fitting Scotland](/blog/honda-tyre-fitting-scotland)`,
   },
@@ -9154,7 +9154,7 @@ The Suzuki Jimny (JB74, 2018–present) — iconic compact 4x4:
 | Jimny SZ3 / SZ5 | 195/80R15 |
 | Jimny Professional (commercial) | 195/80R15 |
 
-**Jimny tyre note**: The Jimny's 195/80R15 is an unusual size — tall-profile and narrow, designed for off-road grip and clearance. This size is specific to the Jimny and not common in all tyre ranges. We stock this size — call ahead on 0141 266 0690 to confirm availability before arriving.
+**Jimny tyre note**: The Jimny's 195/80R15 is an unusual size — tall-profile and narrow, designed for off-road grip and clearance. This size is specific to the Jimny and not common in all tyre ranges. We stock this size — call ahead on 01932 509613 to confirm availability before arriving.
 
 **Highland & rural note**: The Jimny is Suzuki's genuine off-roader. For Scottish terrain — farm tracks, forest roads, Highland estates — consider all-terrain (A/T) tyres in 195/80R15 for better grip and durability on rough surfaces. We can advise on A/T options for your Jimny.
 
@@ -9237,13 +9237,13 @@ If you have a flat tyre on your Suzuki anywhere in Scotland:
 2. **Vitara, S-Cross**: May have a space-saver spare in the boot
 3. **Swift, Ignis**: Likely has an inflation kit only — call us for a proper replacement
 4. **Across PHEV**: No spare wheel — call us immediately
-5. **Call 0141 266 0690** — give your registration for instant identification
+5. **Call 01932 509613** — give your registration for instant identification
 
 **Highlands note**: If you're in a remote Highland location with a flat Jimny, call us. We cover all of Scotland including rural areas. If you have a full-size spare, fit it safely off the road and then call us when you reach your destination for a replacement.
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Suzuki tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Suzuki tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Tyre fitting Inverness & Highlands](/mobile-tyre-fitting/inverness)`,
   },
@@ -9345,11 +9345,11 @@ Tyre Rescue carries Mitsubishi-compatible TPMS reset tools. Reset is included at
 1. **Outlander PHEV**: May have a space-saver spare — check the boot floor. No spare on some variants.
 2. **L200**: Usually has a full-size spare mounted under the truck bed
 3. **ASX, Eclipse Cross**: Check boot for a space-saver spare
-4. **Call 0141 266 0690** — give your registration for instant tyre identification
+4. **Call 01932 509613** — give your registration for instant tyre identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Mitsubishi tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Mitsubishi tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Land Rover tyre fitting Scotland](/blog/land-rover-range-rover-tyres-scotland)`,
   },
@@ -9468,11 +9468,11 @@ This applies to: Outback, Forester, XV, Legacy, Impreza AWD, Levorg, and WRX (no
 
 1. **Do not drive on a flat tyre** on any Subaru AWD — even briefly — as it will force different wheel speeds and stress the AWD system
 2. **Check for a spare** — most Subaru models have a full-size or space-saver spare in the boot
-3. **Call 0141 266 0690** — explain it's a Subaru AWD and we will advise on matching before ordering
+3. **Call 01932 509613** — explain it's a Subaru AWD and we will advise on matching before ordering
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min, Inverness ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Subaru tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Subaru tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Tyre rotation guide Scotland](/blog/tyre-rotation-guide-scotland)`,
   },
@@ -9603,7 +9603,7 @@ Tyre Rescue can supply and fit all-season tyres at your home, workplace, or road
 - Hankook Kinergy 4S2
 - Bridgestone Weather Control
 
-Call **0141 266 0690** or [book online](/book) to arrange fitting. Tell us your vehicle registration and we will quote the full price — tyre and fitting — before any work begins.
+Call **01932 509613** or [book online](/book) to arrange fitting. Tell us your vehicle registration and we will quote the full price — tyre and fitting — before any work begins.
 
 ## All-Season Tyres: Summary for Scottish Drivers
 
@@ -9747,7 +9747,7 @@ Pirelli is the right choice if you prioritise:
 
 Tyre Rescue can supply and fit Michelin, Continental, and Pirelli tyres across all of Scotland. We source genuine product — not counterfeit or grey-market tyres — and carry the most popular sizes on our vans.
 
-Call **0141 266 0690** or [book online](/book). Give us your registration number and we will confirm availability and quote the total price — tyre plus fitting — before any work begins.
+Call **01932 509613** or [book online](/book). Give us your registration number and we will confirm availability and quote the total price — tyre plus fitting — before any work begins.
 
 [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Budget tyres Scotland](/blog/best-budget-tyres-scotland-2026)`,
   },
@@ -9858,7 +9858,7 @@ The Alfa Romeo Stelvio (949, 2017–present):
 | Stelvio Veloce | 255/45R19 or 265/40R20 |
 | Stelvio Quadrifoglio | 255/35R21 (front), 285/30R21 (rear) |
 
-**Stelvio Quadrifoglio note**: The 255/35R21 and 285/30R21 are very large, low-profile tyres — extremely limited stock availability. Call 0141 266 0690 well before you need them to confirm availability.
+**Stelvio Quadrifoglio note**: The 255/35R21 and 285/30R21 are very large, low-profile tyres — extremely limited stock availability. Call 01932 509613 well before you need them to confirm availability.
 
 ## Alfa Romeo Tonale Tyre Sizes
 
@@ -9887,11 +9887,11 @@ Tyre Rescue carries Stellantis-compatible TPMS reset tools. Reset is included at
 1. **Fiat 500e**: No spare — call us immediately
 2. **Alfa Giulia/Stelvio Quadrifoglio**: No spare on most variants; staggered fitments require care
 3. **Fiat 500, Panda**: Often have a space-saver spare or inflation kit
-4. **Call 0141 266 0690** — give your registration for instant identification
+4. **Call 01932 509613** — give your registration for instant identification
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Fiat or Alfa Romeo tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Fiat or Alfa Romeo tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
   },
@@ -10022,7 +10022,7 @@ Tyre Rescue carries Porsche-compatible TPMS reset tools. Reset is included at no
 1. **Taycan, Macan Electric**: No spare wheel — call us immediately
 2. **Cayenne, Panamera**: May have a space-saver spare — check the boot
 3. **911, Boxster, Cayman**: Typically no spare — run-flat N-rated tyres on some models, otherwise call us
-4. **Call 0141 266 0690** — give your registration number; we identify Porsche tyre specifications immediately
+4. **Call 01932 509613** — give your registration number; we identify Porsche tyre specifications immediately
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -10034,7 +10034,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **EV tyre specialists** — correct load index and acoustic tyres for Taycan and Macan Electric
 - **All of Scotland** — from your Edinburgh driveway to a Highland hotel car park
 
-Call **0141 266 0690** or [book online](/book) for mobile Porsche tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Porsche tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland)`,
   },
@@ -10159,7 +10159,7 @@ Tyre Rescue carries Lexus-compatible TPMS reset tools. Reset is included at no a
 1. **UX 300e Electric**: No spare wheel — call us immediately
 2. **RX, NX, ES**: May have a space-saver spare in the boot — check before calling
 3. **IS, LC**: Check boot for space-saver spare
-4. **Call 0141 266 0690** — give your registration number; we identify your Lexus tyre specification immediately
+4. **Call 01932 509613** — give your registration number; we identify your Lexus tyre specification immediately
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
@@ -10171,7 +10171,7 @@ Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPON
 - **Quiet fitting** — our mobile service is ideal for Lexus drivers who appreciate low disruption
 - **All of Scotland** — Glasgow, Edinburgh, Aberdeen, Inverness, and beyond
 
-Call **0141 266 0690** or [book online](/book) for mobile Lexus tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Lexus tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
@@ -10291,11 +10291,11 @@ Tyre Rescue carries JLR-compatible TPMS reset tools. Reset is included at no add
 1. **I-Pace Electric**: No spare wheel — call us immediately
 2. **F-Pace, E-Pace**: May have a space-saver spare or inflation kit — check the boot
 3. **XE, XF, F-Type**: May have a run-flat (check for Jaguar run-flat marking on tyre sidewall) or a space-saver spare
-4. **Call 0141 266 0690** — give your registration number; we identify your Jaguar's tyre specification immediately
+4. **Call 01932 509613** — give your registration number; we identify your Jaguar's tyre specification immediately
 
 Response times: Glasgow ${SEO_RESPONSE_TIME_MINUTES} min, Edinburgh ${SEO_RESPONSE_TIME_MINUTES} min, Aberdeen ${SEO_RESPONSE_TIME_MINUTES} min.
 
-Call **0141 266 0690** or [book online](/book) for mobile Jaguar tyre fitting at your location.
+Call **01932 509613** or [book online](/book) for mobile Jaguar tyre fitting at your location.
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Land Rover and Range Rover tyres Scotland](/blog/land-rover-range-rover-tyres-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
   },
@@ -10418,7 +10418,7 @@ Premium tyres (£80–£300+ per tyre) offer the best wet braking, tread life, a
 | Land Rover Discovery Sport | 235/55R19 | £95 | £195 |
 | BMW X5 | 255/50R19 | £110 | £220 |
 
-*All prices are approximate and subject to confirmation. Call 0141 266 0690 for your exact quote.*
+*All prices are approximate and subject to confirmation. Call 01932 509613 for your exact quote.*
 
 ## Getting the Total Cost Right
 
@@ -10447,7 +10447,7 @@ Tyre Rescue gives you a full itemised quote over the phone before we dispatch. W
 
 No surprises when we arrive.
 
-Call **0141 266 0690** or [book online](/book) to get your tyre price and fitting quote for anywhere in Scotland.
+Call **01932 509613** or [book online](/book) to get your tyre price and fitting quote for anywhere in Scotland.
 
 [Pricing FAQ](/pricing-faq) | [Best budget tyres Scotland](/blog/best-budget-tyres-scotland-2026) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
   },
@@ -10455,7 +10455,7 @@ Call **0141 266 0690** or [book online](/book) to get your tyre price and fittin
     slug: 'mobile-tyre-fitting-glasgow-guide',
     title: 'Mobile Tyre Fitting Glasgow: Response Times, Prices & Coverage',
     description:
-      'Mobile tyre fitting across all of Glasgow — home, office, car park, or roadside. Response times by area, prices, and coverage from G1 to G78. Emergency callout 24/7. Call 0141 266 0690.',
+      'Mobile tyre fitting across all of Glasgow — home, office, car park, or roadside. Response times by area, prices, and coverage from G1 to G78. Emergency callout 24/7. Call 01932 509613.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
@@ -10579,12 +10579,12 @@ Our Glasgow callouts most commonly involve:
 1. **Move your vehicle to a safe location** — if on the M8 or M74, use the hard shoulder. If in the city, pull into a car park or side street if possible.
 2. **Turn on your hazard lights** immediately.
 3. **Do not drive on a completely flat tyre** — it will destroy the wheel rim.
-4. **Call 0141 266 0690** — we answer 24/7. Give your postcode or nearest landmark and your vehicle registration.
+4. **Call 01932 509613** — we answer 24/7. Give your postcode or nearest landmark and your vehicle registration.
 5. **For motorway breakdowns**, stand well away from the vehicle behind the Armco barrier until we arrive.
 
 ## Booking Mobile Tyre Fitting in Glasgow
 
-**Emergency (immediate need)**: Call 0141 266 0690. We will give you an ETA and quote immediately.
+**Emergency (immediate need)**: Call 01932 509613. We will give you an ETA and quote immediately.
 
 **Scheduled (planned fitting)**: [Book online](/book) — choose your date, time, and location. We will confirm your tyre and arrive at the agreed time. Great for home, office, or planned replacements.
 
@@ -10599,7 +10599,7 @@ Our Glasgow callouts most commonly involve:
 - **TPMS reset included** — no warning lights left on your dashboard
 - **Old tyre recycled** — we take the old tyre away for proper disposal
 
-Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere in Glasgow.
+Call **01932 509613** or [book online](/book) for mobile tyre fitting anywhere in Glasgow.
 
 [All Glasgow service areas](/mobile-tyre-fitting/glasgow) | [Emergency tyre fitting Glasgow](/emergency-tyre-fitting-near-me) | [24 hour tyre fitting](/24-hour-tyre-fitting)`,
   },
@@ -10759,7 +10759,7 @@ Worth choosing for: Performance cars, EVs/PHEVs, high-mileage drivers, safety-co
 
 Tyre Rescue can source and fit any of the tyres described in this guide, at your home, workplace, or roadside across all of Scotland. We confirm the correct specification — size, load index, speed rating, and season type — before fitting any tyre.
 
-Call **0141 266 0690** or [book online](/book). Give us your vehicle registration and tell us what you need — we will quote the full price and arrange fitting at your convenience.
+Call **01932 509613** or [book online](/book). Give us your vehicle registration and tell us what you need — we will quote the full price and arrange fitting at your convenience.
 
 [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [All-season tyres guide](/blog/all-season-tyres-scotland-guide) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
   },
@@ -10877,7 +10877,7 @@ Our tyre recommendation for MG4 and MG ZS EV owners: **Michelin Pilot Sport EV**
 
 ## Book Mobile Tyre Fitting for Your MG in Scotland
 
-Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call **0141 266 0690** or [book online](/book) — we cover all of Scotland 24 hours a day.
+Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call **01932 509613** or [book online](/book) — we cover all of Scotland 24 hours a day.
 
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
@@ -11004,7 +11004,7 @@ In Highland Scotland, the EV9 performs well as a large EV in winter conditions. 
 
 ---
 
-Call **0141 266 0690** for Kia EV9 tyre fitting across Scotland. We source 255/45R21 and 285/40R21 with delivery to your location.
+Call **01932 509613** for Kia EV9 tyre fitting across Scotland. We source 255/45R21 and 285/40R21 with delivery to your location.
 
 [Kia tyre fitting guide Scotland](/blog/kia-tyre-fitting-scotland) | [EV tyre fitting Scotland](/blog/ev-tyre-fitting-scotland) | [EV range and tyres Scotland](/blog/ev-range-anxiety-tyres-scotland)`,
   },
@@ -11126,7 +11126,7 @@ Some scenarios where a traditional garage may be cheaper or more appropriate:
 
 ---
 
-Call **0141 266 0690** or [book online](/book) for a quote. Give us your registration number and we can quote tyre prices immediately.
+Call **01932 509613** or [book online](/book) for a quote. Give us your registration number and we can quote tyre prices immediately.
 
 [Mobile tyre fitting vs garage](/blog/mobile-tyre-fitting-vs-garage) | [Tyre prices Scotland](/blog/tyre-prices-scotland-guide-2026) | [Budget tyres Scotland](/blog/budget-tyres-scotland-guide)`,
   },
@@ -11165,7 +11165,7 @@ If you need tyres fitted today — whether it is an emergency flat, a TPMS warni
 
 For same-day appointments, **calling is faster than booking online**. Our team can check real-time availability and dispatch a fitter much more quickly by phone.
 
-**Call: 0141 266 0690**
+**Call: 01932 509613**
 
 When you call, have ready:
 - Your postcode or location
@@ -11235,7 +11235,7 @@ The fitting takes 20–30 minutes for one tyre and 45–60 minutes for two. TPMS
 
 ---
 
-Call now for same-day availability across Scotland: **0141 266 0690**
+Call now for same-day availability across Scotland: **01932 509613**
 
 [How mobile tyre fitting works](/blog/mobile-tyre-fitting-process-scotland) | [Mobile tyre fitting vs garage](/blog/mobile-tyre-fitting-vs-garage) | [All emergency tyre fitting services](/emergency-tyre-fitting-near-me)`,
   },
@@ -11352,7 +11352,7 @@ Cold also makes overinflated tyre problems worse — the compound is already sti
 
 Tyre Rescue provides pressure checks as part of every service visit. We always inflate to the correct vehicle-specific pressure, not the tyre maximum.
 
-Call **0141 266 0690** or [book online](/book) for tyre fitting and inspection across Scotland.
+Call **01932 509613** or [book online](/book) for tyre fitting and inspection across Scotland.
 
 [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland)`,
   },
@@ -11467,7 +11467,7 @@ Contact us if:
 
 Normal new tyre noise should decrease over the first 500 miles. If it gets worse, that is a sign of a problem.
 
-Call **0141 266 0690** — fitting issues are always addressed free of charge.
+Call **01932 509613** — fitting issues are always addressed free of charge.
 
 [Why are my tyres noisy?](/blog/noisy-tyres-causes-scotland) | [Car vibrating after new tyres?](/blog/car-vibrating-after-new-tyres-scotland) | [Wheel balancing vs alignment](/blog/wheel-alignment-vs-balancing-scotland)`,
   },
@@ -11597,7 +11597,7 @@ Alfa Romeo performance models (Giulia Q, Stelvio Q) are typically fitted with su
 
 Tyre Rescue provides mobile Alfa Romeo tyre fitting across Scotland. We carry 225/45R18 and 235/50R19 in performance-spec options and can source Quadrifoglio staggered sizes.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Staggered tyre fitment explained](/blog/staggered-tyre-fitment-scotland) | [Run-flat tyres Scotland](/blog/run-flat-tyres-scotland-guide)`,
   },
@@ -11716,7 +11716,7 @@ Tyre Rescue carries common performance staggered sizes in our Scottish mobile un
 
 ---
 
-Call **0141 266 0690** for staggered fitment tyre replacement across Scotland. We carry front and rear separately as your vehicle requires.
+Call **01932 509613** for staggered fitment tyre replacement across Scotland. We carry front and rear separately as your vehicle requires.
 
 [Polestar tyre fitting Scotland](/blog/polestar-tyre-fitting-scotland) | [Genesis tyre fitting Scotland](/blog/genesis-tyre-fitting-scotland) | [Do I need to change all 4 tyres?](/blog/do-i-need-to-change-all-4-tyres-scotland)`,
   },
@@ -11808,7 +11808,7 @@ Learning this before it happens is essential. An unexpected tyre failure is frig
 5. Pull onto the hard shoulder, lay-by, or road edge safely
 6. Apply the handbrake, switch on hazard lights
 7. Get out of the car on the left (passenger) side, away from traffic
-8. Call for help — Tyre Rescue: 0141 266 0690
+8. Call for help — Tyre Rescue: 01932 509613
 
 **Important**: new drivers should practice saying "I'll steer gently left and pull over safely" in their minds before the situation occurs. In a sudden emergency, having this response rehearsed helps prevent panic reactions.
 
@@ -11848,7 +11848,7 @@ If you are a driving instructor in Scotland needing tyre replacement with minimu
 
 ---
 
-Call **0141 266 0690** for mobile tyre fitting for new drivers, first cars, and driving instructor vehicles across Scotland. Appointments 7 days a week.
+Call **01932 509613** for mobile tyre fitting for new drivers, first cars, and driving instructor vehicles across Scotland. Appointments 7 days a week.
 
 [Tread depth guide Scotland](/blog/tyre-tread-depth-guide-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [7 signs you need new tyres](/blog/signs-you-need-new-tyres-scotland)`,
   },
@@ -11977,7 +11977,7 @@ Tyre Rescue stocks EV-specific tyres in the most common Tesla, BMW, Mercedes, Hy
 
 We fit EV tyres with TPMS reset as standard, and we always use correct EV jack points (EV chassis points are different from petrol/diesel vehicles — wrong jacking point placement can damage the battery).
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [EV tyre fitting Scotland](/blog/ev-tyre-fitting-scotland) | [Fuel efficient tyres Scotland](/blog/fuel-efficient-tyres-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland)`,
   },
@@ -12082,7 +12082,7 @@ This recommendation applies to all drive layouts — FWD, RWD, and AWD.
 
 ---
 
-Call **0141 266 0690** for mobile tyre fitting across Scotland. We stock a wide range of brands and can usually match your existing tyres for same-axle consistency.
+Call **01932 509613** for mobile tyre fitting across Scotland. We stock a wide range of brands and can usually match your existing tyres for same-axle consistency.
 
 [Do I need to change all 4 tyres?](/blog/do-i-need-to-change-all-4-tyres-scotland) | [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Run-flat tyres Scotland](/blog/run-flat-tyres-scotland-guide)`,
   },
@@ -12219,7 +12219,7 @@ Tyre Rescue solves this by coming to you:
 
 We are available across all of Scotland including Glasgow, Edinburgh, Aberdeen, Dundee, and surrounding areas.
 
-Call **0141 266 0690** — for urgent same-day service, calling is faster than online booking.
+Call **01932 509613** — for urgent same-day service, calling is faster than online booking.
 
 [Taxi and private hire tyre guide](/blog/taxi-private-hire-tyre-requirements-scotland) | [Fleet tyre management Scotland](/blog/fleet-tyre-management-scotland) | [Budget tyres Scotland](/blog/budget-tyres-scotland-guide)`,
   },
@@ -12349,7 +12349,7 @@ Tyre Rescue operates mobile tyre fitting across all of Scotland with appointment
 
 For Central Belt drivers wanting to inspect and replace worn summer tyres before winter: same-week appointments are often available.
 
-Call **0141 266 0690** or [book online](/book). When booking, let us know:
+Call **01932 509613** or [book online](/book). When booking, let us know:
 - Whether you want an inspection only, replacement tyres, or seasonal changeover
 - Whether you are returning to stored winter wheels or need tyres sourced
 - Your preferred appointment time and whether home, work, or roadside is your preference
@@ -12471,11 +12471,11 @@ When calling Tyre Rescue, mention:
 **Before any long journey**:
 - Full pressure check including spare
 - Sidewall inspection
-- Confirm you have the Tyre Rescue number: **0141 266 0690**
+- Confirm you have the Tyre Rescue number: **01932 509613**
 
 ---
 
-Call Tyre Rescue for mobile tyre fitting at your home across all of Scotland. Appointments available 7 days a week, including evenings. Call **0141 266 0690** or [book online](/book).
+Call Tyre Rescue for mobile tyre fitting at your home across all of Scotland. Appointments available 7 days a week, including evenings. Call **01932 509613** or [book online](/book).
 
 [Signs you need new tyres Scotland](/blog/signs-you-need-new-tyres-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [How long do tyres last Scotland](/blog/how-long-do-tyres-last-scotland)`,
   },
@@ -12599,7 +12599,7 @@ Before any long Scottish journey:
 5. Check age (DOT code) — replace if over 10 years
 6. Ensure you have the wheel brace and jack to fit it
 
-If you cannot check the spare, at minimum ensure you have the Tyre Rescue number in your phone: **0141 266 0690**
+If you cannot check the spare, at minimum ensure you have the Tyre Rescue number in your phone: **01932 509613**
 
 ---
 
@@ -12746,7 +12746,7 @@ If you are unsure, err on the side of caution. Call Tyre Rescue and describe wha
 
 ---
 
-Call **0141 266 0690** for post-accident tyre inspection and replacement across Scotland. We carry common tyre sizes and come to your location.
+Call **01932 509613** for post-accident tyre inspection and replacement across Scotland. We carry common tyre sizes and come to your location.
 
 [Pothole damage claim Scotland](/blog/pothole-damage-claim-scotland) | [Tyre sidewall damage Scotland](/blog/tyre-sidewall-damage-scotland) | [Low profile tyre guide Scotland](/blog/low-profile-tyres-scotland-guide)`,
   },
@@ -12858,7 +12858,7 @@ For any significant Argyll journey:
 ---
 
 **Emergency contacts for Argyll**:
-- Tyre Rescue Scotland: **0141 266 0690** (covers Argyll mainland, coordinates island deliveries)
+- Tyre Rescue Scotland: **01932 509613** (covers Argyll mainland, coordinates island deliveries)
 - CalMac ferry information: 0800 066 5000
 - Police Scotland non-emergency: 101
 
@@ -12904,7 +12904,7 @@ Many modern cars have no spare tyre — only a tyre sealant kit. Know how to use
 
 If your car has no inflation kit, a portable 12V compressor (£20–£40) is one of the most useful items you can carry. It connects to your car's 12V socket and can inflate a tyre with a slow puncture enough to get you to a safe location.
 
-**Important**: sealant kits only work on small tread punctures. They will not help with sidewall damage or large holes — in those cases, call Tyre Rescue on 0141 266 0690.
+**Important**: sealant kits only work on small tread punctures. They will not help with sidewall damage or large holes — in those cases, call Tyre Rescue on 01932 509613.
 
 ### Tyre Pressure Gauge
 Check your pressures before every winter journey. Cold temperatures reduce tyre pressure — a tyre that was at 33 PSI in summer may read 30 PSI after a hard frost.
@@ -12955,7 +12955,7 @@ Before any winter journey, charge your phone fully. If you break down in a remot
 
 ### Emergency Contacts List
 Save these in your phone:
-- Tyre Rescue: **0141 266 0690** (tyre emergencies across Scotland)
+- Tyre Rescue: **01932 509613** (tyre emergencies across Scotland)
 - Police Scotland: **101** (non-emergency) / **999** (emergency)
 - Traffic Scotland road condition updates: 0800 028 1414
 - Your breakdown cover provider
@@ -12986,7 +12986,7 @@ Before any significant winter journey on Scottish roads:
 
 A tyre emergency in a remote location — sidewall damage, flat tyre with no sealant option, blowout — requires professional help.
 
-Tyre Rescue covers all of Scotland, including Highland areas. We carry common tyre sizes in our vans. If you break down on the A9, A82, A87, or any Scottish road, call **0141 266 0690** and tell us your exact location — the nearest junction, road sign, or landmark — and we will dispatch a fitter.
+Tyre Rescue covers all of Scotland, including Highland areas. We carry common tyre sizes in our vans. If you break down on the A9, A82, A87, or any Scottish road, call **01932 509613** and tell us your exact location — the nearest junction, road sign, or landmark — and we will dispatch a fitter.
 
 [Winter tyres Scotland guide](/blog/winter-tyres-scotland-buyers-guide-2026) | [Driving on snow and ice Scotland](/blog/driving-snow-ice-tyre-advice-scotland) | [NC500 tyre guide](/blog/nc500-tyre-guide-scotland)`,
   },
@@ -13099,7 +13099,7 @@ For Glasgow Airport or Edinburgh Airport-based drivers, we can fit tyres at the 
 
 ---
 
-Call **0141 266 0690** for taxi and PHV tyre fitting across Scotland. We operate across Glasgow, Edinburgh, Aberdeen, Dundee, and surrounding areas. Evening and weekend appointments available.
+Call **01932 509613** for taxi and PHV tyre fitting across Scotland. We operate across Glasgow, Edinburgh, Aberdeen, Dundee, and surrounding areas. Evening and weekend appointments available.
 
 [Fleet tyre management Scotland](/blog/fleet-tyre-management-scotland) | [Do I need to change all 4 tyres?](/blog/do-i-need-to-change-all-4-tyres-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland)`,
   },
@@ -13155,7 +13155,7 @@ Any visible damage to the tyre sidewall is a serious warning sign:
 - **Crack running along the sidewall**: age-related cracking is a sign of tyre deterioration. Deep cracks (you can see into them) mean replacement.
 - **Scuffed sidewall**: shallow abrasion from kerbing without cutting into the cords is usually not structural — but have it inspected.
 
-If you can see a bubble or cord, pull over immediately and call Tyre Rescue on 0141 266 0690.
+If you can see a bubble or cord, pull over immediately and call Tyre Rescue on 01932 509613.
 
 ---
 
@@ -13223,7 +13223,7 @@ Some situations require you to stop and call Tyre Rescue rather than continuing 
 | Loud bang while driving | Pull over and inspect all four tyres |
 | Car pulling sharply to one side | Stop safely and inspect — possible sudden deflation |
 
-Call **0141 266 0690** for mobile tyre replacement across Scotland — we come to you, at your home, workplace, or roadside.
+Call **01932 509613** for mobile tyre replacement across Scotland — we come to you, at your home, workplace, or roadside.
 
 [Tread depth guide Scotland](/blog/tyre-tread-depth-guide-scotland) | [How long do tyres last](/blog/how-long-do-tyres-last-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland)`,
   },
@@ -13336,7 +13336,7 @@ If a sensor needs replacing (battery failure after 5–7 years, or damage from a
 
 ---
 
-Call **0141 266 0690** for Smart #1 and Smart #3 tyre fitting across Scotland. We stock 235/45R19 in compatible brands and can source 245/45R19 for Brabus models.
+Call **01932 509613** for Smart #1 and Smart #3 tyre fitting across Scotland. We stock 235/45R19 in compatible brands and can source 245/45R19 for Brabus models.
 
 [EV tyre guide Scotland](/blog/ev-tyre-fitting-scotland) | [MG EV tyre fitting Scotland](/blog/mg-motor-tyre-fitting-scotland) | [BYD tyre fitting Scotland](/blog/byd-tyre-fitting-scotland)`,
   },
@@ -13502,7 +13502,7 @@ If you are not sure what size or specification your vehicle needs:
 2. Check the fuel cap sticker on some vehicles
 3. Read the current tyre sidewall — if they were originally fitted, they are likely the correct size
 
-Call **0141 266 0690** or [book online](/book) for expert advice on tyre specification and mobile fitting across Scotland.
+Call **01932 509613** or [book online](/book) for expert advice on tyre specification and mobile fitting across Scotland.
 
 [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Run-flat tyres Scotland](/blog/run-flat-tyres-scotland-guide) | [Tyre age limit Scotland](/blog/tyre-age-limit-scotland)`,
   },
@@ -13624,7 +13624,7 @@ Tyre Rescue performs TPMS reset as standard with every tyre change.
 
 ---
 
-Call **0141 266 0690** for Amarok tyre fitting across Scotland. We stock 255/60R18 in both road and AT patterns, and can source 265/60R18 options. Mobile fitting to your location — farm, business address, or home.
+Call **01932 509613** for Amarok tyre fitting across Scotland. We stock 255/60R18 in both road and AT patterns, and can source 265/60R18 options. Mobile fitting to your location — farm, business address, or home.
 
 [Ford Ranger tyre fitting Scotland](/blog/ford-ranger-tyre-fitting-scotland) | [Isuzu D-Max tyre fitting Scotland](/blog/isuzu-dmax-tyre-fitting-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland)`,
   },
@@ -13762,7 +13762,7 @@ Before any Scottish Highland route — especially if you are working on rural pr
 
 Tyre Rescue provides mobile tyre fitting for Ford Rangers across all of Scotland — from urban Glasgow and Edinburgh to rural Aberdeenshire, Perthshire, and the Highlands. We stock 255/65R17, 255/60R18, and common AT tyre sizes.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [Isuzu D-Max tyre fitting Scotland](/blog/isuzu-dmax-tyre-fitting-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland)`,
   },
@@ -13875,7 +13875,7 @@ Under-inflated motorhome tyres are a significant safety risk at motorway speeds.
 4. Rear pressures typically increase more than front in full-load configuration
 5. Check the caravan handbook for caravan tyre pressures separately
 
-Call **0141 266 0690** if you need tyres checked, inflated, or replaced before a Scottish tour. We operate mobile tyre fitting across all of Scotland.
+Call **01932 509613** if you need tyres checked, inflated, or replaced before a Scottish tour. We operate mobile tyre fitting across all of Scotland.
 
 [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [NC500 tyre guide Scotland](/blog/nc500-tyre-guide-scotland) | [Caravan motorhome tyres Scotland](/blog/caravan-motorhome-tyre-fitting-scotland)`,
   },
@@ -14004,7 +14004,7 @@ Tyre Rescue can provide a written assessment of the damage on request, which can
 
 ---
 
-Call **0141 266 0690** for emergency or scheduled low-profile tyre replacement across Scotland. We carry 40 and 45-series tyres for the most common BMW, Mercedes, Audi, and VW fitments in our mobile units.
+Call **01932 509613** for emergency or scheduled low-profile tyre replacement across Scotland. We carry 40 and 45-series tyres for the most common BMW, Mercedes, Audi, and VW fitments in our mobile units.
 
 [Pothole damage claim Scotland](/blog/pothole-damage-claim-scotland) | [Tyre sidewall damage Scotland](/blog/tyre-sidewall-damage-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland)`,
   },
@@ -14116,7 +14116,7 @@ At Tyre Rescue, we do not fit or sell used tyres. Our view is that the hidden ri
 
 For Scottish drivers on tight budgets, we recommend good-quality budget new tyres (Nankang, Hankook, Nexen) over part-worn alternatives. The cost difference is much smaller than it appears, and the safety difference is significant.
 
-Call **0141 266 0690** or [get a quote online](/book) for new tyre fitting across Scotland.
+Call **01932 509613** or [get a quote online](/book) for new tyre fitting across Scotland.
 
 [Budget tyres Scotland](/blog/budget-tyres-scotland-guide) | [Tyre age limits Scotland](/blog/tyre-age-limit-scotland) | [Tyre sidewall damage](/blog/tyre-sidewall-damage-scotland)`,
   },
@@ -14246,7 +14246,7 @@ If you are unsure of your tyre age:
 3. If any tyre is over 6 years old, have it inspected
 4. If any tyre is over 10 years old, replace it — regardless of tread depth or visual condition
 
-Call **0141 266 0690** for mobile tyre replacement across Scotland. We will check the age codes on your existing tyres free of charge as part of any service visit.
+Call **01932 509613** for mobile tyre replacement across Scotland. We will check the age codes on your existing tyres free of charge as part of any service visit.
 
 [How long do tyres last Scotland](/blog/how-long-do-tyres-last-scotland) | [MOT tyre requirements Scotland](/blog/mot-tyre-requirements-scotland) | [Caravan motorhome tyres Scotland](/blog/caravan-motorhome-tyre-fitting-scotland)`,
   },
@@ -14376,7 +14376,7 @@ When you call, tell us:
 
 Some very rare sizes may require ordering — allow 5–7 working days for sourcing.
 
-Call **0141 266 0690** for classic car tyre sourcing and fitting across all of Scotland.
+Call **01932 509613** for classic car tyre sourcing and fitting across all of Scotland.
 
 [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [INEOS Grenadier tyre guide](/blog/ineos-grenadier-tyre-fitting-scotland) | [How long do tyres last](/blog/how-long-do-tyres-last-scotland)`,
   },
@@ -14518,7 +14518,7 @@ For Central Belt drivers who do not regularly encounter snow/ice, a high-quality
 
 ---
 
-Call **0141 266 0690** or [book online](/book) to order and fit eco tyres across Scotland. Our fitters can advise on the best economy option for your vehicle, driving profile, and budget.
+Call **01932 509613** or [book online](/book) to order and fit eco tyres across Scotland. Our fitters can advise on the best economy option for your vehicle, driving profile, and budget.
 
 [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [Summer vs winter vs all-season tyres Scotland](/blog/summer-vs-winter-vs-all-season-tyres-scotland)`,
   },
@@ -14609,7 +14609,7 @@ This is the one scenario where nitrogen provides a practical, tangible benefit f
 
 ---
 
-Tyre Rescue focuses on what actually makes a difference to tyre safety and longevity: correct pressure, correct tyre specification, BSAU159 repairs, and proper balancing. Call **0141 266 0690** or [book online](/book).
+Tyre Rescue focuses on what actually makes a difference to tyre safety and longevity: correct pressure, correct tyre specification, BSAU159 repairs, and proper balancing. Call **01932 509613** or [book online](/book).
 
 [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [Winter tyre storage Scotland](/blog/winter-tyre-storage-scotland) | [Budget tyres Scotland](/blog/budget-tyres-scotland-guide)`,
   },
@@ -14758,7 +14758,7 @@ When you call, tell us:
 - Whether you need run-flat or would consider switching to standard
 - How far you drove after the TPMS warned (we will advise on repairability)
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Mercedes tyre fitting Scotland](/blog/mercedes-tyre-fitting-scotland) | [Can I drive on a flat tyre?](/blog/can-i-drive-on-flat-tyre-scotland)`,
   },
@@ -14896,7 +14896,7 @@ At typical Scottish mileage (8,000–10,000 miles/year), the cost-per-mile diffe
 
 ---
 
-Tyre Rescue supplies and fits tyres across all tiers — budget, mid-range, and premium — across all of Scotland. Call **0141 266 0690** or [get a quote online](/book) to find the best tyre for your budget and driving profile.
+Tyre Rescue supplies and fits tyres across all tiers — budget, mid-range, and premium — across all of Scotland. Call **01932 509613** or [get a quote online](/book) to find the best tyre for your budget and driving profile.
 
 [Full tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Michelin vs Continental vs Pirelli Scotland](/blog/michelin-vs-continental-vs-pirelli-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -15039,7 +15039,7 @@ Tyre Rescue provides mobile tyre fitting for caravans and motorhomes across Scot
 
 ---
 
-Call **0141 266 0690** for mobile caravan and motorhome tyre fitting across Scotland. We serve locations from Glasgow and Edinburgh north to Inverness, Aviemore, and the Highland routes.
+Call **01932 509613** for mobile caravan and motorhome tyre fitting across Scotland. We serve locations from Glasgow and Edinburgh north to Inverness, Aviemore, and the Highland routes.
 
 [NC500 tyre guide Scotland](/blog/nc500-tyre-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [How long do tyres last](/blog/how-long-do-tyres-last-scotland)`,
   },
@@ -15178,7 +15178,7 @@ After any significant pothole impact, check your tyres for sidewall damage first
 
 ---
 
-Tyre Rescue provides mobile tyre fitting with balancing included across all of Scotland. Call **0141 266 0690** or [book online](/book).
+Tyre Rescue provides mobile tyre fitting with balancing included across all of Scotland. Call **01932 509613** or [book online](/book).
 
 [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland) | [Vibration after new tyres](/blog/car-vibrating-after-new-tyres-scotland) | [Tyre rotation guide](/blog/tyre-rotation-guide-scotland)`,
   },
@@ -15302,7 +15302,7 @@ Scotland's MOT testers will check that the TPMS light illuminates during the bul
 
 ---
 
-Call **0141 266 0690** for mobile tyre fitting across Scotland — we handle TPMS sensor replacement, tyre fitting, and reset as a complete service.
+Call **01932 509613** for mobile tyre fitting across Scotland — we handle TPMS sensor replacement, tyre fitting, and reset as a complete service.
 
 [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [Slow puncture causes](/blog/slow-puncture-causes-scotland) | [Can I drive on a flat tyre?](/blog/can-i-drive-on-flat-tyre-scotland)`,
   },
@@ -15420,7 +15420,7 @@ If you are replacing two tyres, you save on the pair you do not replace — but 
 
 When you call or book online, tell us your existing tyre tread depths — we can advise on the most cost-effective approach for your specific situation.
 
-Call **0141 266 0690** or [book online](/book) for mobile tyre fitting across Scotland.
+Call **01932 509613** or [book online](/book) for mobile tyre fitting across Scotland.
 
 [Tyre rotation guide Scotland](/blog/tyre-rotation-guide-scotland) | [Subaru AWD tyre guide](/blog/subaru-tyre-fitting-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland)`,
   },
@@ -15507,7 +15507,7 @@ If you are not sure whether your car has run-flat tyres, assume it does not — 
 ## The Specific Scenarios
 
 ### Flat tyre on a live road or motorway
-**Do not drive**. Put hazard lights on. Move to the hard shoulder (motorway) or as far left as possible. Call **0141 266 0690** or 999 if unsafe. Wait for help.
+**Do not drive**. Put hazard lights on. Move to the hard shoulder (motorway) or as far left as possible. Call **01932 509613** or 999 if unsafe. Wait for help.
 
 ### Flat tyre in a car park or on your driveway
 You are in the safest possible situation. Call for mobile fitting — Tyre Rescue will come to you. There is no need to drive anywhere.
@@ -15516,14 +15516,14 @@ You are in the safest possible situation. Call for mobile fitting — Tyre Rescu
 You have time to react. Inflate at a petrol station air pump and drive carefully to a tyre centre or call Tyre Rescue. Do not drive at motorway speed on a significantly underinflated tyre.
 
 ### Flat tyre on a single-track Highland road
-Find the nearest passing place and stop safely. Call **0141 266 0690** and give us your location. We will advise on response time. Do not drive on a single-track road with a flat tyre — the uneven surface will destroy the tyre and rim within metres.
+Find the nearest passing place and stop safely. Call **01932 509613** and give us your location. We will advise on response time. Do not drive on a single-track road with a flat tyre — the uneven surface will destroy the tyre and rim within metres.
 
 ## The Bottom Line
 
 Driving on a completely flat tyre causes expensive tyre and potentially wheel damage within a very short distance. The right call is almost always:
 
 1. Stop safely
-2. Call Tyre Rescue on **0141 266 0690** for mobile fitting
+2. Call Tyre Rescue on **01932 509613** for mobile fitting
 
 We come to you anywhere in Scotland — no need to risk the tyre, the wheel, or your safety by driving on flat.
 
@@ -15559,7 +15559,7 @@ Mobile tyre fitting can seem mysterious if you have never used the service befor
 
 ## Step 1: Booking
 
-**Online or phone**: you can book via tyrerescue.uk/book or call **0141 266 0690**.
+**Online or phone**: you can book via tyrerescue.uk/book or call **01932 509613**.
 
 **What we need at booking**:
 - Your vehicle registration (so we can confirm the correct tyre size and load index)
@@ -15683,7 +15683,7 @@ For emergency roadside callouts: **yes, you should remain with the vehicle.**
 - **Confirmation of your vehicle's correct tyre spec** (the technician will confirm this, but knowing your size helps)
 - **Payment method** — card, Apple Pay, or bank transfer
 
-Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere in Scotland.
+Call **01932 509613** or [book online](/book) for mobile tyre fitting anywhere in Scotland.
 
 [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [BSAU159 repair standards](/blog/tyre-repair-standards-scotland-bsau159) | [Mobile tyre fitting Glasgow guide](/blog/mobile-tyre-fitting-glasgow-guide)`,
   },
@@ -15791,7 +15791,7 @@ Hybrid vehicles now make up a significant proportion of new car sales in Scotlan
 
 Tyre Rescue fits tyres for all hybrid types across Scotland. We confirm the correct load index before any fitting and carry a broad range of common hybrid sizes in our mobile vans.
 
-Call **0141 266 0690** or [book online](/book) — cover all of Scotland 24 hours.
+Call **01932 509613** or [book online](/book) — cover all of Scotland 24 hours.
 
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Kia tyre fitting Scotland](/blog/kia-tyre-fitting-scotland)`,
   },
@@ -15910,7 +15910,7 @@ Every puncture repair carried out by Tyre Rescue follows BSAU159:
 
 **Cost**: £25 per tyre for a BSAU159-compliant puncture repair at your location across Scotland.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [Slow puncture guide Scotland](/blog/slow-puncture-causes-scotland) | [Tyre sealant vs repair guide](/blog/tyre-sealant-spray-vs-repair-scotland) | [Part-worn tyres safety guide](/blog/part-worn-tyres-scotland-are-they-safe)`,
   },
@@ -15975,7 +15975,7 @@ The legal minimum in Scotland is 1.6mm — but this is insufficient for winter d
 | Below 2mm | Poor. Do not drive in snowy/icy conditions. |
 | 1.6mm (legal limit) | Minimum legal — replace immediately. |
 
-If your tyres are below 4mm and winter is approaching, book a replacement. Call Tyre Rescue on **0141 266 0690** for mobile fitting at your home or work before the first snow arrives.
+If your tyres are below 4mm and winter is approaching, book a replacement. Call Tyre Rescue on **01932 509613** for mobile fitting at your home or work before the first snow arrives.
 
 ### Tyre Type in Snow
 
@@ -16047,12 +16047,12 @@ Getting a flat tyre in Scottish winter conditions is a more serious emergency th
 
 1. Pull over safely — snow-covered hard shoulders can hide debris and drops. Use hazard lights.
 2. Do not change a tyre on a live road in winter without appropriate warning equipment.
-3. Call Tyre Rescue on **0141 266 0690** — we attend winter callouts across Scotland.
+3. Call Tyre Rescue on **01932 509613** — we attend winter callouts across Scotland.
 4. If you have a spare and feel safe to change it, be cautious of slippery conditions around the vehicle.
 
 **Keep Tyre Rescue's number in your phone before you drive in winter conditions.** A few seconds of preparation is worth hours of waiting for help.
 
-Call **0141 266 0690** or [book online](/book) for winter tyre fitting across Scotland before the season begins.
+Call **01932 509613** or [book online](/book) for winter tyre fitting across Scotland before the season begins.
 
 [Winter tyres Scotland 2026 guide](/blog/winter-tyres-scotland-buyers-guide-2026) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [What to do in a tyre blowout](/blog/tyre-blowout-emergency-guide-scotland)`,
   },
@@ -16231,7 +16231,7 @@ For most Scottish drivers outside the Highlands: **all-season tyres with 3PMSF r
 
 For Highland, Aberdeenshire, and rural drivers: **two sets — summer and winter**. The safety benefit in the worst months justifies the cost.
 
-Call **0141 266 0690** or [book online](/book) — we fit all three tyre types across Scotland.
+Call **01932 509613** or [book online](/book) — we fit all three tyre types across Scotland.
 
 [All-season tyres Scotland guide](/blog/all-season-tyres-scotland-guide) | [Winter tyres Scotland 2026–27 guide](/blog/winter-tyres-scotland-buyers-guide-2026) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -16331,7 +16331,7 @@ If your vehicle has only an inflation kit (no spare): understand its limitations
 | Applecross / Torridon | No tyre centres | Remote — full recovery may be needed |
 | Kyle of Lochalsh | Local garage | 80 miles from Inverness |
 
-**Tyre Rescue NC500 coverage**: we cover all of Scotland, including the NC500 route. Response times for remote areas (Tongue, Durness, Lochinver, Bealach na Bà) are significant — plan for ${SEO_RESPONSE_TIME_LABEL} minimum. Call **0141 266 0690** and we will dispatch the nearest available technician.
+**Tyre Rescue NC500 coverage**: we cover all of Scotland, including the NC500 route. Response times for remote areas (Tongue, Durness, Lochinver, Bealach na Bà) are significant — plan for ${SEO_RESPONSE_TIME_LABEL} minimum. Call **01932 509613** and we will dispatch the nearest available technician.
 
 **Practical tip**: if you are on the NC500 with a tyre problem in a remote area, call us and then continue driving slowly to the nearest settlement (5–15 mph on a damaged tyre will cause less damage than a 2-hour wait in place). Most tyre damage that cannot be repaired will not worsen significantly at very low speed.
 
@@ -16353,7 +16353,7 @@ If you are touring the NC500 on a motorcycle, carry a plug repair kit and CO2 in
 
 Most NC500 drivers complete the route without any tyre problems. Prepared, correctly-maintained tyres at good tread depth are safe on the NC500.
 
-Check your tyres before departure, carry a working spare or understand your inflation kit's limitations, and keep Tyre Rescue's number saved: **0141 266 0690**.
+Check your tyres before departure, carry a working spare or understand your inflation kit's limitations, and keep Tyre Rescue's number saved: **01932 509613**.
 
 [4x4 and Highland tyre guide](/blog/4x4-suv-tyres-scotland-highlands) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Spare tyre guide Scotland](/blog/spare-tyre-uk-law-scotland)`,
   },
@@ -16500,7 +16500,7 @@ If rejected, consider:
 
 ## Bottom Line
 
-Getting your tyres replaced quickly is the first priority — call Tyre Rescue on **0141 266 0690** and we will attend your location across Scotland with a replacement tyre. Keep your receipt as it is a key document in any subsequent pothole claim.
+Getting your tyres replaced quickly is the first priority — call Tyre Rescue on **01932 509613** and we will attend your location across Scotland with a replacement tyre. Keep your receipt as it is a key document in any subsequent pothole claim.
 
 [Pothole tyre damage guide Scotland](/blog/pothole-damage-tyres-scotland) | [Tyre sidewall damage guide](/blog/tyre-sidewall-damage-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -16622,7 +16622,7 @@ This is not the tyre fitter's fault — the alignment problem existed before the
 
 3. **If the fitter cannot resolve it** — get a second opinion. A vibration diagnostic at a garage or tyre specialist will typically cost £20–£40.
 
-If your tyres were fitted by Tyre Rescue and you are experiencing post-fitting vibration, call **0141 266 0690** — we will attend and resolve the issue.
+If your tyres were fitted by Tyre Rescue and you are experiencing post-fitting vibration, call **01932 509613** — we will attend and resolve the issue.
 
 [Wheel balancing and alignment guide Scotland](/blog/wheel-balancing-vs-alignment-scotland) | [Noisy tyres guide Scotland](/blog/noisy-tyres-causes-scotland) | [Uneven tyre wear guide Scotland](/blog/uneven-tyre-wear-guide-scotland)`,
   },
@@ -16743,7 +16743,7 @@ Tyre Rescue can attend your home or work for seasonal tyre swaps. If you have a 
 - **Fit winter tyres**: October 1–15
 - **Swap back to summer tyres**: April (post-frost risk)
 
-Call **0141 266 0690** or [book online](/book) to arrange your seasonal swap.
+Call **01932 509613** or [book online](/book) to arrange your seasonal swap.
 
 [Winter tyres Scotland buyers guide 2026](/blog/winter-tyres-scotland-buyers-guide-2026) | [When to switch to winter tyres](/blog/winter-tyres-when-to-switch-scotland) | [Tyre age guide Scotland](/blog/tyre-age-when-to-replace-scotland)`,
   },
@@ -16847,7 +16847,7 @@ In most Scottish situations, calling Tyre Rescue for mobile tyre fitting is fast
 
 If the tyre is still inflated or can be driven slowly to a safe stopping point, using sealant to move the car before calling us is reasonable. If the tyre is completely flat or if you are on a motorway or A-road, call immediately — do not attempt sealant on a live road.
 
-Call **0141 266 0690** or [book online](/book) for mobile puncture repair or tyre replacement across all of Scotland.
+Call **01932 509613** or [book online](/book) for mobile puncture repair or tyre replacement across all of Scotland.
 
 [Slow puncture guide Scotland](/blog/slow-puncture-causes-scotland) | [Tyre sidewall damage guide](/blog/tyre-sidewall-damage-scotland) | [Spare tyre guide Scotland](/blog/spare-tyre-uk-law-scotland)`,
   },
@@ -16948,7 +16948,7 @@ DS Automobiles targets a premium driving experience with Peugeot Citroën Group'
 
 ## Book Mobile Tyre Fitting for Your DS in Scotland
 
-Call **0141 266 0690** or [book online](/book). We cover Glasgow, Edinburgh, Aberdeen, and all of Scotland.
+Call **01932 509613** or [book online](/book). We cover Glasgow, Edinburgh, Aberdeen, and all of Scotland.
 
 [Citroën tyre guide Scotland](/blog/citroen-tyre-fitting-scotland) | [Peugeot tyre guide Scotland](/blog/peugeot-tyre-fitting-scotland) | [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
@@ -17069,7 +17069,7 @@ All BYD EVs deliver instant, full torque from a standstill. This is excellent fo
 
 Tyre Rescue carries common BYD tyre sizes (215/55R18, 235/45R18) in our Scotland vans. For larger or performance sizes, call ahead to confirm same-day stock.
 
-Call **0141 266 0690** or [book online](/book) for BYD tyre fitting across Scotland.
+Call **01932 509613** or [book online](/book) for BYD tyre fitting across Scotland.
 
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [MG Motor tyre guide Scotland](/blog/mg-motor-tyre-fitting-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -17181,7 +17181,7 @@ A loss of more than 3–4 psi per day is a slow puncture requiring attention. A 
 - Keep the tyre inflated to the correct pressure
 - Do not drive at motorway speed on a tyre with a known slow puncture
 - Book a repair or inspection within 48 hours
-- Call Tyre Rescue on **0141 266 0690** for a convenient appointment at your home or work
+- Call Tyre Rescue on **01932 509613** for a convenient appointment at your home or work
 
 **If the tyre is significantly underinflated (more than 10 psi below recommended)**:
 - Inflate before driving if possible (petrol station air or portable compressor)
@@ -17208,7 +17208,7 @@ For more on TPMS, see our [TPMS warning light guide](/blog/tpms-warning-light-sc
 
 Tyre Rescue can attend your location across all of Scotland to assess and repair slow punctures. We carry puncture repair equipment and can assess on-site whether a repair is possible or a replacement is required.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide) | [Tyre sidewall damage guide](/blog/tyre-sidewall-damage-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland)`,
   },
@@ -17360,7 +17360,7 @@ At Tyre Rescue, winter tyre fitting is priced at:
 - Fitting × 4: £80
 - **Total fitted at your door**: approximately £560
 
-For detailed pricing on your specific vehicle, call **0141 266 0690** or [book online](/book).
+For detailed pricing on your specific vehicle, call **01932 509613** or [book online](/book).
 
 ## Book Winter Tyres Across Scotland
 
@@ -17368,7 +17368,7 @@ Tyre Rescue stocks winter tyres in popular Scottish sizes (205/55R16, 225/45R17,
 
 We fit across all of Scotland — Glasgow, Edinburgh, Aberdeen, Dundee, Inverness, and everywhere in between. Book now for October to guarantee your preferred date.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [When to switch to winter tyres Scotland](/blog/winter-tyres-when-to-switch-scotland) | [All-season tyres Scotland guide](/blog/all-season-tyres-scotland-guide) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -17512,7 +17512,7 @@ The fix depends entirely on the cause:
 | Very worn tyre | Replace immediately |
 | Low tyre pressure | Inflate to correct pressure (may reduce noise if wear has not occurred) |
 
-For tyre replacement, Tyre Rescue can come to your home, workplace, or roadside across all of Scotland. Call **0141 266 0690** or [book online](/book).
+For tyre replacement, Tyre Rescue can come to your home, workplace, or roadside across all of Scotland. Call **01932 509613** or [book online](/book).
 
 [Wheel balancing and alignment Scotland](/blog/wheel-balancing-vs-alignment-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres)`,
   },
@@ -17613,11 +17613,11 @@ Running the correct rear pressure is particularly important when the Grenadier i
 
 The Grenadier is often used in remote areas — Highland estates, forestry access roads, Scottish islands. Tyre Rescue can attend remote locations across Scotland; call to confirm fitter availability and your exact ETA north of Inverness and in the Western and Northern Isles.
 
-For remote Highland callouts, call us on **0141 266 0690** and give us your grid reference or postcode. We will give you an honest ETA and confirm whether same-day fitting is possible from our nearest technician.
+For remote Highland callouts, call us on **01932 509613** and give us your grid reference or postcode. We will give you an honest ETA and confirm whether same-day fitting is possible from our nearest technician.
 
 We stock BFGoodrich KO2 and Falken Wildpeak AT3W in 265/70R18 as standard Highlands-area stock for the Grenadier.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [4x4 and Highland tyre guide Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Jeep tyre guide Scotland](/blog/jeep-tyre-fitting-scotland) | [Isuzu D-Max tyre guide Scotland](/blog/isuzu-dmax-tyre-fitting-scotland)`,
   },
@@ -17741,7 +17741,7 @@ When your tyres need replacing, Tyre Rescue can come to your home, office, or ro
 
 For an accurate quote, give us your registration number and we will confirm the correct size, load index, and speed rating for your vehicle before fitting anything.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [Tyre tread depth guide Scotland](/blog/tyre-tread-depth-guide-scotland) | [Tyre age guide Scotland](/blog/tyre-age-when-to-replace-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland)`,
   },
@@ -17858,7 +17858,7 @@ Genesis targets a premium driving experience. Scotland's wet roads make wet-grip
 
 ## Book Mobile Tyre Fitting for Your Genesis in Scotland
 
-Call **0141 266 0690** or [book online](/book) for mobile Genesis tyre fitting across Glasgow, Edinburgh, Aberdeen, and all of Scotland.
+Call **01932 509613** or [book online](/book) for mobile Genesis tyre fitting across Glasgow, Edinburgh, Aberdeen, and all of Scotland.
 
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Hyundai tyre fitting Scotland](/blog/hyundai-tyre-fitting-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -17968,7 +17968,7 @@ Polestar EVs are also notably heavy (the Polestar 2 weighs around 2,000 kg in Lo
 
 We carry common Polestar 2 tyre sizes (235/45R19) in our Scotland vans. For 22-inch and performance sizes, call ahead to confirm same-day availability.
 
-Call **0141 266 0690** or [book online](/book) for mobile Polestar tyre fitting anywhere in Scotland.
+Call **01932 509613** or [book online](/book) for mobile Polestar tyre fitting anywhere in Scotland.
 
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
@@ -18077,7 +18077,7 @@ We stock 265/65R17 and 245/65R17 AT/HT tyres across our Scotland vans as standar
 
 Our vans carry commercial-grade tyre mounting equipment capable of handling D-Max wheel weight and load.
 
-Call **0141 266 0690** or [book online](/book) for mobile D-Max tyre fitting anywhere in Scotland.
+Call **01932 509613** or [book online](/book) for mobile D-Max tyre fitting anywhere in Scotland.
 
 [Van and commercial tyre guide Scotland](/blog/van-tyre-fitting-scotland) | [4x4 and SUV tyre guide Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide)`,
   },
@@ -18198,7 +18198,7 @@ If TPMS warning persists, a sensor may require replacement (battery-powered sens
 
 Tyre Rescue carries common Jeep tyre sizes across our Scotland vans. For specialist sizes (285/70R17, 255/70R18, 35" AT tyres), call ahead to confirm same-day stock.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [4x4 and SUV tyre guide Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Tyre prices 2026](/blog/tyre-prices-scotland-guide-2026)`,
   },
@@ -18320,9 +18320,9 @@ A vehicle involved in a collision where a defective tyre is found may also affec
 
 If you are stranded with sidewall damage, Tyre Rescue can attend your location across all of Scotland — typically in ${SEO_RESPONSE_TIME_LABEL}. Call to confirm availability and your exact ETA.
 
-- **Stranded on the roadside**: switch on hazard lights, move away from the vehicle if it is on a live road, and call **0141 266 0690**.
+- **Stranded on the roadside**: switch on hazard lights, move away from the vehicle if it is on a live road, and call **01932 509613**.
 - **Stranded in a car park or at home**: call or [book online](/book) and we will come to you at a scheduled time.
-- **On a motorway**: call 0141 266 0690 and also inform Highways Scotland/Traffic Scotland — they will manage the lane closure while we attend.
+- **On a motorway**: call 01932 509613 and also inform Highways Scotland/Traffic Scotland — they will manage the lane closure while we attend.
 
 [Pothole tyre damage guide](/blog/pothole-damage-tyres-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me)`,
   },
@@ -18474,7 +18474,7 @@ It is pointless to fit new tyres without correcting the underlying cause. If you
 
 Tyre Rescue fits replacement tyres across all of Scotland. We also inspect wear patterns during every callout and can advise on the likely cause and what to get checked.
 
-Call **0141 266 0690** or [book online](/book).
+Call **01932 509613** or [book online](/book).
 
 [Wheel alignment and balancing guide](/blog/wheel-balancing-vs-alignment-scotland) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Tyre rotation guide Scotland](/blog/tyre-rotation-guide-scotland)`,
   },
@@ -18567,7 +18567,7 @@ Tyre Rescue offers account management for fleet customers:
 - **Approved pricing** — agreed per-tyre prices for your fleet's most common tyre sizes
 - **Purchase order reference** — add your PO number to bookings for seamless accounting
 
-To enquire about a fleet account, call **0141 266 0690** and ask to speak to our fleet team, or email us directly.
+To enquire about a fleet account, call **01932 509613** and ask to speak to our fleet team, or email us directly.
 
 ## Response Times for Scottish Fleet Emergencies
 
@@ -18600,7 +18600,7 @@ We discuss tyre choice with each fleet customer based on their vehicles, mileage
 
 ## Getting Started with Fleet Tyre Management
 
-Call **0141 266 0690** to speak to our team about fleet tyre management for your business. We'll discuss:
+Call **01932 509613** to speak to our team about fleet tyre management for your business. We'll discuss:
 
 - Your fleet size and vehicle types
 - Your most common tyre sizes

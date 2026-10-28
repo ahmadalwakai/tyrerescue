@@ -338,8 +338,8 @@ export function StepServiceType({
           mt={7}
         >
           Not sure? Call us on{' '}
-          <a href="tel:01412660690" style={{ color: c.text, fontWeight: 500, textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_service_type')}>
-            0141 266 0690
+          <a href="tel:01932509613" style={{ color: c.text, fontWeight: 500, textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_service_type')}>
+            01932 509613
           </a>
         </Text>
 

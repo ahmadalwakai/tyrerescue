@@ -44,7 +44,7 @@ export function driverWelcome(data: DriverWelcomeData): { subject: string; html:
       <li>Access customer locations and contact details</li>
     </ul>
 
-    <p>If you have any questions, please contact the admin team or call 0141 266 0690.</p>
+    <p>If you have any questions, please contact the admin team or call 01932 509613.</p>
   `;
 
   return {

@@ -21,8 +21,8 @@ const TEMPLATES = [
   { label: 'On the Way', body: 'Good news — your Tyre Rescue driver is now on the way to your location. Please ensure the vehicle is accessible.' },
   { label: 'Share Location', body: 'Hi, could you please share your exact location with our driver? It helps us find you faster. Thank you!' },
   { label: 'Delayed', body: 'We apologise for the delay. Our driver is running slightly behind but will be with you as soon as possible. Thank you for your patience.' },
-  { label: 'Job Completed', body: 'Your Tyre Rescue job is now complete. Thank you for choosing us! If you have any questions, call us on 0141 266 0690.' },
-  { label: 'Call Back', body: 'Hi, we tried to reach you. Please call us back on 0141 266 0690 at your earliest convenience. — Tyre Rescue' },
+  { label: 'Job Completed', body: 'Your Tyre Rescue job is now complete. Thank you for choosing us! If you have any questions, call us on 01932 509613.' },
+  { label: 'Call Back', body: 'Hi, we tried to reach you. Please call us back on 01932 509613 at your earliest convenience. — Tyre Rescue' },
 ];
 
 interface SentLog {

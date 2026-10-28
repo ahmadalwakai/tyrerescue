@@ -369,7 +369,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Is Black Circles available for emergency tyre fitting?',
-        answer: 'No — Black Circles is a booking platform for garage appointments during normal business hours. For emergency tyre fitting in Scotland — including late nights, weekends, and remote locations — Tyre Rescue is the appropriate service. Call 0141 266 0690 for immediate emergency response.',
+        answer: 'No — Black Circles is a booking platform for garage appointments during normal business hours. For emergency tyre fitting in Scotland — including late nights, weekends, and remote locations — Tyre Rescue is the appropriate service. Call 01932 509613 for immediate emergency response.',
       },
       {
         question: 'Are Black Circles cheaper than Tyre Rescue?',

@@ -43,7 +43,7 @@ export function refundIssued(data: RefundIssuedData): { subject: string; html: s
     <h2>Processing Time</h2>
     <p>The refund has been submitted to your bank. Please allow <strong>3 to 5 business days</strong> for the funds to appear in your account, depending on your bank's processing times.</p>
 
-    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you do not see the refund after 5 business days, please contact your bank first, then get in touch with us on 0141 266 0690.</p>
+    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you do not see the refund after 5 business days, please contact your bank first, then get in touch with us on 01932 509613.</p>
   `;
 
   return {

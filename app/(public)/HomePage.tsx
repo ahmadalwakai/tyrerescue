@@ -42,7 +42,7 @@ const colors = {
   border: colorTokens.border,
 };
 
-const PHONE_NUMBER = '0141 266 0690';
+const PHONE_NUMBER = '01932 509613';
 const PHONE_HREF = `tel:${PHONE_NUMBER.replace(/\s/g, '')}`;
 const HERO_BACKGROUND_SRC = '/images/home/slide-2.webp';
 
@@ -1583,7 +1583,7 @@ export function HomePage() {
                 <Box mt={4}>
                   <Text fontSize="13px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
                     Call us anytime:{' '}
-                    <ChakraLink href="tel:01412660690" color={colors.accent} _hover={{ opacity: 0.8 }} onClick={() => trackCallClick('home_guarantee')}>0141 266 0690</ChakraLink>
+                    <ChakraLink href="tel:01932509613" color={colors.accent} _hover={{ opacity: 0.8 }} onClick={() => trackCallClick('home_guarantee')}>01932 509613</ChakraLink>
                   </Text>
                 </Box>
               </Flex>
@@ -1973,7 +1973,7 @@ export function HomePage() {
                     </Text>
                     <SimpleGrid columns={{ base: 1, md: 2 }} gap="16px">
                       {[
-                        { step: '1. Book Online or Call', text: 'Book in under 3 minutes via our website or call 0141 266 0690. Select your tyre size, location, and preferred time — or request an emergency callout.' },
+                        { step: '1. Book Online or Call', text: 'Book in under 3 minutes via our website or call 01932 509613. Select your tyre size, location, and preferred time — or request an emergency callout.' },
                         { step: '2. Fitter Dispatched', text: 'A certified mobile fitter is assigned with the correct tyres already in stock. You receive live tracking and ETA via email.' },
                         { step: '3. Professional Fitting On-Site', text: 'The fitter arrives with professional equipment: hydraulic jack, torque wrench, balancing machine. Fitting takes 30–45 minutes per tyre.' },
                         { step: '4. Payment & Warranty', text: 'Pay by card when the job is complete. All tyres come with manufacturer warranty and our satisfaction guarantee.' },

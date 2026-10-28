@@ -154,14 +154,14 @@ function makeCallDom() {
   const doc = new FakeDocument();
   const root = doc.body;
   const businessText = root.appendElement(doc.createElement('p'));
-  businessText.textContent = 'Call 0141 266 0690 now';
+  businessText.textContent = 'Call 01932 509613 now';
 
   const whatsAppText = root.appendElement(doc.createElement('p'));
   whatsAppText.textContent = 'WhatsApp 07423 262955';
 
   const businessLink = root.appendElement(doc.createElement('a'));
-  businessLink.setAttribute('href', 'tel:01412660690');
-  businessLink.textContent = 'Call 0141 266 0690';
+  businessLink.setAttribute('href', 'tel:01932509613');
+  businessLink.textContent = 'Call 01932 509613';
 
   const whatsAppLink = root.appendElement(doc.createElement('a'));
   whatsAppLink.setAttribute('href', 'tel:07423262955');
@@ -185,7 +185,7 @@ describe('Google Ads website call tracking', () => {
     });
 
     expect(ADS_FORWARDING_PHONE).toBeNull();
-    expect(getTrackingPhone('0141 266 0690')).toBe('0141 266 0690');
+    expect(getTrackingPhone('01932 509613')).toBe('01932 509613');
   });
 
   it('builds the verified actual website-call gtag config without phone-click env', async () => {
@@ -197,14 +197,14 @@ describe('Google Ads website call tracking', () => {
     } =
       await loadWebsiteCalls();
 
-    expect(getGoogleAdsWebsiteCallConfig(' 0141   266   0690 ')).toEqual({
+    expect(getGoogleAdsWebsiteCallConfig(' 01932   509613 ')).toEqual({
       conversionId: ADS_ACTUAL_WEBSITE_CALL_CONVERSION,
       phoneConversionNumber: ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
     });
-    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toContain(
+    expect(renderGoogleAdsWebsiteCallConfig('01932 509613')).toContain(
       'phone_conversion_callback',
     );
-    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toContain(
+    expect(renderGoogleAdsWebsiteCallConfig('01932 509613')).toContain(
       'AW-18255235286/jSyqCMuSnvAcENaR44BE',
     );
   });
@@ -216,9 +216,9 @@ describe('Google Ads website call tracking', () => {
         NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-123456789/contactLabel',
       });
 
-    expect(getGoogleAdsWebsiteCallConfig('0141 266 0690')).toEqual({
+    expect(getGoogleAdsWebsiteCallConfig('01932 509613')).toEqual({
       conversionId: 'AW-18255235286/jSyqCMuSnvAcENaR44BE',
-      phoneConversionNumber: '0141 266 0690',
+      phoneConversionNumber: '01932 509613',
     });
   });
 
@@ -273,9 +273,9 @@ describe('Google Ads website call tracking', () => {
     const { getTelHrefForDisplayPhone, isActualWebsiteCallTelHref } = await loadWebsiteCalls();
 
     expect(getTelHrefForDisplayPhone('0800 123 4567')).toBe('tel:08001234567');
-    expect(getTelHrefForDisplayPhone('+44 141 266 0690')).toBe('tel:+441412660690');
-    expect(isActualWebsiteCallTelHref('tel:01412660690')).toBe(true);
-    expect(isActualWebsiteCallTelHref('tel:+441412660690')).toBe(true);
+    expect(getTelHrefForDisplayPhone('+44 1932 509613')).toBe('tel:+441932509613');
+    expect(isActualWebsiteCallTelHref('tel:01932509613')).toBe(true);
+    expect(isActualWebsiteCallTelHref('tel:+441932509613')).toBe(true);
     expect(isActualWebsiteCallTelHref('tel:08001234567')).toBe(false);
   });
 
@@ -289,7 +289,7 @@ describe('Google Ads website call tracking', () => {
     vi.stubGlobal('window', { gtag });
 
     expect(buildGoogleAdsWebsiteCallConfigPayload(callback)).toMatchObject({
-      phone_conversion_number: '0141 266 0690',
+      phone_conversion_number: '01932 509613',
       phone_conversion_callback: callback,
     });
     expect(configureGoogleAdsWebsiteCall(undefined, callback)).toBe(true);
@@ -297,7 +297,7 @@ describe('Google Ads website call tracking', () => {
       'config',
       'AW-18255235286/jSyqCMuSnvAcENaR44BE',
       expect.objectContaining({
-        phone_conversion_number: '0141 266 0690',
+        phone_conversion_number: '01932 509613',
         phone_conversion_callback: callback,
       }),
     );
@@ -377,8 +377,8 @@ describe('Google Ads website call tracking', () => {
     syncGoogleAdsWebsiteCallDom('0800 123 4567', root);
     restoreGoogleAdsWebsiteCallDom(root);
 
-    expect(businessText.textContent).toBe('Call 0141 266 0690 now');
-    expect(businessLink.getAttribute('href')).toBe('tel:01412660690');
+    expect(businessText.textContent).toBe('Call 01932 509613 now');
+    expect(businessLink.getAttribute('href')).toBe('tel:01932509613');
     expect(whatsAppText.textContent).toBe('WhatsApp 07423 262955');
     expect(whatsAppLink.getAttribute('href')).toBe('tel:07423262955');
   });
@@ -388,8 +388,8 @@ describe('Google Ads website call tracking', () => {
     const { root, businessText, businessLink } = makeCallDom();
 
     expect(syncGoogleAdsWebsiteCallDom('07423 262955', root)).toBeNull();
-    expect(businessText.textContent).toBe('Call 0141 266 0690 now');
-    expect(businessLink.getAttribute('href')).toBe('tel:01412660690');
+    expect(businessText.textContent).toBe('Call 01932 509613 now');
+    expect(businessLink.getAttribute('href')).toBe('tel:01932509613');
   });
 
   it('does not rewrite unchanged owned attributes on repeated sync', async () => {

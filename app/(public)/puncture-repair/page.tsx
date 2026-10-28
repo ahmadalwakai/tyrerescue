@@ -16,7 +16,7 @@ const SITE_URL = 'https://www.tyrerescue.uk';
 export const metadata: Metadata = {
   title: 'Puncture Repair Scotland | Mobile Roadside Repair | Tyre Rescue',
   description:
-    'Mobile puncture repair across all of Scotland. We come to you — roadside, home, or car park. Repair from £25 where safe and legal. Can\'t be repaired? We\'ll fit a replacement. Call 0141 266 0690.',
+    'Mobile puncture repair across all of Scotland. We come to you — roadside, home, or car park. Repair from £25 where safe and legal. Can\'t be repaired? We\'ll fit a replacement. Call 01932 509613.',
   keywords: [
     'puncture repair scotland',
     'mobile puncture repair',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Puncture Repair Scotland | Mobile | Tyre Rescue',
     description:
-      'Mobile puncture repair across Scotland. We come to you. Repair from £25. Available 24/7. Call 0141 266 0690.',
+      'Mobile puncture repair across Scotland. We come to you. Repair from £25. Available 24/7. Call 01932 509613.',
     url: `${SITE_URL}/puncture-repair`,
     type: 'website',
     images: [{ url: `${SITE_URL}/images/home/slide-1.webp`, width: 1200, height: 630, alt: 'Puncture repair Scotland — Tyre Rescue' }],
@@ -49,7 +49,7 @@ const faqs = [
   },
   {
     question: 'Do you repair punctures at the roadside?',
-    answer: 'Yes — roadside puncture repair is our most common callout. We come to wherever you are: motorway layby, car park, roadside verge, or any safe stopping area. Call 0141 266 0690 and we will dispatch the nearest fitter.',
+    answer: 'Yes — roadside puncture repair is our most common callout. We come to wherever you are: motorway layby, car park, roadside verge, or any safe stopping area. Call 01932 509613 and we will dispatch the nearest fitter.',
   },
   {
     question: 'How long does a puncture repair take?',
@@ -61,7 +61,7 @@ const faqs = [
   },
   {
     question: 'Do you cover puncture repair in the Highlands and Islands?',
-    answer: `Yes — we cover all of Scotland including the Highlands, NC500 route and the islands (Skye, Lewis, Shetland), with a response target of ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to confirm your exact ETA.`,
+    answer: `Yes — we cover all of Scotland including the Highlands, NC500 route and the islands (Skye, Lewis, Shetland), with a response target of ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 to confirm your exact ETA.`,
   },
 ];
 
@@ -135,7 +135,7 @@ export default function PunctureRepairPage() {
               we fit a replacement tyre straight away. Available 24/7 across all of Scotland.
             </p>
             <div style={s.ctaRow}>
-              <a href="tel:01412660690" style={s.ctaPrimary}>Call 0141 266 0690</a>
+              <a href="tel:01932509613" style={s.ctaPrimary}>Call 01932 509613</a>
               <Link href="/book" style={s.ctaSecondary}>Book Online</Link>
               <Link href="/emergency" style={s.ctaSecondary}>Emergency Callout</Link>
             </div>

@@ -211,7 +211,7 @@ export function CityServiceContent({ city }: { city: City }) {
               FLAT TYRE IN {city.name.toUpperCase()}?
             </Text>
             <ChakraLink
-              href="tel:01412660690"
+              href="tel:01932509613"
               display="inline-block"
               fontSize={{ base: '28px', md: '48px' }}
               color={c.bg}
@@ -220,11 +220,11 @@ export function CityServiceContent({ city }: { city: City }) {
               style={{ fontFamily: 'var(--font-display)' }}
               onClick={() => trackCallClick(`city_service_hero:${city.slug}`)}
             >
-              CALL 0141 266 0690
+              CALL 01932 509613
             </ChakraLink>
             <Flex direction={{ base: 'column', sm: 'row' }} gap={4} justify="center" mt={6}>
               <ChakraLink
-                href="tel:01412660690"
+                href="tel:01932509613"
                 px={8}
                 py={4}
                 bg={c.bg}

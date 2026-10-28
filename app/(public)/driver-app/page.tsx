@@ -187,10 +187,10 @@ export default function DriverAppPage() {
           <p className="text-zinc-400">
             Having trouble?{' '}
             <a
-              href="tel:01412660690"
+              href="tel:01932509613"
               className="font-medium text-orange-500 underline-offset-4 hover:underline"
             >
-              Call 0141 266 0690
+              Call 01932 509613
             </a>{' '}
             or email{' '}
             <a

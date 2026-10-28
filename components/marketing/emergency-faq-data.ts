@@ -43,7 +43,7 @@ export const EMERGENCY_PAGE_FAQS = [
   {
     question: 'What should I do if a tyre blows out at speed?',
     answer:
-      'Do NOT brake sharply. Grip the steering wheel firmly with both hands and let the car slow gradually. Once below 50mph, signal left and move to the hard shoulder. Exit via the left-side door only and stand behind the barrier, away from traffic. Then call 0141 266 0690 — we respond to Scottish motorways 24/7.',
+      'Do NOT brake sharply. Grip the steering wheel firmly with both hands and let the car slow gradually. Once below 50mph, signal left and move to the hard shoulder. Exit via the left-side door only and stand behind the barrier, away from traffic. Then call 01932 509613 — we respond to Scottish motorways 24/7.',
   },
   {
     question: 'Do you come to airport car parks?',

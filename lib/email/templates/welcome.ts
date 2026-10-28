@@ -30,7 +30,7 @@ export function welcome(data: WelcomeEmailData): { subject: string; html: string
       <li>Save your vehicles and addresses</li>
     </ul>
 
-    <p>If you need immediate assistance, call us on <strong>0141 266 0690</strong>.</p>
+    <p>If you need immediate assistance, call us on <strong>01932 509613</strong>.</p>
   `;
 
   return {

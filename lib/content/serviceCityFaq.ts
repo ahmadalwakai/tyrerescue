@@ -49,7 +49,7 @@ export function getServiceCityFaqs(
     },
     {
       question: `Do you offer ${label} in ${cityName} at night or on weekends?`,
-      answer: `Yes — we operate 24 hours a day, 7 days a week across ${cityName}. Whether you need us at 3am on a Sunday or first thing on a bank holiday morning, you can call 0141 266 0690 and we will dispatch the nearest available fitter.`,
+      answer: `Yes — we operate 24 hours a day, 7 days a week across ${cityName}. Whether you need us at 3am on a Sunday or first thing on a bank holiday morning, you can call 01932 509613 and we will dispatch the nearest available fitter.`,
     },
     {
       question: `What areas of ${cityName} do you cover?`,
@@ -57,11 +57,11 @@ export function getServiceCityFaqs(
     },
     {
       question: `Do I need to book in advance for ${label} in ${cityName}?`,
-      answer: `Emergency callouts in ${cityName} do not require advance booking — just call 0141 266 0690. For scheduled or planned fittings we recommend booking online or by phone at least a few hours ahead to guarantee fitter availability in your area.`,
+      answer: `Emergency callouts in ${cityName} do not require advance booking — just call 01932 509613. For scheduled or planned fittings we recommend booking online or by phone at least a few hours ahead to guarantee fitter availability in your area.`,
     },
     {
       question: `Is Tyre Rescue a real tyre fitting company or a booking broker?`,
-      answer: `Tyre Rescue is a real mobile tyre fitting company with our own workshop at ${WORKSHOP_ADDRESS_LABEL}. Every fitter who attends your vehicle is employed or directly contracted by us — not a random contractor sourced from a WhatsApp group. We are fully insured, trained, and accountable. You will always speak to our own team when you call 0141 266 0690.`,
+      answer: `Tyre Rescue is a real mobile tyre fitting company with our own workshop at ${WORKSHOP_ADDRESS_LABEL}. Every fitter who attends your vehicle is employed or directly contracted by us — not a random contractor sourced from a WhatsApp group. We are fully insured, trained, and accountable. You will always speak to our own team when you call 01932 509613.`,
     },
   ];
 }

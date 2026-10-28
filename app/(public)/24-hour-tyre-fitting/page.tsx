@@ -17,7 +17,7 @@ const SITE_URL = 'https://www.tyrerescue.uk';
 export const metadata: Metadata = {
   title: '24 Hour Tyre Fitting Scotland | Night Callout | Tyre Rescue',
   description:
-    'Tyre Rescue provides 24 hour mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. Flat tyre at 2am? Call 0141 266 0690. We answer night and day.',
+    'Tyre Rescue provides 24 hour mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. Flat tyre at 2am? Call 01932 509613. We answer night and day.',
   keywords: [
     '24 hour tyre fitting scotland',
     '24 hour tyre fitting glasgow',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '24 Hour Tyre Fitting Scotland | Night Callout | Tyre Rescue',
     description:
-      'Flat tyre at midnight? We operate 24 hours a day, 7 days a week across all of Scotland. Call 0141 266 0690.',
+      'Flat tyre at midnight? We operate 24 hours a day, 7 days a week across all of Scotland. Call 01932 509613.',
     url: `${SITE_URL}/24-hour-tyre-fitting`,
     type: 'website',
     images: [{ url: `${SITE_URL}/images/home/slide-1.webp`, width: 1200, height: 630, alt: '24 hour mobile tyre fitting Scotland — Tyre Rescue' }],
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '24 Hour Tyre Fitting Scotland | Tyre Rescue',
-    description: 'Available 24 hours a day, 7 days a week across all of Scotland. Call 0141 266 0690.',
+    description: 'Available 24 hours a day, 7 days a week across all of Scotland. Call 01932 509613.',
   },
 };
 
@@ -50,7 +50,7 @@ const faqs = [
   {
     question: 'Are you genuinely available 24 hours a day, 7 days a week?',
     answer:
-      'Yes. Tyre Rescue operates around the clock, including nights, weekends, bank holidays, and Christmas. Call 0141 266 0690 at any time and our dispatch team will answer and confirm your ETA. We do not use an answering service — you speak directly to someone who can dispatch a fitter.',
+      'Yes. Tyre Rescue operates around the clock, including nights, weekends, bank holidays, and Christmas. Call 01932 509613 at any time and our dispatch team will answer and confirm your ETA. We do not use an answering service — you speak directly to someone who can dispatch a fitter.',
   },
   {
     question: 'How much does a 24-hour emergency tyre callout cost?',
@@ -131,7 +131,7 @@ const s: Record<string, CSSProperties> = {
 };
 
 const steps = [
-  { num: '1', title: 'Call 0141 266 0690', text: 'Our dispatch team answers 24 hours a day. Give your postcode and vehicle registration. We will identify your tyre size and quote a total price immediately.' },
+  { num: '1', title: 'Call 01932 509613', text: 'Our dispatch team answers 24 hours a day. Give your postcode and vehicle registration. We will identify your tyre size and quote a total price immediately.' },
   { num: '2', title: 'We confirm price and ETA', text: 'We quote the full price — callout fee, tyre, and fitting — before dispatching. You approve it. No surprises. ETA confirmed based on your exact location.' },
   { num: '3', title: 'Wait safely', text: 'Move off the road. Hazard lights on. Stand clear of moving traffic. Keep warm. We will call you when the fitter is close.' },
   { num: '4', title: 'Fitter arrives with your tyre', text: 'Our fitter arrives with the correct tyre already loaded. Full fitting including balancing: 20–40 minutes. TPMS reset included. Old tyre taken for recycling.' },
@@ -166,7 +166,7 @@ export default function TwentyFourHourTyreFittingPage() {
               Highlands. Call now and we answer immediately.
             </p>
             <div style={s.ctaRow}>
-              <a href="tel:01412660690" style={s.ctaPrimary}>Call Now — 0141 266 0690</a>
+              <a href="tel:01932509613" style={s.ctaPrimary}>Call Now — 01932 509613</a>
               <Link href="/book" style={s.ctaSecondary}>Book Online</Link>
               <Link href="/emergency-tyre-fitting-near-me" style={s.ctaSecondary}>Emergency Fitting</Link>
             </div>
@@ -278,11 +278,11 @@ export default function TwentyFourHourTyreFittingPage() {
               <li><strong>Turn on your hazard lights immediately</strong> — even before you stop fully, if safe to do so.</li>
               <li><strong>Do not change the tyre yourself on a motorway or busy A-road at night</strong> — the risk of being hit is too high. Call us instead.</li>
               <li><strong>Exit the vehicle</strong> on the side away from traffic. Stand behind the barrier if on a motorway. Wear a hi-vis jacket if you have one.</li>
-              <li><strong>Call 0141 266 0690.</strong> Give your postcode or nearest landmark. We will come to you.</li>
+              <li><strong>Call 01932 509613.</strong> Give your postcode or nearest landmark. We will come to you.</li>
               <li><strong>Stay visible.</strong> Keep your hazard lights on. Do not stand in the road to flag down help.</li>
             </ol>
             <div style={{ ...s.ctaRow, marginTop: '24px' }}>
-              <a href="tel:01412660690" style={s.ctaPrimary}>Call Now — 0141 266 0690</a>
+              <a href="tel:01932509613" style={s.ctaPrimary}>Call Now — 01932 509613</a>
               <Link href="/blog/what-to-do-flat-tyre-motorway" style={s.ctaSecondary}>Motorway flat tyre guide</Link>
             </div>
           </div>

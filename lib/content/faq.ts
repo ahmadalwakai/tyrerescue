@@ -97,7 +97,7 @@ export const faqItems: FAQItem[] = [
     id: 'own-tyres',
     question: 'Do you fit tyres I have already purchased?',
     answer:
-      'We primarily fit tyres purchased through our service to ensure quality and warranty coverage. If you already have tyres that need fitting, please call us on 0141 266 0690 to discuss your requirements.',
+      'We primarily fit tyres purchased through our service to ensure quality and warranty coverage. If you already have tyres that need fitting, please call us on 01932 509613 to discuss your requirements.',
     category: 'tyres',
     isHomepageVisible: true,
   },
@@ -171,7 +171,7 @@ export const faqItems: FAQItem[] = [
     id: 'aberdeen-coverage',
     question: 'Do you offer mobile tyre fitting in Aberdeen?',
     answer:
-      `Yes. We cover Aberdeen and all AB postcodes including the city centre, Bridge of Don, Dyce, Westhill, Portlethen and Stonehaven. Our response target to Aberdeen city centre is ${SEO_RESPONSE_TIME_LABEL}. We also cover Inverurie, Ellon, Peterhead and Fraserburgh — call 0141 266 0690 for your exact ETA.`,
+      `Yes. We cover Aberdeen and all AB postcodes including the city centre, Bridge of Don, Dyce, Westhill, Portlethen and Stonehaven. Our response target to Aberdeen city centre is ${SEO_RESPONSE_TIME_LABEL}. We also cover Inverurie, Ellon, Peterhead and Fraserburgh — call 01932 509613 for your exact ETA.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -179,7 +179,7 @@ export const faqItems: FAQItem[] = [
     id: 'inverness-coverage',
     question: 'Do you cover Inverness and the Scottish Highlands?',
     answer:
-      `Yes. We cover Inverness and all IV postcodes, plus Aviemore, Grantown-on-Spey, Nairn, Dingwall, and Invergordon. Our response target in Inverness is ${SEO_RESPONSE_TIME_LABEL}. We also serve the NC500 route — if you have a flat tyre in the Highlands, call 0141 266 0690 immediately and we will dispatch the nearest available fitter.`,
+      `Yes. We cover Inverness and all IV postcodes, plus Aviemore, Grantown-on-Spey, Nairn, Dingwall, and Invergordon. Our response target in Inverness is ${SEO_RESPONSE_TIME_LABEL}. We also serve the NC500 route — if you have a flat tyre in the Highlands, call 01932 509613 immediately and we will dispatch the nearest available fitter.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -195,7 +195,7 @@ export const faqItems: FAQItem[] = [
     id: 'nc500-flat-tyre',
     question: 'What should I do if I get a flat tyre on the NC500?',
     answer:
-      `Pull safely off the road, turn on hazard lights, and call 0141 266 0690 immediately. We cover the entire NC500 route. Tell us your exact location — a postcode, road number, nearest village, or what3words address. Our response target across the route is ${SEO_RESPONSE_TIME_LABEL}, including the remote north-west sections. For remote sections of the NC500 we recommend checking all four tyres before setting off.`,
+      `Pull safely off the road, turn on hazard lights, and call 01932 509613 immediately. We cover the entire NC500 route. Tell us your exact location — a postcode, road number, nearest village, or what3words address. Our response target across the route is ${SEO_RESPONSE_TIME_LABEL}, including the remote north-west sections. For remote sections of the NC500 we recommend checking all four tyres before setting off.`,
     category: 'emergency',
     isHomepageVisible: false,
   },
@@ -211,7 +211,7 @@ export const faqItems: FAQItem[] = [
     id: 'scotland-islands',
     question: 'Do you cover the Scottish Islands?',
     answer:
-      `We operate mobile tyre fitting on the larger Scottish islands including Lewis and Harris (Stornoway), Shetland (Lerwick), and Orkney (Kirkwall), as well as Skye, Arran, and the Inner Hebrides. Island services require advance booking of at least 24 hours; the Western Isles, Shetland, Orkney and ferry-served Argyll islands require at least 48 hours. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to check availability and confirm your booking.`,
+      `We operate mobile tyre fitting on the larger Scottish islands including Lewis and Harris (Stornoway), Shetland (Lerwick), and Orkney (Kirkwall), as well as Skye, Arran, and the Inner Hebrides. Island services require advance booking of at least 24 hours; the Western Isles, Shetland, Orkney and ferry-served Argyll islands require at least 48 hours. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 to check availability and confirm your booking.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -227,7 +227,7 @@ export const faqItems: FAQItem[] = [
     id: 'tpms-scotland',
     question: 'Do you offer TPMS sensor replacement in Scotland?',
     answer:
-      'Yes. We carry TPMS sensors for most common vehicle makes and models and can replace faulty sensors and reset the system at your location. TPMS sensor issues are common after tyre changes, especially on German-brand vehicles. If your tyre pressure warning light remains on after a fitting, call us on 0141 266 0690 and we will diagnose and resolve it.',
+      'Yes. We carry TPMS sensors for most common vehicle makes and models and can replace faulty sensors and reset the system at your location. TPMS sensor issues are common after tyre changes, especially on German-brand vehicles. If your tyre pressure warning light remains on after a fitting, call us on 01932 509613 and we will diagnose and resolve it.',
     category: 'services',
     isHomepageVisible: false,
   },
@@ -235,7 +235,7 @@ export const faqItems: FAQItem[] = [
     id: 'tyre-blowout-motorway',
     question: 'What should I do if a tyre blows out on the motorway?',
     answer:
-      'Do not brake sharply. Grip the steering wheel firmly with both hands and let the car slow gradually. Once below 50mph, signal left and move to the hard shoulder. Switch on hazard lights, exit via the left-side door only, and stand well away from the vehicle behind the barrier. Then call Tyre Rescue on 0141 266 0690. We cover all Scottish motorways including the M8, M74, M77, M80 and M9. For further safety guidance, see our full tyre blowout emergency guide.',
+      'Do not brake sharply. Grip the steering wheel firmly with both hands and let the car slow gradually. Once below 50mph, signal left and move to the hard shoulder. Switch on hazard lights, exit via the left-side door only, and stand well away from the vehicle behind the barrier. Then call Tyre Rescue on 01932 509613. We cover all Scottish motorways including the M8, M74, M77, M80 and M9. For further safety guidance, see our full tyre blowout emergency guide.',
     category: 'emergency',
     isHomepageVisible: false,
   },
@@ -251,7 +251,7 @@ export const faqItems: FAQItem[] = [
     id: 'glasgow-airport-flat-tyre',
     question: 'Can you come to Glasgow Airport if I have a flat tyre?',
     answer:
-      `Yes. Glasgow Airport (PA3) is one of our most frequent callout locations. We cover all car parks including long-stay, short-stay and multi-storey. If you return from a flight to find a flat tyre, call 0141 266 0690 and we reach the airport in ${SEO_RESPONSE_TIME_LABEL}. For the multi-storey, meet us at the ground-floor barrier or give the bay number.`,
+      `Yes. Glasgow Airport (PA3) is one of our most frequent callout locations. We cover all car parks including long-stay, short-stay and multi-storey. If you return from a flight to find a flat tyre, call 01932 509613 and we reach the airport in ${SEO_RESPONSE_TIME_LABEL}. For the multi-storey, meet us at the ground-floor barrier or give the bay number.`,
     category: 'emergency',
     isHomepageVisible: false,
   },
@@ -267,7 +267,7 @@ export const faqItems: FAQItem[] = [
     id: 'shetland-western-isles-coverage',
     question: 'Do you cover Shetland and the Western Isles (Outer Hebrides)?',
     answer:
-      `Yes — we cover both Shetland (Lerwick, ZE postcodes) and the Western Isles (Stornoway, Lewis, Harris, Uists, Barra — HS postcodes). Island services require a minimum 48 hours advance booking due to ferry and logistics scheduling. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 as early as possible to arrange island cover and confirm your exact ETA. For genuine emergencies, we will explore all available options including local partner fitters.`,
+      `Yes — we cover both Shetland (Lerwick, ZE postcodes) and the Western Isles (Stornoway, Lewis, Harris, Uists, Barra — HS postcodes). Island services require a minimum 48 hours advance booking due to ferry and logistics scheduling. Our response target for confirmed bookings is ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 as early as possible to arrange island cover and confirm your exact ETA. For genuine emergencies, we will explore all available options including local partner fitters.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -275,7 +275,7 @@ export const faqItems: FAQItem[] = [
     id: 'isle-of-skye-coverage',
     question: 'Do you cover the Isle of Skye?',
     answer:
-      `Yes — the Isle of Skye is accessible via the Skye Bridge and is within our coverage area. We serve Portree (IV51), Broadford (IV49), Kyle of Lochalsh (IV40), Uig, Dunvegan, and the Sleat Peninsula. Advance booking of at least 24 hours is required. Our response target for confirmed bookings on Skye is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 to check availability and confirm your exact ETA.`,
+      `Yes — the Isle of Skye is accessible via the Skye Bridge and is within our coverage area. We serve Portree (IV51), Broadford (IV49), Kyle of Lochalsh (IV40), Uig, Dunvegan, and the Sleat Peninsula. Advance booking of at least 24 hours is required. Our response target for confirmed bookings on Skye is ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 to check availability and confirm your exact ETA.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -291,7 +291,7 @@ export const faqItems: FAQItem[] = [
     id: 'nc500-wick-thurso',
     question: 'Do you cover Wick, Thurso and the far north of Scotland?',
     answer:
-      `Yes — we cover Wick (KW1), Thurso (KW14), and Caithness (KW postcodes). Our response target across these mainland locations is ${SEO_RESPONSE_TIME_LABEL}. For NC500 breakdowns in Caithness, call 0141 266 0690 immediately rather than waiting — the sooner you call, the faster we can reach you. We cover the full NC500 route including the north coast.`,
+      `Yes — we cover Wick (KW1), Thurso (KW14), and Caithness (KW postcodes). Our response target across these mainland locations is ${SEO_RESPONSE_TIME_LABEL}. For NC500 breakdowns in Caithness, call 01932 509613 immediately rather than waiting — the sooner you call, the faster we can reach you. We cover the full NC500 route including the north coast.`,
     category: 'general',
     isHomepageVisible: false,
   },
@@ -341,7 +341,7 @@ export const faqItems: FAQItem[] = [
     id: 'tpms-light-meaning',
     question: 'My TPMS (tyre pressure) warning light has come on — what should I do?',
     answer:
-      'A solid TPMS warning light means at least one tyre is 25% or more below its recommended pressure. Do not ignore it — check all four tyres as soon as possible. If the light flashes for 60–90 seconds then stays on, this indicates a sensor fault rather than a pressure problem, often after a tyre change. Tyre Rescue resets TPMS sensors as standard when fitting tyres. If you are in a remote location and the tyre looks visibly flat, do not drive on it — call 0141 266 0690 immediately.',
+      'A solid TPMS warning light means at least one tyre is 25% or more below its recommended pressure. Do not ignore it — check all four tyres as soon as possible. If the light flashes for 60–90 seconds then stays on, this indicates a sensor fault rather than a pressure problem, often after a tyre change. Tyre Rescue resets TPMS sensors as standard when fitting tyres. If you are in a remote location and the tyre looks visibly flat, do not drive on it — call 01932 509613 immediately.',
     category: 'tyres',
     isHomepageVisible: false,
   },
@@ -365,7 +365,7 @@ export const faqItems: FAQItem[] = [
     id: 'spare-tyre-uk-law',
     question: 'Is it illegal to drive without a spare tyre in the UK?',
     answer:
-      'No — there is no legal requirement to carry a spare tyre in the UK. Many modern cars do not include one, instead providing run-flat tyres, a space-saver spare, or a tyre inflation kit. For Highland and remote Scottish routes, we strongly recommend either a space-saver spare or run-flat tyres, as a flat tyre 50+ miles from the nearest garage can leave you stranded well beyond the 50-mile run-flat range. If you have a flat with no spare in Scotland, call 0141 266 0690 and we will come to you.',
+      'No — there is no legal requirement to carry a spare tyre in the UK. Many modern cars do not include one, instead providing run-flat tyres, a space-saver spare, or a tyre inflation kit. For Highland and remote Scottish routes, we strongly recommend either a space-saver spare or run-flat tyres, as a flat tyre 50+ miles from the nearest garage can leave you stranded well beyond the 50-mile run-flat range. If you have a flat with no spare in Scotland, call 01932 509613 and we will come to you.',
     category: 'tyres',
     isHomepageVisible: false,
   },
@@ -389,7 +389,7 @@ export const faqItems: FAQItem[] = [
     id: 'van-commercial-tyre-fitting',
     question: 'Do you fit tyres on vans and commercial vehicles?',
     answer:
-      'Yes — we carry and fit commercial (C-rated) tyres for Ford Transit, Mercedes Sprinter, Vauxhall Vivaro, VW Crafter, Renault Trafic, and other vans across Scotland. Commercial tyres require higher load ratings than passenger car tyres and must be correctly specified for the vehicle\'s payload. We offer emergency van tyre fitting 24/7 across Scotland, plus scheduled fleet tyre management for businesses running multiple vehicles. Call 0141 266 0690 with your van registration for a quote.',
+      'Yes — we carry and fit commercial (C-rated) tyres for Ford Transit, Mercedes Sprinter, Vauxhall Vivaro, VW Crafter, Renault Trafic, and other vans across Scotland. Commercial tyres require higher load ratings than passenger car tyres and must be correctly specified for the vehicle\'s payload. We offer emergency van tyre fitting 24/7 across Scotland, plus scheduled fleet tyre management for businesses running multiple vehicles. Call 01932 509613 with your van registration for a quote.',
     category: 'services',
     isHomepageVisible: false,
   },
@@ -405,7 +405,7 @@ export const faqItems: FAQItem[] = [
     id: 'staggered-tyre-fitment',
     question: 'What is a staggered tyre fitment, and can you fit them?',
     answer:
-      'A staggered tyre fitment means the front and rear tyres are different sizes — typically wider tyres at the rear. This is common on performance vehicles like Porsche 911, BMW M models, Audi RS models, Mercedes AMG, and some Tesla variants. Staggered tyres cannot be rotated front-to-rear. When ordering, always specify whether you need front or rear tyres. Tyre Rescue carries and fits staggered specifications for all common performance vehicles across Scotland — call 0141 266 0690 and give us your registration and which axle needs fitting.',
+      'A staggered tyre fitment means the front and rear tyres are different sizes — typically wider tyres at the rear. This is common on performance vehicles like Porsche 911, BMW M models, Audi RS models, Mercedes AMG, and some Tesla variants. Staggered tyres cannot be rotated front-to-rear. When ordering, always specify whether you need front or rear tyres. Tyre Rescue carries and fits staggered specifications for all common performance vehicles across Scotland — call 01932 509613 and give us your registration and which axle needs fitting.',
     category: 'tyres',
     isHomepageVisible: false,
   },
@@ -421,7 +421,7 @@ export const faqItems: FAQItem[] = [
     id: 'fleet-tyre-management',
     question: 'Do you offer fleet tyre management for businesses in Scotland?',
     answer:
-      'Yes — Tyre Rescue provides fleet tyre management for Scottish businesses. This includes emergency 24/7 callout for fleet vehicles (cars, vans, pickup trucks), scheduled tyre replacements at your depot or drivers\' locations, monthly consolidated invoicing, and per-vehicle tyre history records. We cover all Scottish postcodes (G to ZE). Fleet account customers are prioritised in dispatch. To enquire about a fleet account, call 0141 266 0690 and ask to speak to our fleet team.',
+      'Yes — Tyre Rescue provides fleet tyre management for Scottish businesses. This includes emergency 24/7 callout for fleet vehicles (cars, vans, pickup trucks), scheduled tyre replacements at your depot or drivers\' locations, monthly consolidated invoicing, and per-vehicle tyre history records. We cover all Scottish postcodes (G to ZE). Fleet account customers are prioritised in dispatch. To enquire about a fleet account, call 01932 509613 and ask to speak to our fleet team.',
     category: 'services',
     isHomepageVisible: false,
   },
@@ -429,7 +429,7 @@ export const faqItems: FAQItem[] = [
     id: 'premium-car-tyre-fitting',
     question: 'Can you fit tyres on premium cars like BMW, Mercedes, Audi, and Porsche?',
     answer:
-      'Yes — Tyre Rescue specialises in premium vehicle tyre fitting across Scotland. We carry N-rated tyres for Porsche (N0, N1, N2), run-flat tyres (BMW RSC, Mercedes MOExtended/EMT, Audi DSST), and EV-specification tyres for all German electric vehicles. Our TPMS reset tools cover all BMW, Mercedes, Audi, and Porsche models. Staggered fitments (911, AMG, M models) are our regular work. Call 0141 266 0690 with your registration and we will confirm tyre availability and give you an accurate quote.',
+      'Yes — Tyre Rescue specialises in premium vehicle tyre fitting across Scotland. We carry N-rated tyres for Porsche (N0, N1, N2), run-flat tyres (BMW RSC, Mercedes MOExtended/EMT, Audi DSST), and EV-specification tyres for all German electric vehicles. Our TPMS reset tools cover all BMW, Mercedes, Audi, and Porsche models. Staggered fitments (911, AMG, M models) are our regular work. Call 01932 509613 with your registration and we will confirm tyre availability and give you an accurate quote.',
     category: 'tyres',
     isHomepageVisible: false,
   },
@@ -437,7 +437,7 @@ export const faqItems: FAQItem[] = [
     id: '24-hour-tyre-fitting-scotland',
     question: 'Is your tyre fitting service available 24 hours a day?',
     answer:
-      `Yes. Tyre Rescue operates 24 hours a day, 7 days a week, 365 days a year including bank holidays and Christmas Day. Our dispatch team answers the phone immediately — no answering service or voicemail. Emergency callout fee starts from £49 (same rate day and night — no night premium). For a 2am flat tyre in Glasgow, our response target is ${SEO_RESPONSE_TIME_LABEL}. Call 0141 266 0690 any time.`,
+      `Yes. Tyre Rescue operates 24 hours a day, 7 days a week, 365 days a year including bank holidays and Christmas Day. Our dispatch team answers the phone immediately — no answering service or voicemail. Emergency callout fee starts from £49 (same rate day and night — no night premium). For a 2am flat tyre in Glasgow, our response target is ${SEO_RESPONSE_TIME_LABEL}. Call 01932 509613 any time.`,
     category: 'emergency',
     isHomepageVisible: false,
   },

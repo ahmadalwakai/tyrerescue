@@ -36,7 +36,7 @@ export function jobCancelled(data: JobCancelledData): { subject: string; html: s
     ` : ''}
 
     <p>No further action is required from you for this booking.</p>
-    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you have any questions, please contact the office on <strong>0141 266 0690</strong>.</p>
+    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you have any questions, please contact the office on <strong>01932 509613</strong>.</p>
   `;
 
   return {

@@ -23,7 +23,7 @@ describe('Virtual Landline CSV parser', () => {
   it('parses a valid call-history CSV with detected columns', () => {
     const csv = [
       'Call ID,Caller Number,Destination Number,Direction,Start Time,Duration,Call Status,Recording URL',
-      'vl-1,07901 846297,01412660690,Incoming,21/07/2026 03:17:50,00:02:10,Answered,https://recordings.example/call-1.mp3',
+      'vl-1,07901 846297,01932509613,Incoming,21/07/2026 03:17:50,00:02:10,Answered,https://recordings.example/call-1.mp3',
     ].join('\n');
 
     const parsed = parseVirtualLandlineCsv(csv);
@@ -75,7 +75,7 @@ describe('Virtual Landline CSV parser', () => {
       recordingRows: 1,
       withheldRows: 2,
     });
-    expect(sanitizedFixture).not.toMatch(/07901|01412660690|ahmad/i);
+    expect(sanitizedFixture).not.toMatch(/07901|01932509613|ahmad/i);
   });
 
   it('parses the real Virtual Landline export shape with metadata rows and Excel-safe phone literals', () => {
@@ -109,7 +109,7 @@ describe('Virtual Landline CSV parser', () => {
       recordingRows: 0,
       withheldRows: 1,
     });
-    expect(providerSanitizedFixture).not.toMatch(/01412660690|07901|ahmad/i);
+    expect(providerSanitizedFixture).not.toMatch(/01932509613|07901|ahmad/i);
   });
 
   it('reports unknown columns as invalid rows instead of importing blindly', () => {
@@ -141,8 +141,8 @@ describe('Virtual Landline CSV parser', () => {
   it('normalizes UK mobile and landline numbers for matching', () => {
     const csv = [
       'From,To,Type,Date,Time,Length,Result',
-      '07901 846297,0141 266 0690,Incoming,21/07/2026,03:17,75,Answered',
-      '+44 141 266 0690,07901846297,Outgoing,21/07/2026,03:20,83,Answered',
+      '07901 846297,01932 509613,Incoming,21/07/2026,03:17,75,Answered',
+      '+44 1932 509613,07901846297,Outgoing,21/07/2026,03:20,83,Answered',
     ].join('\n');
 
     const parsed = parseVirtualLandlineCsv(csv);
@@ -172,8 +172,8 @@ describe('Virtual Landline CSV parser', () => {
   it('maps missed, incoming and outgoing rows from direction/status fields', () => {
     const csv = [
       'Caller Number,Destination Number,Direction,Start Time,Duration,Call Status',
-      '07901846297,01412660690,Incoming,21/07/2026 03:00:00,0,Missed',
-      '01412660690,07901846297,Outgoing,21/07/2026 03:02:00,30,Answered',
+      '07901846297,01932509613,Incoming,21/07/2026 03:00:00,0,Missed',
+      '01932509613,07901846297,Outgoing,21/07/2026 03:02:00,30,Answered',
     ].join('\n');
 
     const parsed = parseVirtualLandlineCsv(csv);

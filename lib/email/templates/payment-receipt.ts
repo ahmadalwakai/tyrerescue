@@ -102,7 +102,7 @@ export function paymentReceipt(data: BookingReceiptData): { subject: string; htm
     </div>
 
     <p style="font-size: 14px; color: #666666; margin-top: 24px;">
-      If you have any questions about this receipt, please contact us on 0141 266 0690.
+      If you have any questions about this receipt, please contact us on 01932 509613.
     </p>
   `;
 

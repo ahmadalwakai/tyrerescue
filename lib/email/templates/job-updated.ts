@@ -40,7 +40,7 @@ export function jobUpdated(data: JobUpdatedData): { subject: string; html: strin
     </div>
 
     <p>Please check the updated job details in your driver dashboard.</p>
-    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you have any questions, contact the office on <strong>0141 266 0690</strong>.</p>
+    <p style="font-size: 14px; color: #666666; margin-top: 24px;">If you have any questions, contact the office on <strong>01932 509613</strong>.</p>
   `;
 
   return {

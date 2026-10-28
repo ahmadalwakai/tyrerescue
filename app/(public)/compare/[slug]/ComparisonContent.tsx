@@ -274,7 +274,7 @@ export function ComparisonContent({ data }: { data: CompetitorComparison }) {
                 <Link href="/book">Book Online Now</Link>
               </ChakraLink>
               <ChakraLink
-                href="tel:01412660690"
+                href="tel:01932509613"
                 bg="transparent"
                 color={colors.accent}
                 px={8}
@@ -289,7 +289,7 @@ export function ComparisonContent({ data }: { data: CompetitorComparison }) {
                 style={{ fontFamily: 'var(--font-body)' }}
                 onClick={() => trackCallClick(`compare:${data.slug}`)}
               >
-                Call 0141 266 0690
+                Call 01932 509613
               </ChakraLink>
             </Flex>
           </Box>

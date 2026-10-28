@@ -164,7 +164,7 @@ Complaint = unhappy customer, refund request, damaged vehicle.`,
     content: `
       <h2 style="margin-top:0;">Thank you, ${name}</h2>
       <p>We have received your message and will get back to you as soon as possible.</p>
-      <p>If your enquiry is urgent, please call us directly at <strong>0141 266 0690</strong>.</p>
+      <p>If your enquiry is urgent, please call us directly at <strong>01932 509613</strong>.</p>
     `,
   });
 

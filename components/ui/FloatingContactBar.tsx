@@ -5,14 +5,15 @@ import { usePathname } from 'next/navigation';
 import { Box, Flex, Link as ChakraLink } from '@chakra-ui/react';
 import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
 import { WhatsAppQuickHelpSheet } from '@/components/ui/WhatsAppQuickHelpSheet';
+import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_TEL } from '@/lib/config/business-contact';
 import {
   buildWhatsAppHref,
   DEFAULT_WHATSAPP_PHONE,
   FALLBACK_WHATSAPP_MESSAGE,
 } from '@/lib/contact/whatsapp-options';
 
-const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER || '0141 266 0690';
-const PHONE_TEL = PHONE_NUMBER.replace(/\s/g, '');
+const PHONE_NUMBER = BUSINESS_PHONE_DISPLAY;
+const PHONE_TEL = BUSINESS_PHONE_TEL;
 const WHATSAPP_PHONE = DEFAULT_WHATSAPP_PHONE;
 // Href fallback used when JavaScript fails: still opens WhatsApp directly
 // with a safe default message, matching prior behaviour.
