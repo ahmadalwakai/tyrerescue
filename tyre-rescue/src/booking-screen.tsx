@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -26,6 +27,7 @@ import { getSecureItem } from './secure-storage';
 import { CustomerLocationStep as LocationStep } from './customer-location-step';
 import { CustomerCallbackRequest } from './customer-callback';
 import { CustomerAssistedHelpRequest } from './customer-assisted-help-request';
+import { CustomerTyreScanner } from './customer-tyre-scanner';
 import { CustomerFittingChoice } from './customer-fitting-choice';
 import { BookingContinueButton, BookingFooter, BookingFooterProvider } from './booking-footer';
 import { useCustomerReducedMotion } from './use-customer-reduced-motion';
@@ -188,6 +190,7 @@ export function BookingScreen() {
 
 function CustomerBookingSession() {
   const account = useCustomerAccount();
+  const focused = useIsFocused();
   const reducedMotion = useCustomerReducedMotion();
   const [state, setState] = useState<BookingState>(initialBookingState);
   const [step, setStep] = useState<WizardStep>('service');
@@ -239,6 +242,7 @@ function CustomerBookingSession() {
 
   const goTo = useCallback((nextStep: WizardStep) => {
     if ((state.pendingPaymentIntentId || state.paymentAttemptIntentId) && nextStep !== 'done' && nextStep !== 'payment') return;
+    if (nextStep === 'done') setDraftRestored(false);
     setStep((current) => {
       if (current !== nextStep) void Haptics.selectionAsync().catch(() => {});
       return nextStep;
@@ -270,8 +274,15 @@ function CustomerBookingSession() {
     setState(initialBookingState);
     setStep('service');
     setDraftRestored(false);
+    setNavigationLocked(false);
     void clearBookingDraft().catch(() => {});
   }, [state.pendingPaymentIntentId, state.paymentAttemptIntentId]);
+
+  // Tabs stay mounted. Keep the receipt visible until the customer leaves it,
+  // then give the next booking a fresh quote, location and payment session.
+  useEffect(() => {
+    if (!focused && step === 'done') reset();
+  }, [focused, step, reset]);
 
   if (!draftReady) return <LoadingState label="Restoring your booking..." />;
 
@@ -290,9 +301,9 @@ function CustomerBookingSession() {
       >
         <View style={screenStyles.topBlock}>
           <AppHeader
-            onBack={step !== 'service' && step !== 'done' && !state.pendingPaymentIntentId && !state.paymentAttemptIntentId ? goPrev : undefined}
+            onBack={step === 'done' ? reset : step !== 'service' && !state.pendingPaymentIntentId && !state.paymentAttemptIntentId ? goPrev : undefined}
             backDisabled={navigationLocked}
-            backLabel="Previous booking step"
+            backLabel={step === 'done' ? 'Back to booking services' : 'Previous booking step'}
           />
           <StepProgress state={state} step={step} />
         </View>
@@ -330,7 +341,9 @@ function CustomerBookingSession() {
           {step === 'done' ? <DoneStep state={state} reset={reset} /> : null}
         </Animated.View>
       </ScrollView>
-      <BookingFooter step={step} />
+      <BookingFooter step={step}
+        onBack={step !== 'service' && step !== 'done' && !state.pendingPaymentIntentId && !state.paymentAttemptIntentId ? goPrev : undefined}
+        backDisabled={navigationLocked} backLabel="Previous booking step" />
       </BookingFooterProvider>
     </KeyboardAvoidingView>
   );
@@ -683,6 +696,7 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
   const [popular, setPopular] = useState<SizeSuggestion[]>([]);
   const [loadingLookup, setLoadingLookup] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -721,7 +735,7 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
   const [unknownSize, setUnknownSize] = useState(false);
   useEffect(() => { photoMounted.current = true; return () => { photoMounted.current = false; photoUploadController.current?.abort(); }; }, []);
   const pickPhoto = async (camera: boolean) => {
-    if (uploading) return;
+    if (uploading || scanning) return;
     const revision = ++photoRequest.current;
     const current = () => photoMounted.current && photoRequest.current === revision;
     let uploadTimer: ReturnType<typeof setTimeout> | undefined;
@@ -784,6 +798,11 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
             })}
           </View>
         ) : null}
+        <CustomerTyreScanner sizeKey={`${width}/${aspect}R${rim}`} disabled={uploading} onBusyChange={setScanning}
+          onConfirm={(size) => {
+            setWidth(size.width); setAspect(size.aspect); setRim(size.rim);
+            setUnknownSize(false); setError(null);
+          }} />
         <PrimaryButton variant="ghost" icon={unknownSize ? 'check' : 'help-circle'} disabled={uploading} onPress={() => setUnknownSize(value => !value)}>
           {unknownSize ? 'I know my tyre size' : "I don't know my tyre size"}
         </PrimaryButton>
@@ -840,10 +859,10 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
         <Text style={screenStyles.fieldHint}>Optional. A photo helps the driver prepare.</Text>
         {photoUrl ? <Image accessibilityLabel="Attached tyre photo" source={{ uri: photoUrl }} style={screenStyles.photoPreview} /> : null}
         <View style={screenStyles.sizeRow}>
-          <PrimaryButton icon="image" variant="secondary" loading={uploading} style={screenStyles.flex} onPress={() => { void pickPhoto(false); }}>
+          <PrimaryButton icon="image" variant="secondary" loading={uploading} disabled={scanning} style={screenStyles.flex} onPress={() => { void pickPhoto(false); }}>
             {photoUrl ? 'Replace' : 'Library'}
           </PrimaryButton>
-          {Platform.OS !== 'web' ? <PrimaryButton icon="camera" variant="secondary" disabled={uploading} style={screenStyles.flex} onPress={() => { void pickPhoto(true); }}>Camera</PrimaryButton> : null}
+          {Platform.OS !== 'web' ? <PrimaryButton icon="camera" variant="secondary" disabled={uploading || scanning} style={screenStyles.flex} onPress={() => { void pickPhoto(true); }}>Camera</PrimaryButton> : null}
         </View>
         {photoUrl ? <PrimaryButton variant="ghost" icon="trash-2" disabled={uploading} onPress={() => { setPhotoUrl(null); updateState({ tyrePhotoUrl: null }); }}>Remove photo</PrimaryButton> : null}
       </Disclosure>
@@ -854,9 +873,9 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
 
       {!unknownSize ? <BookingContinueButton
         icon="arrow-right"
-        disabled={unknownSize || !canContinue || uploading}
+        disabled={unknownSize || !canContinue || uploading || scanning}
         onPress={() => {
-          if (unknownSize || !condition || uploading) return;
+          if (unknownSize || !condition || uploading || scanning) return;
           const nextServiceType = condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : 'assess';
           const shouldClearTyres =
             condition === 'repair' ||
@@ -1299,7 +1318,7 @@ function CustomerStep({
     if (creating.current || !quoteReady || canSubmit?.() === false) return;
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone.trim();
-    if (!name.trim()) return setError('Full name is required.');
+    if (name.trim().length < 2) return setError('Enter your full name using at least 2 characters.');
     if (!EMAIL_RE.test(trimmedEmail)) return setError('Enter a valid email address.');
     if (!PHONE_RE.test(trimmedPhone.replace(/\s/g, ''))) return setError('Enter a valid UK phone number.');
     if (!state.quoteId) return setError('Quote is missing. Please refresh the quote.');
@@ -1387,7 +1406,7 @@ function CustomerStep({
               editLabel="Edit vehicle or tyres" disabled={loading} onEdit={() => goTo('details')} />
           </Card>
           <Card style={screenStyles.priceCard}>
-            {(state.breakdown.lineItems || []).map((item, index) => <Row key={`${item.type}-${index}`} label={item.label} value={formatPrice(item.amount)} />)}
+            {(state.breakdown.lineItems || []).filter(item => !['subtotal', 'vat', 'total'].includes(item.type)).map((item, index) => <Row key={`${item.type}-${index}`} label={item.label} value={formatPrice(item.amount)} />)}
             <View style={screenStyles.divider} />
             <Row label="Subtotal" value={formatPrice(state.breakdown.subtotal)} />
             <Row label="VAT" value={formatPrice(state.breakdown.vatAmount)} />
@@ -1417,6 +1436,7 @@ function CustomerStep({
 
 function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProps) {
   const [draftSession] = useState(bookingDraftSession);
+  const [accessScope] = useState(bookingAccessScope);
   const { token } = useCustomerAccount();
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1426,6 +1446,7 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
   const [checkoutActive, setCheckoutActive] = useState(false);
   const [recoveryVersion, setRecoveryVersion] = useState(0);
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  const [paymentCancelled, setPaymentCancelled] = useState(false);
   const automaticRecovery = useRef<string | null>(null);
   const paymentMounted = useRef(true);
   const operation = useRef<'checkout' | 'recovery' | null>(null);
@@ -1468,7 +1489,15 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
       }), 30000, 'Confirmation is taking longer than expected. Check the same payment again; do not pay again.');
       requireConfirmedBooking(confirmation);
       if (!currentSession()) return;
-      updateState({ pendingPaymentIntentId: null, paymentAttemptIntentId: null, bookingAccessToken: confirmation.bookingAccessToken || state.bookingAccessToken });
+      const bookingAccessToken = confirmation.bookingAccessToken || state.bookingAccessToken;
+      // Persist guest access before Done can be cleared by a tab switch.
+      if (bookingAccessToken) {
+        await saveBookingAccess(state.refNumber, bookingAccessToken, accessScope).catch(() => {
+          throw new Error('Payment is confirmed, but your booking could not be saved on this device. Check confirmation again; you will not be charged again.');
+        });
+      }
+      if (!currentSession()) return;
+      updateState({ pendingPaymentIntentId: null, paymentAttemptIntentId: null, stripeClientSecret: null, quoteId: null, quoteExpiresAt: null, bookingAccessToken });
       if (confirmation.invoiceDownloadToken) {
         updateState({ invoiceDownloadToken: confirmation.invoiceDownloadToken });
       }
@@ -1478,7 +1507,7 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
         throw err;
       } finally { confirming.current = false; if (currentSession()) setChecking(false); }
     },
-    [goTo, state, token, updateState, draftSession, currentSession],
+    [goTo, state, token, updateState, draftSession, accessScope, currentSession],
   );
 
   const recoverPayment = useCallback(async () => {
@@ -1506,7 +1535,12 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
         updateState({ pendingPaymentIntentId: result.paymentIntentId });
         setPaymentNotice('Your bank is still processing this payment. Check its status again shortly; do not pay again.');
       } else if (result.status === 'canceled') {
-        setError('This payment was cancelled. Please contact the team to restart this booking.');
+        // Only an authorised terminal response for this exact intent may unlock
+        // a new booking. Network failures and processing payments remain locked.
+        await saveBookingDraft({ ...state, ...resetBookingQuote }, 'quote', draftSession);
+        if (!currentSession()) return;
+        updateState(resetBookingQuote);
+        setPaymentCancelled(true);
       } else {
         setError('This payment needs help from our team. Please call us before making another booking.');
       }
@@ -1524,6 +1558,12 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
     automaticRecovery.current = expectedPayment;
     void recoverPayment();
   }, [recoverPayment, state.pendingPaymentIntentId, state.paymentAttemptIntentId, state.stripeClientSecret]);
+
+  if (paymentCancelled) return <View style={screenStyles.stepGap}>
+    <ScreenHeader title="Payment cancelled" detail="This payment was cancelled. No payment was completed." />
+    <InlineNotice>Your details are kept. Review them to get a fresh quote.</InlineNotice>
+    <PrimaryButton icon="refresh-cw" onPress={() => goTo('service')}>Review booking details</PrimaryButton>
+  </View>;
 
   return (
     <View style={screenStyles.stepGap}>
@@ -1630,6 +1670,7 @@ function DoneStep({ state, reset }: { state: BookingState; reset: () => void }) 
         </View>
       </Card>
       <PrimaryButton icon="map-pin" onPress={() => router.push({ pathname: '/track', params: { ref: refNumber, accessToken: state.bookingAccessToken || '' } })}>Track my booking</PrimaryButton>
+      <PrimaryButton icon="plus" variant="secondary" onPress={reset}>Start a new booking</PrimaryButton>
       <View style={screenStyles.tileRow}>
         <ActionTile icon="message-circle" label="Chat" accessibilityLabel="Chat with our team" onPress={() => router.push({ pathname: '/chat', params: { bookingId: state.bookingId || '', refNumber, bookingAccessToken: state.bookingAccessToken || '' } })} />
         <ActionTile icon="phone" label="Call us" accessibilityLabel={`Call ${PHONE_DISPLAY}`} onPress={() => { void Linking.openURL(`tel:${PHONE_TEL}`); }} />
@@ -1638,18 +1679,23 @@ function DoneStep({ state, reset }: { state: BookingState; reset: () => void }) 
         ) : null}
       </View>
       <AccountOffer state={state} />
-      <PrimaryButton icon="plus" variant="ghost" onPress={reset}>Start a new booking</PrimaryButton>
     </View>
   );
 }
 
 function AccountOffer({ state }: { state: BookingState }) {
   const account = useCustomerAccount();
+  const [mode, setMode] = useState<'create' | 'signin'>('create');
+  const [name, setName] = useState(state.customerName);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const working = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   if (!state.refNumber || !state.customerEmail) return null;
 
@@ -1668,54 +1714,105 @@ function AccountOffer({ state }: { state: BookingState }) {
     );
   }
 
-  async function createAccount() {
-    if (password !== confirmPassword) {
+  function switchMode(next: 'create' | 'signin') {
+    if (working.current) return;
+    setMode(next);
+    setPassword('');
+    setConfirmPassword('');
+    setError(null);
+    setMessage(null);
+  }
+
+  async function saveAccount() {
+    if (working.current) return;
+    if (mode === 'create' && name.trim().length < 2) {
+      setError('Enter your full name using at least 2 characters.');
+      return;
+    }
+    if (mode === 'create' && (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password))) {
+      setError(ACCOUNT_PASSWORD_RULES);
+      return;
+    }
+    if (mode === 'create' && password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
+    if (!password) { setError('Enter your password.'); return; }
 
+    working.current = true;
     setBusy(true);
     setError(null);
     setMessage(null);
     try {
       const payload = await account.createAccountFromBooking({
+        mode,
         refNumber: state.refNumber!,
-        name: state.customerName,
+        name: name.trim(),
         email: state.customerEmail,
         phone: state.customerPhone,
         password,
         bookingAccessToken: state.bookingAccessToken || undefined,
       });
+      if (!mounted.current) return;
       setPassword('');
       setConfirmPassword('');
-      setMessage(payload.message || 'Account created.');
+      setMessage(payload.message || (mode === 'create' ? 'Account created.' : 'Signed in and linked your booking.'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create account.');
+      if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to save your account.');
     } finally {
-      setBusy(false);
+      working.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+
+  async function forgotPassword() {
+    if (working.current) return;
+    working.current = true;
+    setResetting(true); setError(null); setMessage(null);
+    try {
+      const nextMessage = await account.forgotPassword(state.customerEmail);
+      if (mounted.current) {
+        setPassword('');
+        setMessage(`${nextMessage} After resetting it, return here to sign in and link this booking.`);
+      }
+    } catch (err) {
+      if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to send a reset link. Please try again.');
+    } finally {
+      working.current = false;
+      if (mounted.current) setResetting(false);
     }
   }
 
   return (
-    <Disclosure title="Save your details for next time" summary={`Create an account for ${state.customerEmail}`}>
-      <TextField label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry autoComplete="password-new" />
-      <TextField label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" secureTextEntry autoComplete="password-new" />
+    <Disclosure title={mode === 'create' ? 'Create an account' : 'Sign in and save this booking'} summary={`Track this and future bookings with ${state.customerEmail}`}>
+      <Text style={screenStyles.fieldHint}>Your paid booking is confirmed. These steps only save it to your account.</Text>
+      {mode === 'create' ? <TextField label="Full name" value={name} onChangeText={setName} autoComplete="name" maxLength={255} editable={!busy && !resetting} /> : null}
+      <TextField label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry autoComplete={mode === 'create' ? 'password-new' : 'current-password'} editable={!busy && !resetting} />
+      {mode === 'create' ? <>
+        <TextField label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" secureTextEntry autoComplete="password-new" editable={!busy && !resetting} />
+        <Text style={screenStyles.fieldHint}>{ACCOUNT_PASSWORD_RULES}</Text>
+      </> : null}
       {message ? <InlineNotice tone="success">{message}</InlineNotice> : null}
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       <PrimaryButton
-        icon="user-plus"
+        icon={mode === 'create' ? 'user-plus' : 'log-in'}
         variant="secondary"
         loading={busy}
-        disabled={!password || !confirmPassword}
-        onPress={createAccount}
+        disabled={resetting || !password || (mode === 'create' && !confirmPassword)}
+        onPress={saveAccount}
       >
-        Create account
+        {mode === 'create' ? 'Create account' : 'Sign in and link booking'}
+      </PrimaryButton>
+      {mode === 'signin' ? <PrimaryButton variant="ghost" loading={resetting} disabled={busy} onPress={forgotPassword}>Forgot password</PrimaryButton> : null}
+      <PrimaryButton variant="ghost" disabled={busy || resetting} onPress={() => switchMode(mode === 'create' ? 'signin' : 'create')}>
+        {mode === 'create' ? 'Already have an account?' : 'Create a new account instead'}
       </PrimaryButton>
     </Disclosure>
   );
 }
 
 const quoteReset = resetBookingQuote;
+const ACCOUNT_PASSWORD_RULES = 'Use 8 or more characters with an uppercase letter, a lowercase letter and a number.';
 
 const screenStyles = StyleSheet.create({
   root: { backgroundColor: colors.bg, flex: 1, overflow: 'hidden' },

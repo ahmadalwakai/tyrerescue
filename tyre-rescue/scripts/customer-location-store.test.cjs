@@ -68,6 +68,7 @@ function harness(platform = 'ios') {
         '../src/stripe-provider': { CustomerStripeProvider: 'CustomerStripeProvider' },
         '@/src/customer-account': { CustomerAccountProvider: 'CustomerAccountProvider' },
         '@/src/customer-notifications': { CustomerNotificationBootstrap: 'CustomerNotificationBootstrap' },
+        '@/src/customer-live-activity-ui': { CustomerLiveActivityBootstrap: 'CustomerLiveActivityBootstrap' },
         '@/src/customer-location': module.exports,
       };
       const rootFilename = path.join(__dirname, '../app/_layout.tsx');

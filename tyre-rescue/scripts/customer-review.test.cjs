@@ -91,14 +91,17 @@ function harness(overrides = {}) {
     ...overrides,
   };
   const state = {
-    requests: [], savedAccess: [],
+    requests: [], savedAccess: [], focused: true, drafts: [],
     quote: async () => ({ quoteId: 'quote-refreshed', expiresAt: new Date(now + 60_000).toISOString(), breakdown }),
     create: async () => ({ bookingId: 'booking-isolated', refNumber: 'TYR-ISOLATED', stripeClientSecret: 'pi_isolated_secret_existing', bookingAccessToken: 'isolated-private-access' }),
+    confirm: async () => ({ status: 'paid', paymentConfirmed: true, bookingAccessToken: 'confirmed-private-access' }),
+    saveAccess: async () => {},
   };
   const account = { profile: null, token: null, bookings: [], sessionRevision: 0 };
-  const api = { quote: '/isolated/quote', createBooking: '/isolated/create' };
+  const api = { quote: '/isolated/quote', createBooking: '/isolated/create', confirmBooking: '/isolated/confirm' };
   const components = load('booking-screen.tsx', {
     react: h.react, 'react/jsx-runtime': jsx,
+    '@react-navigation/native': { useIsFocused: () => state.focused },
     '@expo/vector-icons': { Feather: 'Feather' },
     'expo-clipboard': {}, 'expo-haptics': { selectionAsync: async () => {} }, 'expo-image-picker': {},
     'expo-router': { useLocalSearchParams: () => ({}), router: { setParams() {} } },
@@ -114,23 +117,24 @@ function harness(overrides = {}) {
         state.requests.push({ url, body: JSON.parse(options.body), headers: options.headers });
         if (url === api.quote) return state.quote();
         if (url === api.createBooking) return state.create();
+        if (url === api.confirmBooking) return state.confirm();
         throw new Error(`Unexpected isolated endpoint: ${url}`);
       },
     },
     './booking-helpers': {},
     './booking-safety': { ...safety, restoreBookingDraft: () => ({ state: initial, step: 'quote' }) },
-    './booking-draft-storage': { bookingDraftSession: () => 0, saveBookingDraft: async () => {}, clearBookingDraft: async () => {} },
+    './booking-draft-storage': { bookingDraftSession: () => 0, saveBookingDraft: async (...args) => { state.drafts.push(args); }, clearBookingDraft: async () => { state.drafts.push('clear'); } },
     './secure-storage': { getSecureItem: async () => 'isolated-draft' },
     './customer-location-step': {}, './customer-callback': { CustomerCallbackRequest: 'CustomerCallbackRequest' },
-    './customer-assisted-help-request': {}, './customer-fitting-choice': {},
+    './customer-assisted-help-request': {}, './customer-tyre-scanner': {}, './customer-fitting-choice': {},
     './booking-footer': { BookingContinueButton: 'BookingContinueButton', BookingFooter: 'BookingFooter', BookingFooterProvider: 'BookingFooterProvider' },
     './use-customer-reduced-motion': { useCustomerReducedMotion: () => true },
     './customer-booking-access': {
       bookingAccessScope: () => 0,
-      saveBookingAccess: async (...args) => { state.savedAccess.push(args); },
+      saveBookingAccess: async (...args) => { await state.saveAccess(); state.savedAccess.push(args); },
     },
     './config': {}, './customer-account': { useCustomerAccount: () => account },
-    './customer-active-booking': {}, './customer-notifications': {}, './customer-payment-control': {},
+    './customer-active-booking': {}, './customer-notifications': {}, './customer-payment-control': { CustomerPaymentControl: 'CustomerPaymentControl' },
     './customer-payment-recovery': load('customer-payment-recovery.ts'),
     './mapbox': {}, './pulsing-map': {}, './theme': { colors: {}, radii: {}, spacing: {}, typography: {} },
     './ui': {
@@ -142,12 +146,18 @@ function harness(overrides = {}) {
     Date: ClockDate,
     setInterval: (callback) => { const id = ++timerId; timers.set(id, callback); return id; },
     clearInterval: (id) => timers.delete(id),
-  }, ['CustomerBookingSession', 'QuoteStep', 'CustomerStep', 'PaymentStep', 'DetailsStep', 'ScheduleStep']);
+  }, ['CustomerBookingSession', 'QuoteStep', 'CustomerStep', 'PaymentStep', 'DetailsStep', 'ScheduleStep', 'ServiceStep', 'DoneStep']);
 
   const session = h.renderer(components.CustomerBookingSession);
-  let quote; let customer;
+  let quote; let customer; let payment;
   const read = () => {
     const root = session.read();
+    const paymentNode = find(root, item => item.type === components.PaymentStep);
+    if (paymentNode) {
+      payment ??= h.renderer(components.PaymentStep);
+      return { root, payment: payment.read(paymentNode.props), paymentProps: paymentNode.props };
+    }
+    payment?.unmount(); payment = undefined;
     const quoteNode = find(root, (item) => item.type === components.QuoteStep);
     if (!quoteNode) {
       quote?.unmount(); customer?.unmount(); quote = undefined; customer = undefined;
@@ -171,7 +181,7 @@ function harness(overrides = {}) {
     refresh: () => find(read().quote, (item) => item.type === 'PrimaryButton' && item.props.children.trim() === 'Refresh quote'),
     field: (label) => find(read().customer, (item) => item.type === 'TextField' && item.props.label === label),
     requests: (url) => state.requests.filter((item) => item.url === `/isolated/${url}`),
-    unmount: () => { customer?.unmount(); quote?.unmount(); session.unmount(); },
+    unmount: () => { customer?.unmount(); quote?.unmount(); payment?.unmount(); session.unmount(); },
   };
 }
 
@@ -329,5 +339,92 @@ test('server slot rejection returns to scheduling and server quote rejection kee
   assert.equal(h.field('Full name').props.value, 'Kept After Expiry');
   assert.equal(h.requests('quote').length, 1);
   assert.match(h.action().props.children, /^Continue to payment · £\d+\.\d{2}$/);
+  h.unmount();
+});
+
+test('server summary lines appear only once alongside the itemised service costs', async () => {
+  const h = harness({ breakdown: { subtotal: 100, vatAmount: 20, total: 120, lineItems: [
+    { type: 'repair', label: 'Puncture repair', amount: 100 },
+    { type: 'subtotal', label: 'Subtotal', amount: 100 },
+    { type: 'vat', label: 'VAT', amount: 20 },
+    { type: 'total', label: 'Total', amount: 120 },
+  ] } });
+  await h.ready();
+  const labels = [];
+  const walk = tree => {
+    if (!tree || typeof tree !== 'object') return;
+    if (Array.isArray(tree)) return tree.forEach(walk);
+    if (tree.type === 'Row') labels.push(tree.props.label);
+    walk(tree.props?.children);
+  };
+  walk(h.read().customer);
+  assert.deepEqual(labels, ['Puncture repair', 'Subtotal', 'VAT', 'Total to pay']);
+  h.unmount();
+});
+
+test('a paid receipt stays visible until leaving Book; the next booking gets fresh details and price', async () => {
+  const h = harness(); await h.ready(); await h.action().props.onPress();
+  const control = find(h.read().payment, item => item.type === 'CustomerPaymentControl');
+  await control.props.onPaid('pi_isolated');
+  const done = find(h.read().root, item => item.type === h.components.DoneStep);
+  assert.ok(done);
+  assert.equal(done.props.state.refNumber, 'TYR-ISOLATED');
+  assert.equal(done.props.state.stripeClientSecret, null);
+  assert.equal(done.props.state.quoteId, null);
+  assert.equal(h.state.savedAccess.at(-1)[1], 'confirmed-private-access');
+  h.state.focused = false; h.read(); h.state.focused = true;
+  const service = find(h.read().root, item => item.type === h.components.ServiceStep);
+  assert.ok(service);
+  for (const key of ['quoteId', 'breakdown', 'refNumber', 'bookingId', 'stripeClientSecret', 'pendingPaymentIntentId', 'paymentAttemptIntentId']) {
+    assert.equal(service.props.state[key], null, key);
+  }
+  assert.equal(service.props.state.address, '');
+  assert.equal(service.props.state.customerName, '');
+  assert.equal(service.props.state.selectedTyres.length, 0);
+  assert.ok(h.state.drafts.includes('clear'));
+  h.state.quote = async () => ({ quoteId: 'quote-next-booking', expiresAt: '2026-10-23T10:10:00Z', breakdown: { subtotal: 150, vatAmount: 30, total: 180 } });
+  service.props.updateState({ bookingType: 'emergency', serviceType: 'repair', lat: 55.9, lng: -4.3, quantity: 2 });
+  service.props.goTo('quote'); h.read(); await settle();
+  assert.equal(find(h.read().customer, item => item.type === 'Row' && item.props.label === 'Total to pay').props.value, '£180.00');
+  assert.equal(h.requests('quote').at(-1).body.quantity, 2);
+  h.unmount();
+});
+
+test('confirmation while Book is hidden saves guest access before clearing the paid form', async () => {
+  const h = harness(); await h.ready(); await h.action().props.onPress();
+  const receipt = deferred(); h.state.saveAccess = () => receipt.promise;
+  const paid = find(h.read().payment, item => item.type === 'CustomerPaymentControl').props.onPaid('pi_isolated');
+  await settle();
+  h.state.focused = false;
+  assert.equal(h.read().paymentProps.state.pendingPaymentIntentId, 'pi_isolated');
+  assert.equal(find(h.read().root, item => item.type === h.components.ServiceStep), undefined);
+  receipt.resolve(); await paid; h.read();
+  assert.ok(find(h.read().root, item => item.type === h.components.ServiceStep));
+  assert.equal(h.state.savedAccess.at(-1)[1], 'confirmed-private-access');
+  h.unmount();
+});
+
+test('a pending payment survives tab changes and cannot be reset by Back', async () => {
+  const h = harness(); await h.ready(); await h.action().props.onPress();
+  const control = find(h.read().payment, item => item.type === 'CustomerPaymentControl');
+  await control.props.onPaymentAttempt('pi_isolated');
+  h.state.focused = false; h.read(); h.state.focused = true;
+  const current = h.read();
+  assert.equal(current.paymentProps.state.paymentAttemptIntentId, 'pi_isolated');
+  const header = find(current.root, item => item.props?.backLabel === 'Previous booking step');
+  assert.equal(header.props.onBack, undefined);
+  current.paymentProps.goPrev();
+  assert.ok(h.read().payment);
+  h.unmount();
+});
+
+test('the receipt Back button explicitly starts a clean booking without leaving Book', async () => {
+  const h = harness(); await h.ready(); await h.action().props.onPress();
+  await find(h.read().payment, item => item.type === 'CustomerPaymentControl').props.onPaid('pi_isolated');
+  const header = find(h.read().root, item => item.props?.backLabel === 'Back to booking services');
+  header.props.onBack();
+  const service = find(h.read().root, item => item.type === h.components.ServiceStep);
+  assert.ok(service); assert.equal(service.props.state.breakdown, null);
+  assert.equal(service.props.state.refNumber, null);
   h.unmount();
 });

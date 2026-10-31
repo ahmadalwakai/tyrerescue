@@ -93,9 +93,46 @@ test('changing steps immediately hides the old action and late cleanup cannot re
   }
 });
 
+test('visible Back is labelled for sighted users and accessibility while locked actions cannot fire', () => {
+  const ui = load('ui.tsx', {
+    react: {}, 'react/jsx-runtime': jsx, '@expo/vector-icons': { Feather: 'Feather' },
+    'react-native': { Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: value => value } },
+    'react-native-reanimated': {}, 'react-native-safe-area-context': {},
+    './theme': load('theme.ts'), './use-customer-reduced-motion': {},
+  });
+  let backs = 0; const onBack = () => { backs++; };
+  const header = ui.AppHeader({ onBack, backLabel: 'Previous booking step' });
+  const back = ui.BackButton(header.props.children[0].props);
+  assert.equal(back.props.accessibilityLabel, 'Previous booking step');
+  assert.ok(find(back, item => item.type === 'Text' && item.props.children === 'Back'));
+  back.props.onPress(); assert.equal(backs, 1);
+  const locked = ui.BackButton({ onPress: onBack, disabled: true });
+  locked.props.onPress(); assert.equal(backs, 1); assert.equal(locked.props.accessibilityState.disabled, true);
+  assert.equal(ui.AppHeader({}).props.children[0], null);
+});
+
+test('fixed footer exposes Back even when Continue needs input, but honors checkout locks and never reuses payment actions', () => {
+  const h = hooks();
+  const footer = load('booking-footer.tsx', { react: h.react, 'react/jsx-runtime': jsx,
+    'react-native': { View: 'View', StyleSheet: { create: value => value, hairlineWidth: 1 } },
+    './theme': { colors: {}, spacing: {} }, './ui': { PrimaryButton: 'PrimaryButton' } });
+  const provider = h.renderer(footer.BookingFooterProvider); const button = h.renderer(footer.BookingContinueButton);
+  const renderProvider = step => { const tree = provider.render({ step }); tree.type.value = tree.props.value; tree.props.children.type.value = tree.props.children.props.value; };
+  let backs = 0; let continues = 0; const onBack = () => { backs++; };
+  renderProvider('details'); button.render({ children: 'Continue', disabled: true, onPress: () => { continues++; } }); renderProvider('details');
+  let visible = footer.BookingFooter({ step: 'details', onBack });
+  const back = find(visible, item => item.props?.children === 'Back'); const next = find(visible, item => item.props?.children === 'Continue');
+  back.props.onPress(); next.props.onPress({}); assert.equal(backs, 1); assert.equal(continues, 0);
+  visible = footer.BookingFooter({ step: 'details', onBack, backDisabled: true });
+  const locked = find(visible, item => item.props?.children === 'Back'); assert.equal(locked.props.disabled, true); locked.props.onPress(); assert.equal(backs, 1);
+  for (const step of ['payment', 'done']) assert.equal(footer.BookingFooter({ step, onBack }), null);
+  button.unmount(); renderProvider('details'); assert.equal(footer.BookingFooter({ step: 'details', onBack }), null);
+});
+
 function screenHarness() {
   const h = hooks(); const types = load('types.ts');
   const components = load('booking-screen.tsx', {
+    '@react-navigation/native': {},
     react: h.react, 'react/jsx-runtime': jsx,
     '@expo/vector-icons': { Feather: 'Feather' }, 'expo-clipboard': {}, 'expo-haptics': { selectionAsync: async () => {} },
     'expo-router': {}, 'expo-image-picker': {},
@@ -104,13 +141,13 @@ function screenHarness() {
     './api': { API: { driverAvailable: '/isolated/availability' }, requestJson: async () => ({ available: true, count: 1 }) },
     './booking-helpers': {}, './booking-safety': { resetBookingQuote: { quoteId: null, stripeClientSecret: null } },
     './booking-draft-storage': {}, './secure-storage': {}, './customer-location-step': {}, './customer-callback': {},
-    './customer-assisted-help-request': {}, './customer-fitting-choice': { CustomerFittingChoice: 'CustomerFittingChoice' },
+    './customer-assisted-help-request': {}, './customer-tyre-scanner': { CustomerTyreScanner: 'CustomerTyreScanner' }, './customer-fitting-choice': { CustomerFittingChoice: 'CustomerFittingChoice' },
     './booking-footer': { BookingContinueButton: 'BookingContinueButton' }, './use-customer-reduced-motion': {},
     './customer-booking-access': {}, './config': {}, './customer-account': {}, './customer-active-booking': { CustomerActiveBookingCard: 'CustomerActiveBookingCard' }, './customer-notifications': {}, './customer-payment-control': {},
     './customer-payment-recovery': load('customer-payment-recovery.ts'),
     './mapbox': {}, './pulsing-map': {}, './theme': { colors: {}, radii: {}, spacing: {}, typography: {} },
     './ui': { PrimaryButton: 'PrimaryButton' }, './types': types,
-  }, ['ServiceStep', 'ServiceChoice', 'ProblemCard', 'StepProgress']);
+  }, ['ServiceStep', 'ServiceChoice', 'ProblemCard', 'StepProgress', 'DetailsStep']);
   return { ...h, types, components };
 }
 
@@ -146,4 +183,33 @@ test('three visual stages describe the real current step while repair and worksh
   }
   assert.deepEqual(Array.from(h.types.getSteps('emergency', 'repair')), ['service', 'location', 'eligibility', 'details', 'quote', 'payment']);
   assert.deepEqual(Array.from(h.types.getSteps('scheduled', 'fit', 'shop')), ['service', 'details', 'tyres', 'schedule', 'quote', 'payment']);
+});
+
+test('a confirmed scanned size follows the existing booking review and invalidates old tyres and price', async () => {
+  const h = screenHarness(); const details = h.renderer(h.components.DetailsStep);
+  const updates = []; const visited = [];
+  const props = {
+    state: { ...h.types.initialBookingState, bookingType: 'emergency', serviceType: 'fit',
+      conditionAssessment: 'replacement', problemType: 'damaged_tyre',
+      tyreSize: { width: '205', aspect: '55', rim: '16' }, quoteId: 'old-quote',
+      stripeClientSecret: 'old-payment', selectedTyres: [{ tyreId: 'old-size-stock' }], fulfillmentOption: 'stock' },
+    updateState: value => updates.push(value), goTo: step => visited.push(step),
+  };
+  let tree = details.render(props); await settle(); tree = details.render(props);
+  const scanner = find(tree, item => item.type === 'CustomerTyreScanner');
+  assert.equal(scanner.props.sizeKey, '205/55R16');
+  scanner.props.onBusyChange(true); tree = details.render(props);
+  assert.equal(find(tree, item => item.type === 'BookingContinueButton').props.disabled, true);
+  find(tree, item => item.type === 'BookingContinueButton').props.onPress();
+  assert.equal(updates.length, 0);
+  scanner.props.onBusyChange(false);
+  scanner.props.onConfirm({ width: '225', aspect: '45', rim: '17' }); tree = details.render(props);
+  assert.equal(updates.length, 0, 'confirmation changes the editable form, not the booking directly');
+  assert.equal(find(tree, item => item.type === 'CustomerTyreScanner').props.sizeKey, '225/45R17');
+  find(tree, item => item.type === 'BookingContinueButton').props.onPress();
+  assert.equal(updates.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(updates[0].tyreSize)), { width: '225', aspect: '45', rim: '17' });
+  assert.equal(updates[0].selectedTyres.length, 0); assert.equal(updates[0].fulfillmentOption, null);
+  assert.equal(updates[0].quoteId, null); assert.equal(updates[0].stripeClientSecret, null);
+  assert.deepEqual(visited, ['tyres']); details.unmount();
 });

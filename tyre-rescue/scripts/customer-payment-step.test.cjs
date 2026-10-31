@@ -71,13 +71,14 @@ function harness(options = {}) {
   const node = (type, props) => ({ type, props });
   const { PaymentStep } = load('booking-screen.tsx', {
     react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
+    '@react-navigation/native': {},
     '@expo/vector-icons': { Feather: 'Feather' }, 'expo-clipboard': {}, 'expo-haptics': {}, 'expo-router': {}, 'expo-image-picker': {},
     'react-native': { View: 'View', Text: 'Text', Image: 'Image', Platform: { OS: 'ios' }, Linking: { openURL: async () => {} }, StyleSheet: { create: value => value, hairlineWidth: 1 } },
     'react-native-reanimated': { default: { View: 'AnimatedView' }, FadeIn: { duration: value => value } },
     './api': { API: { confirmBooking: '/isolated/confirm' }, requestJson },
     './booking-helpers': {}, './booking-safety': safety, './booking-draft-storage': drafts, './secure-storage': secure,
-    './customer-location-step': {}, './customer-callback': {}, './customer-assisted-help-request': {}, './customer-fitting-choice': {},
-    './booking-footer': {}, './use-customer-reduced-motion': {}, './customer-booking-access': {},
+    './customer-location-step': {}, './customer-callback': {}, './customer-assisted-help-request': {}, './customer-tyre-scanner': {}, './customer-fitting-choice': {},
+    './booking-footer': {}, './use-customer-reduced-motion': {}, './customer-booking-access': { bookingAccessScope: () => 0, saveBookingAccess: async () => {} },
     './config': { PHONE_TEL: '01410000000' }, './customer-account': { useCustomerAccount: () => account }, './customer-active-booking': {}, './customer-notifications': {},
     './customer-payment-control': { CustomerPaymentControl: 'CustomerPaymentControl' },
     './customer-payment-recovery': load('customer-payment-recovery.ts'),
@@ -247,4 +248,33 @@ test('leaving PaymentStep while recovery GET is pending ignores late success and
   assert.equal(h.updates.length, 0);
   assert.equal(h.calls.filter(call => call.method === 'POST').length, 0);
   assert.deepEqual(h.transitions, []);
+});
+
+test('only a verified cancelled intent releases the saved payment lock and offers a fresh quote', async () => {
+  const h = harness();
+  h.network.get = async () => resumable({ status: 'canceled', canResume: false, clientSecret: undefined });
+  h.read(); await settle();
+  assert.equal(h.props.state.pendingPaymentIntentId, null);
+  assert.equal(h.props.state.paymentAttemptIntentId, null);
+  assert.equal(h.props.state.stripeClientSecret, null);
+  assert.equal(h.props.state.quoteId, null);
+  assert.equal(h.props.state.refNumber, null);
+  assert.equal(h.control(), undefined);
+  assert.equal(h.safety.restoreBookingDraft(h.stored.get(h.safety.BOOKING_DRAFT_KEY)).step, 'service');
+  assert.match(h.text(), /Payment cancelled/);
+  h.button('Review booking details').props.onPress();
+  assert.deepEqual(h.transitions, ['service']);
+  assert.equal(h.calls.length, 1, 'only the existing intent status was checked');
+  h.unmount();
+});
+
+test('failed cancellation persistence keeps the existing payment recovery lock', async () => {
+  const h = harness();
+  h.network.get = async () => resumable({ status: 'canceled', canResume: false, clientSecret: undefined });
+  h.storage.beforeWrite = async () => { throw new Error('Synthetic write failed'); };
+  h.read(); await settle();
+  assert.equal(h.props.state.pendingPaymentIntentId, paymentId);
+  assert.equal(h.button('Review booking details'), undefined);
+  assert.deepEqual(h.transitions, []);
+  h.unmount();
 });

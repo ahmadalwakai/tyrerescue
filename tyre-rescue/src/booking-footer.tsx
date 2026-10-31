@@ -45,15 +45,24 @@ export function BookingContinueButton(props: ButtonProps) {
   return null;
 }
 
-export function BookingFooter({ step }: { step: WizardStep }) {
+export function BookingFooter({ step, onBack, backDisabled, backLabel = 'Previous booking step' }: {
+  step: WizardStep; onBack?: () => void; backDisabled?: boolean; backLabel?: string;
+}) {
   const action = useContext(ActionContext);
   if (!action || action.step !== step || step === 'payment' || step === 'done') return null;
   return <View testID="booking-continue-footer" style={styles.footer}>
-    <PrimaryButton {...action.props} />
+    {onBack ? <View style={styles.actions}>
+      <PrimaryButton icon="chevron-left" variant="secondary" style={styles.backAction}
+        accessibilityLabel={backLabel} disabled={backDisabled} onPress={() => { if (!backDisabled) onBack(); }}>Back</PrimaryButton>
+      <PrimaryButton {...action.props} style={styles.continueAction} />
+    </View> : <PrimaryButton {...action.props} />}
   </View>;
 }
 
 const styles = StyleSheet.create({
+  actions: { alignItems: 'stretch', flexDirection: 'row', gap: spacing.gap },
+  backAction: { minWidth: 96, flexShrink: 0 },
+  continueAction: { flex: 1, minWidth: 0 },
   footer: {
     backgroundColor: colors.surface,
     borderTopColor: colors.border,

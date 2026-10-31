@@ -19,6 +19,7 @@ export const API = {
   customerRegister: '/api/mobile/customer/auth/register',
   customerLogin: '/api/mobile/customer/auth/login',
   customerForgotPassword: '/api/mobile/customer/auth/forgot-password',
+  customerResendVerification: '/api/mobile/customer/auth/resend-verification',
   customerMe: '/api/mobile/customer/me',
   customerProfile: '/api/mobile/customer/profile',
   customerDeleteAccount: '/api/mobile/customer/account',
@@ -52,12 +53,16 @@ type CustomerApiErrorKind = 'http' | 'timeout' | 'network' | 'aborted';
 export class CustomerApiError extends Error {
   readonly kind: CustomerApiErrorKind;
   readonly status: number | null;
+  readonly retryAfterSeconds: number | null;
 
-  constructor(message: string, kind: CustomerApiErrorKind, status: number | null = null) {
+  constructor(message: string, kind: CustomerApiErrorKind, status: number | null = null, retryAfterSeconds: number | null = null) {
     super(message);
     this.name = kind === 'aborted' ? 'AbortError' : 'CustomerApiError';
     this.kind = kind;
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds !== null && Number.isSafeInteger(retryAfterSeconds)
+      && retryAfterSeconds >= 0 && Number.isSafeInteger(Date.now() + retryAfterSeconds * 1000)
+      ? retryAfterSeconds : null;
   }
 }
 
@@ -102,7 +107,10 @@ export async function requestJson<T>(path: string, init?: RequestInit, timeoutMs
         const message = data && typeof data === 'object'
           ? (typeof data.message === 'string' && data.message) || (typeof data.error === 'string' && data.error)
           : null;
-        throw new CustomerApiError(message || `Request failed (${res.status})`, 'http', res.status);
+        // Our API sends Retry-After as an integer number of seconds.
+        const retryAfter = res.headers.get('Retry-After')?.trim();
+        const retryAfterSeconds = retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : null;
+        throw new CustomerApiError(message || `Request failed (${res.status})`, 'http', res.status, retryAfterSeconds);
       }
       return data as T;
     })()]);

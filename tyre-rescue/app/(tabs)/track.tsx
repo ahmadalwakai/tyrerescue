@@ -7,10 +7,10 @@ import { API, requestJson } from '@/src/api';
 import { PHONE_DISPLAY, PHONE_TEL } from '@/src/config';
 import { useCustomerAccount } from '@/src/customer-account';
 import { loadBookingAccess, saveBookingAccess } from '@/src/customer-booking-access';
-import { notifyCustomerDriverNearbyAsync } from '@/src/customer-notifications';
+import { CustomerLiveActivityControl } from '@/src/customer-live-activity-ui';
 import { fallbackRouteCoordinates, routeLiveMapMarkers, type MapCoordinate } from '@/src/mapbox';
 import { PulsingMap } from '@/src/pulsing-map';
-import { createTrackingRequestScope, isTrackingLocationFresh, isTrackingStatusActive, trackingFinishedSummary } from '@/src/tracking-state';
+import { createTrackingRequestScope, isTrackingStatusActive, trackingFinishedSummary } from '@/src/tracking-state';
 import { trackingClock, trackingJourneySteps, trackingPresentation } from '@/src/tracking-presentation';
 import { useBookingParamAccess } from '@/src/use-booking-param-access';
 import { colors, spacing, typography } from '@/src/theme';
@@ -67,7 +67,6 @@ export default function TrackScreen() {
   const requestScope = useRef(createTrackingRequestScope());
   const accountScope = useRef(0);
   const activeReference = useRef<string | null>(null);
-  const nearbyNotified = useRef(new Set<string>());
   const tracking = loaded?.data ?? null;
   const trackingActive = tracking ? isTrackingStatusActive(tracking.status) : false;
   const finishedSummary = tracking ? trackingFinishedSummary(tracking.status) : null;
@@ -84,7 +83,9 @@ export default function TrackScreen() {
     const revision = scope.begin();
     if (!silent) { setLoading(true); setLoaded(null); setError(null); setDetailsExpanded(false); setLookupExpanded(false); }
     try {
-      const access = suppliedAccess ?? await loadBookingAccess(ref);
+      // Links without a token (notifications, the active booking card) arrive as an empty
+      // string, so fall back to the access saved on this device when the booking was made.
+      const access = suppliedAccess || await loadBookingAccess(ref);
       if (!scope.current(revision)) return;
       const data = await requestJson<TrackingResponse>(`${API.tracking}/${encodeURIComponent(ref)}`, { headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -96,13 +97,6 @@ export default function TrackScreen() {
       setRefreshFailed(false);
       setError(null);
       if (suppliedAccess) await saveBookingAccess(ref, suppliedAccess);
-      if (!scope.current(revision)) return;
-      const fresh = isTrackingLocationFresh(data.driverLocationAt);
-      const nearby = (data.distanceMiles !== null && data.distanceMiles <= 0.35) || (data.etaMinutes !== null && data.etaMinutes <= 5);
-      if (fresh && nearby && isTrackingStatusActive(data.status) && !nearbyNotified.current.has(ref)) {
-        nearbyNotified.current.add(ref);
-        void notifyCustomerDriverNearbyAsync({ refNumber: ref, driverName: data.driverName, etaMinutes: data.etaMinutes, distanceMiles: data.distanceMiles });
-      }
     } catch (err) {
       if (!scope.current(revision)) return;
       if (silent) setRefreshFailed(true);
@@ -193,6 +187,7 @@ export default function TrackScreen() {
           <Text style={styles.arrivalDetail}>{presentation.detail}</Text>
           {tracking.driverName ? <View style={styles.driverBadge}><Feather name="user" color={colors.accent} size={16} /><Text style={styles.driverName}>{tracking.driverName} · Your fitter</Text></View> : null}
         </View>}
+        <CustomerLiveActivityControl key={`${sessionRevision}-${loaded.ref}`} refNumber={loaded.ref} tracking={tracking} receivedAt={loaded.receivedAt} />
         {journeySteps.length ? <View style={styles.journeyCard} accessibilityLabel="Booking progress">
           {journeySteps.map((step, index) => <View key={step.label} style={styles.journeyStep} accessible accessibilityLabel={`${step.label}, ${step.state}${step.time ? `, ${step.time}` : ''}`}>
             <View style={styles.stepTop}>
@@ -211,6 +206,8 @@ export default function TrackScreen() {
           <PulsingMap markers={routeLiveMapMarkers(mapTracking)} routeCoordinates={presentation.showDriver ? tracking.routeCoordinates ?? fallbackRouteCoordinates(mapTracking) : []} style={styles.map} />
           <View style={styles.mapFooter}><View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: colors.success }]} /><Text style={styles.legendText}>You</Text></View>{presentation.showDriver ? <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: colors.accent }]} /><Text style={styles.legendText}>Your fitter</Text></View> : null}<Text style={styles.updatedAt}>Updated {trackingClock(loaded.receivedAt)}</Text></View>
         </View> : null}
+        {tracking.status === 'completed' && tracking.canChat === true ? <PrimaryButton icon="file-text"
+          onPress={() => router.push({ pathname: '/service-report', params: { ref: loaded.ref } })}>View service report & rate us</PrimaryButton> : null}
         <View style={styles.contactRow}>
           {tracking.canChat !== false ? <PrimaryButton icon="message-circle" style={styles.contactButton} onPress={() => router.push({ pathname: '/chat', params: { bookingId: tracking.bookingId, ref: loaded.ref } })}>Chat with us</PrimaryButton> : null}
           <PrimaryButton icon="phone" variant={tracking.canChat === false ? 'primary' : 'secondary'} style={styles.contactButton} onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>Call us</PrimaryButton>

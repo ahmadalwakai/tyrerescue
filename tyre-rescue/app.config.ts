@@ -18,6 +18,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     void previousMerchantIdentifier;
     return [name, { ...otherOptions, ...(merchantIdentifier ? { merchantIdentifier } : {}) }];
   });
+  if (!plugins.some(plugin => (typeof plugin === 'string' ? plugin : plugin[0]) === './plugins/with-customer-live-activity.cjs')) {
+    plugins.push('./plugins/with-customer-live-activity.cjs');
+  }
 
   return {
     ...config,

@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'uk.tyrerescue.customertyrescanner'
+version = '1.0.0'
+
+android {
+  namespace 'uk.tyrerescue.customertyrescanner'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Bundled Latin OCR works immediately without downloading a model.
+  implementation 'com.google.mlkit:text-recognition:16.0.1'
+  implementation 'androidx.exifinterface:exifinterface:1.3.7'
+}

@@ -4,6 +4,7 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-nati
 import { API, requestJson } from './api';
 import { resetBookingQuote, withDeadline } from './booking-safety';
 import { prepareCustomerLocation } from './customer-location';
+import { CustomerSavedAddressPicker } from './customer-saved-address-picker';
 import { liveLocationMarkers, reverseGeocode, searchAddress, type MapCoordinate } from './mapbox';
 import { PulsingMap } from './pulsing-map';
 import { colors, radii, typography } from './theme';
@@ -102,6 +103,12 @@ export function CustomerLocationStep({ state, updateState, goNext, renderConfirm
 
   return <View style={styles.content}>
     <ScreenHeader title={selected ? 'Is this where you need us?' : busy ? 'Finding your location' : 'Where do you need us?'} detail={selected ? 'Tap the map to move the pin to your vehicle.' : 'Use your current location or search for an address.'} />
+    <CustomerSavedAddressPicker onSelect={place => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      confirmed.current = false;
+      setEditing(false); setAccuracy(null); setSettingsNeeded(false);
+      void applyPlace({ lat: place.lat, lng: place.lng, address: place.addressLine }, ++generation.current);
+    }} />
     {!selected ? <PrimaryButton icon="navigation" loading={busy} onPress={() => { void locate(); }}>Use current location</PrimaryButton> : null}
     {editing ? <View style={styles.search}>
       <TextField label="Address or postcode" value={address} onChangeText={changeAddress} placeholder="Enter your address or postcode" />

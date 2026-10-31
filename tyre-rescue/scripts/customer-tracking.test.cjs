@@ -6,7 +6,7 @@ const trackingState = loadSource('../../tyre-rescue/src/tracking-state.ts', {});
 const presentation = loadSource('../../tyre-rescue/src/tracking-presentation.ts', { './tracking-state': trackingState });
 const mapbox = loadSource('../../tyre-rescue/src/mapbox.ts', { './config': { MAPBOX_TOKEN: '' } });
 
-function harness(status = 'en_route') {
+function harness(status = 'en_route', { token = 'isolated-session', savedAccess = null } = {}) {
   const state = {
     response: {
       bookingId: 'isolated-booking', status, bookingType: 'emergency', canChat: true,
@@ -17,7 +17,7 @@ function harness(status = 'en_route') {
       addressLine: 'Isolated test address', scheduledAt: null, completedAt: '2026-10-23T12:00:00Z',
       statusHistory: [{ status: 'en_route', timestamp: '2026-10-23T12:10:00Z' }, { status: 'paid', timestamp: '2026-10-23T12:00:00Z' }],
     },
-    notifications: [], requests: [], timers: new Map(), listeners: new Set(), failRequests: false,
+    notifications: [], requests: [], headers: [], navigation: [], timers: new Map(), listeners: new Set(), failRequests: false,
   };
   const hooks = [];
   let cursor = 0;
@@ -51,17 +51,18 @@ function harness(status = 'en_route') {
     react,
     'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
     '@expo/vector-icons': { Feather: 'Feather' },
-    'expo-router': { router: { push() {}, setParams() {} }, useLocalSearchParams: () => ({ ref: 'TR-ISOLATED' }) },
+    'expo-router': { router: { push: value => state.navigation.push(value), setParams() {} }, useLocalSearchParams: () => ({ ref: 'TR-ISOLATED' }) },
     'react-native': {
       AppState: { addEventListener: (_event, fn) => { state.listeners.add(fn); return { remove: () => state.listeners.delete(fn) }; } },
       Linking: { openURL() {} }, Share: { share: async () => {} },
       Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: value => value }, Text: 'Text', View: 'View',
     },
-    '@/src/api': { API: { tracking: '/api/tracking' }, requestJson: async path => { state.requests.push(path); if (state.failRequests) throw new Error('Isolated offline response'); return { ...state.response }; } },
+    '@/src/api': { API: { tracking: '/api/tracking' }, requestJson: async (path, init) => { state.requests.push(path); state.headers.push(init?.headers ?? {}); if (state.failRequests) throw new Error('Isolated offline response'); return { ...state.response }; } },
     '@/src/config': { PHONE_DISPLAY: 'Test support', PHONE_TEL: '000' },
-    '@/src/customer-account': { useCustomerAccount: () => ({ token: 'isolated-session', loading: false, sessionRevision: 0 }) },
-    '@/src/customer-booking-access': { loadBookingAccess: async () => null, saveBookingAccess: async () => {} },
+    '@/src/customer-account': { useCustomerAccount: () => ({ token, loading: false, sessionRevision: 0 }) },
+    '@/src/customer-booking-access': { loadBookingAccess: async () => savedAccess, saveBookingAccess: async () => {} },
     '@/src/customer-notifications': { notifyCustomerDriverNearbyAsync: async input => { state.notifications.push(input); } },
+    '@/src/customer-live-activity-ui': { CustomerLiveActivityControl: 'CustomerLiveActivityControl' },
     '@/src/mapbox': mapbox,
     '@/src/pulsing-map': { PulsingMap: 'PulsingMap' },
     '@/src/tracking-state': trackingState,
@@ -122,7 +123,7 @@ test('active booking retains route and ETA, then a completion update stops polli
   h.read(); await settle();
   assert.ok(h.find(node => node.type === 'PulsingMap'));
   assert.equal(h.find(node => node.props?.testID === 'tracking-eta-value').props.children, 2);
-  assert.equal(h.state.notifications.length, 1);
+  assert.equal(h.state.notifications.length, 0);
   const poll = [...h.state.timers.values()].find(timer => timer.ms === 30_000);
   assert.ok(poll);
   h.state.response.status = 'completed';
@@ -131,7 +132,7 @@ test('active booking retains route and ETA, then a completion update stops polli
   assert.ok(h.find(node => node.type === 'Text' && node.props.children === 'Service completed'));
   assert.equal([...h.state.timers.values()].some(timer => timer.ms === 30_000), false);
   assert.equal(h.state.listeners.size, 0);
-  assert.equal(h.state.notifications.length, 1);
+  assert.equal(h.state.notifications.length, 0);
   const beforeRefresh = h.state.requests.length;
   h.find(node => node.type === 'PrimaryButton' && node.props.children === 'Refresh tracking').props.onPress();
   await settle();
@@ -174,6 +175,7 @@ for (const [status, title] of [['paid', 'Finding your fitter'], ['driver_assigne
     h.read(); await settle();
     assert.ok(h.find(node => node.type === 'Text' && node.props.children === title));
     assert.equal(h.find(node => node.props?.testID === 'tracking-eta-value'), undefined);
+    assert.equal(h.state.notifications.length, 0);
     if (status === 'paid') {
       const map = h.find(node => node.type === 'PulsingMap');
       assert.equal(map.props.markers.length, 1);
@@ -193,6 +195,7 @@ test('stale location hides the fitter pin, route and arrival estimate while reta
   const map = h.find(node => node.type === 'PulsingMap');
   assert.equal(map.props.markers.length, 1);
   assert.equal(map.props.routeCoordinates.length, 0);
+  assert.equal(h.state.notifications.length, 0);
   h.unmount();
 });
 
@@ -211,7 +214,7 @@ test('failed refresh pauses ETA and driver location immediately, then restores t
   h.find(node => node.type === 'PrimaryButton' && node.props.children === 'Refresh tracking').props.onPress();
   await settle();
   assert.ok(h.find(node => node.props?.testID === 'tracking-eta-value'));
-  assert.equal(h.state.notifications.length, 1);
+  assert.equal(h.state.notifications.length, 0);
   h.unmount();
 });
 
@@ -225,3 +228,49 @@ test('a tracking-only link keeps chat and sharing protected while making the sup
   assert.equal(h.find(node => node.type === 'PrimaryButton' && node.props.children === 'Call us').props.variant, 'primary');
   h.unmount();
 });
+
+test('a link without a token, such as a status notification, uses the access saved when the guest booked', async () => {
+  const h = harness('en_route', { token: null, savedAccess: 'saved-guest-capability' });
+  h.read(); await settle();
+  assert.equal(h.state.requests[0], '/api/tracking/TR-ISOLATED');
+  assert.equal(h.state.headers[0]['X-Booking-Access'], 'saved-guest-capability');
+  assert.equal(h.state.headers[0].Authorization, undefined);
+  assert.equal(h.state.notifications.length, 0);
+  h.find(node => node.type === 'PrimaryButton' && node.props.children === 'Refresh tracking').props.onPress();
+  await settle();
+  assert.equal(h.state.headers[1]['X-Booking-Access'], 'saved-guest-capability');
+  assert.equal(h.state.notifications.length, 0);
+  h.unmount();
+});
+
+test('tracking polls and manual refresh never duplicate server-originated nearby notifications', async () => {
+  const h = harness('driver_assigned');
+  h.read(); await settle(); h.read();
+  assert.equal(h.state.notifications.length, 0);
+  h.state.response.status = 'en_route';
+  [...h.state.timers.values()].find(timer => timer.ms === 30_000).callback();
+  await settle(); h.read();
+  assert.equal(h.state.notifications.length, 0);
+  [...h.state.timers.values()].find(timer => timer.ms === 30_000).callback();
+  await settle();
+  h.find(node => node.type === 'PrimaryButton' && node.props.children === 'Refresh tracking').props.onPress();
+  await settle();
+  assert.equal(h.state.notifications.length, 0);
+  h.unmount();
+});
+
+for (const [status, canChat, expected] of [['completed', true, true], ['completed', false, false], ['completed', undefined, false], ['en_route', true, false], ['cancelled', true, false]]) {
+  test(`service report action respects completion and private access: ${status}/${canChat}`, async () => {
+    const h = harness(status); h.state.response.canChat = canChat;
+    h.read(); await settle();
+    const action = h.find(node => node.type === 'PrimaryButton' && node.props.children === 'View service report & rate us');
+    assert.equal(Boolean(action), expected);
+    if (action) {
+      action.props.onPress();
+      assert.equal(h.state.navigation[0].pathname, '/service-report');
+      assert.equal(h.state.navigation[0].params.ref, 'TR-ISOLATED');
+      assert.equal(Object.keys(h.state.navigation[0].params).length, 1);
+    }
+    h.unmount();
+  });
+}

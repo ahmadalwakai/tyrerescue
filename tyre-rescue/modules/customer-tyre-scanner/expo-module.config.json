@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["CustomerTyreScannerModule"]
+  },
+  "android": {
+    "modules": ["uk.tyrerescue.customertyrescanner.CustomerTyreScannerModule"]
+  }
+}

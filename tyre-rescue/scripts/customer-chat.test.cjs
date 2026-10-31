@@ -6,7 +6,7 @@ const message = (id, body = id) => ({ id, body, senderId: null, senderRole: 'cus
 const detail = { id: 'conversation-a', bookingId: 'booking-a', bookingRef: 'REF-A', channel: 'customer_admin', status: 'open', locked: false };
 
 function harness(options = {}) {
-  const state = { calls: [], routes: [], timers: [], writes: 0, handlers: {}, detail: { ...detail }, initialPage: { messages: [message('initial')], nextCursor: null },
+  const state = { calls: [], routes: [], timers: [], writes: 0, badgeRefreshes: 0, canGoBack: true, backs: 0, handlers: {}, detail: { ...detail }, initialPage: { messages: [message('initial')], nextCursor: null },
     params: { bookingId: 'booking-a', bookingAccessToken: 'proof-a', ...options.params }, account: { token: 'account-a', loading: false, sessionRevision: 1, ...options.account } };
   let rendering;
   const changed = (before, after) => !before || after.some((value, index) => value !== before[index]);
@@ -23,12 +23,14 @@ function harness(options = {}) {
   const component = loadSource('../../tyre-rescue/app/(tabs)/chat.tsx', {
     react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
     '@react-navigation/native': { useIsFocused: () => true },
-    'expo-router': { useLocalSearchParams: () => state.params, useRouter: () => ({ push: (route) => state.routes.push(route), setParams: (params) => state.routes.push({ params }) }) },
+    'expo-router': { useLocalSearchParams: () => state.params, useRouter: () => ({ push: (route) => state.routes.push(route), setParams: (params) => state.routes.push({ params }),
+      canGoBack: () => state.canGoBack, back: () => { state.backs++; }, replace: route => state.routes.push({ replace: route }) }) },
     'react-native': { ActivityIndicator: 'ActivityIndicator', Image: 'Image', KeyboardAvoidingView: 'KeyboardAvoidingView', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View', Platform: { OS: 'ios' }, Linking: { openURL: async () => {} }, StyleSheet: { create: (value) => value } },
     '@/src/config': { PHONE_TEL: '000' },
     '@/src/customer-account': { useCustomerAccount: () => state.account },
     '@/src/use-booking-param-access': routeAccess,
     '@/src/customer-booking-access': { loadBookingAccess: async () => null },
+    '@/src/customer-notification-badge': { requestCustomerNotificationBadgeRefresh: () => { state.badgeRefreshes += 1; } },
     '@/src/customer-chat': { ...chat, customerChatRequest: async (path, headers, init = {}) => {
       const call = { path, headers, init }; state.calls.push(call);
       if (state.handlers[path]) return state.handlers[path](call);
@@ -39,19 +41,39 @@ function harness(options = {}) {
       return state.detail;
     } },
     '@/src/theme': { colors: {}, spacing: { page: 18 }, typography: {} },
-    '@/src/ui': { Card: 'Card', Logo: 'Logo', PrimaryButton: 'PrimaryButton', ScreenHeader: 'ScreenHeader', useScreenContentInsets: () => ({}) },
+    '@/src/ui': { AppHeader: 'AppHeader', Card: 'Card', Logo: 'Logo', PrimaryButton: 'PrimaryButton', ScreenHeader: 'ScreenHeader', useScreenContentInsets: () => ({}) },
   }, { AbortController, setInterval: (callback) => { state.timers.push(callback); return callback; }, clearInterval: () => {} });
   const outer = { hooks: [], effects: [], cursor: 0 }; rendering = outer;
-  const session = component.default();
-  const renderer = { hooks: [], effects: [], cursor: 0 };
+  let session = component.default();
+  let renderer = { hooks: [], effects: [], cursor: 0 };
   const read = () => { renderer.cursor = 0; renderer.effects = []; rendering = renderer; const tree = session.type(session.props); for (const effect of renderer.effects) effect(); return tree; };
   function nodes(value, predicate) { if (!value || typeof value !== 'object') return []; if (Array.isArray(value)) return value.flatMap((item) => nodes(item, predicate)); return [...(predicate(value) ? [value] : []), ...nodes(value.props?.children, predicate)]; }
   const find = (predicate) => nodes(read(), predicate)[0];
   const button = (text) => find((value) => value.type === 'PrimaryButton' && value.props.children === text);
   const input = () => find((value) => value.type === 'TextInput');
   const unmount = () => { for (const hook of renderer.hooks) hook?.cleanup?.(); };
-  return { state, read, find, button, input, unmount };
+  const switchSession = (params, account = {}) => {
+    unmount();
+    state.params = { ...state.params, ...params };
+    state.account = { ...state.account, ...account };
+    outer.cursor = 0; outer.effects = []; rendering = outer;
+    session = component.default();
+    for (const effect of outer.effects) effect();
+    renderer = { hooks: [], effects: [], cursor: 0 };
+  };
+  return { state, read, find, button, input, unmount, switchSession };
 }
+
+test('chat keeps Back outside scrolling messages and returns to Track when opened without history', async () => {
+  const h = harness(); const tree = h.read(); await settle();
+  const scroll = h.find(item => item.type === 'ScrollView');
+  assert.equal(JSON.stringify(scroll).includes('AppHeader'), false);
+  assert.equal(tree.props.children[0].props.children.type, 'AppHeader');
+  h.find(item => item.type === 'AppHeader').props.onBack(); assert.equal(h.state.backs, 1);
+  h.state.canGoBack = false;
+  h.find(item => item.type === 'AppHeader').props.onBack();
+  assert.deepEqual(h.state.routes.at(-1), { replace: '/track' }); h.unmount();
+});
 
 test('customer send mutex keeps draft and the same retry ID until server confirmation', async () => {
   const h = harness(); h.read(); await settle();
@@ -167,5 +189,189 @@ test('customer UI refuses a staff-only conversation even if a malformed response
   assert.equal(h.input(), undefined);
   assert.match(JSON.stringify(h.read()), /not available to customers/);
   assert.doesNotMatch(JSON.stringify(h.read()), /staff-secret/);
+  h.unmount();
+});
+
+const numbered = index => ({ ...message(`message-${index}`), createdAt: new Date(Date.UTC(2026, 9, 31, 12, 0, index)).toISOString() });
+const page = (first, last, nextCursor) => ({ messages: Array.from({ length: last - first + 1 }, (_, index) => numbered(first + index)), nextCursor });
+const readCalls = h => h.state.calls.filter(call => call.path.endsWith('/read'));
+
+test('polling fills a gap larger than 50 with an initially exhausted history before acknowledging read', async () => {
+  const h = harness(); h.state.initialPage = page(1, 1, null);
+  h.read(); await settle(); h.read();
+  const before = readCalls(h).length;
+  h.state.initialPage = page(12, 61, 'message-12');
+  const gap = deferred();
+  h.state.handlers['/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-12'] = () => gap.promise;
+  h.state.timers.at(-1)(); await settle();
+  assert.equal(readCalls(h).length, before);
+  assert.doesNotMatch(JSON.stringify(h.read()), /message-61/);
+  gap.resolve(page(1, 11, null)); await settle();
+  const completeHistory = JSON.stringify(h.read());
+  for (let index = 1; index <= 61; index += 1) assert.ok(completeHistory.includes(`"message-${index}"`));
+  assert.equal(JSON.parse(readCalls(h).at(-1).init.body).lastReadMessageId, 'message-61');
+  assert.equal(h.button('Load older messages'), undefined);
+  h.unmount();
+});
+
+test('large catch-up is bounded, resumes after a failed page, and preserves the older history cursor', async () => {
+  const h = harness(); h.state.initialPage = page(101, 150, 'message-101');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-101'] = async () => page(51, 100, 'message-51');
+  h.read(); await settle(); h.read();
+  h.button('Load older messages').props.onPress(); await settle();
+  h.state.initialPage = page(401, 450, 'message-401');
+  for (const end of [400, 350, 300, 250, 200, 150]) {
+    h.state.handlers[`/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-${end + 1}`] = async () => page(end - 49, end, `message-${end - 49}`);
+  }
+  const before = h.state.calls.length;
+  const beforeRead = readCalls(h).length;
+  h.state.timers.at(-1)(); await settle();
+  assert.equal(h.state.calls.slice(before).filter(call => call.path.includes('/messages?')).length, 4);
+  assert.equal(readCalls(h).length, beforeRead);
+  assert.match(JSON.stringify(h.read()), /Catching up on missed messages/);
+  h.state.handlers['/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-251'] = async () => { throw new Error('offline'); };
+  h.state.timers.at(-1)(); await settle();
+  assert.equal(readCalls(h).length, beforeRead);
+  h.state.handlers['/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-251'] = async () => page(201, 250, 'message-201');
+  h.state.timers.at(-1)(); await settle();
+  const completeHistory = JSON.stringify(h.read());
+  for (let index = 51; index <= 450; index += 1) assert.ok(completeHistory.includes(`"message-${index}"`));
+  assert.equal(JSON.parse(readCalls(h).at(-1).init.body).lastReadMessageId, 'message-450');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-51'] = async () => page(1, 50, null);
+  h.button('Load older messages').props.onPress(); await settle();
+  assert.ok(h.state.calls.some(call => call.path.endsWith('cursor=message-51')));
+  h.unmount();
+});
+
+test('a newer local send cannot conceal an unfetched incoming gap', async () => {
+  const h = harness(); h.state.initialPage = page(1, 1, null);
+  h.read(); await settle(); h.read();
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = async () => numbered(70);
+  h.input().props.onChangeText('Local reply'); h.button('Send').props.onPress(); await settle();
+  h.state.initialPage = page(21, 70, 'message-21');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages?limit=50&cursor=message-21'] = async () => page(1, 20, null);
+  h.state.timers.at(-1)(); await settle();
+  assert.ok(h.find(node => node.type === 'Text' && node.props.children === 'message-2'));
+  h.unmount();
+});
+
+test('read acknowledgment failure retains messages and retries the exact fetched marker', async () => {
+  const h = harness(); h.state.initialPage = page(1, 2, null);
+  h.state.handlers['/api/chat/conversations/conversation-a/read'] = async () => { throw new Error('offline acknowledgment'); };
+  h.read(); await settle(); h.read();
+  assert.ok(h.find(node => node.type === 'Text' && node.props.children === 'message-2'));
+  assert.match(JSON.stringify(h.read()), /Read status will retry/);
+  assert.equal(h.state.badgeRefreshes, 0, 'a failed acknowledgement must not clear unread badges');
+  h.state.handlers['/api/chat/conversations/conversation-a/read'] = async () => ({});
+  h.state.timers.at(-1)(); await settle();
+  assert.equal(readCalls(h).length, 2);
+  assert.equal(JSON.parse(readCalls(h).at(-1).init.body).lastReadMessageId, 'message-2');
+  assert.doesNotMatch(JSON.stringify(h.read()), /Read status will retry/);
+  assert.equal(h.state.badgeRefreshes, 1);
+  h.state.timers.at(-1)(); await settle();
+  assert.equal(h.state.badgeRefreshes, 1, 'unchanged read markers do not repeatedly refresh the badge');
+  h.unmount();
+});
+
+test('support and driver drafts survive switching, while booking/account/session scopes stay isolated', async () => {
+  const h = harness(); h.read(); await settle();
+  h.input().props.onChangeText('Support draft');
+  h.state.detail.channel = 'customer_driver';
+  h.switchSession({ channel: 'customer_driver' }); h.read(); await settle();
+  assert.equal(h.input().props.value, '');
+  h.input().props.onChangeText('Driver draft');
+  h.state.detail.channel = 'customer_admin';
+  h.switchSession({ channel: 'customer_admin' }); h.read(); await settle();
+  assert.equal(h.input().props.value, 'Support draft');
+  h.state.detail.bookingId = 'booking-b';
+  h.switchSession({ bookingId: 'booking-b' }); h.read(); await settle();
+  assert.equal(h.input().props.value, '');
+  h.state.detail.bookingId = 'booking-a';
+  h.switchSession({ bookingId: 'booking-a' }); h.read(); await settle();
+  assert.equal(h.input().props.value, 'Support draft');
+  h.switchSession({}, { token: 'account-b' }); h.read(); await settle();
+  assert.equal(h.input().props.value, '');
+  h.input().props.onChangeText('New account draft');
+  h.switchSession({}, { sessionRevision: 2 }); h.read(); await settle();
+  assert.equal(h.input().props.value, '');
+  h.unmount();
+});
+
+test('failed send keeps its deduplication ID through channel switching and confirmation clears only that draft', async () => {
+  const h = harness(); h.read(); await settle();
+  h.input().props.onChangeText('Retry after switching');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = async () => { throw new Error('offline'); };
+  h.button('Send').props.onPress(); await settle();
+  const firstId = JSON.parse(h.state.calls.find(call => call.path.endsWith('/messages')).init.body).clientMessageId;
+  h.state.detail.channel = 'customer_driver'; h.switchSession({ channel: 'customer_driver' }); h.read(); await settle();
+  h.input().props.onChangeText('Separate driver draft');
+  h.state.detail.channel = 'customer_admin'; h.switchSession({ channel: 'customer_admin' }); h.read(); await settle();
+  assert.equal(h.input().props.value, 'Retry after switching');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = async () => message('sent');
+  h.button('Send').props.onPress(); await settle();
+  assert.equal(JSON.parse(h.state.calls.filter(call => call.path.endsWith('/messages')).at(-1).init.body).clientMessageId, firstId);
+  h.state.detail.channel = 'customer_driver'; h.switchSession({ channel: 'customer_driver' }); h.read(); await settle();
+  assert.equal(h.input().props.value, 'Separate driver draft');
+  h.state.detail.channel = 'customer_admin'; h.switchSession({ channel: 'customer_admin' }); h.read(); await settle();
+  assert.equal(h.input().props.value, '');
+  h.unmount();
+});
+
+test('resolving booking access during a channel switch retains the same booking draft and retry ID', async () => {
+  const h = harness({ params: { conversationId: detail.id, bookingAccessToken: undefined } });
+  h.read(); await settle();
+  h.input().props.onChangeText('Draft opened from a notification');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = async () => { throw new Error('offline'); };
+  h.button('Send').props.onPress(); await settle();
+  const firstId = JSON.parse(h.state.calls.find(call => call.path.endsWith('/messages')).init.body).clientMessageId;
+  h.state.detail.channel = 'customer_driver';
+  h.switchSession({ channel: 'customer_driver', bookingAccessToken: 'resolved-booking-proof' }); h.read(); await settle();
+  assert.equal(h.input().props.value, '');
+  h.state.detail.channel = 'customer_admin';
+  h.switchSession({ channel: 'customer_admin' }); h.read(); await settle();
+  assert.equal(h.input().props.value, 'Draft opened from a notification');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = async () => message('sent');
+  h.button('Send').props.onPress(); await settle();
+  assert.equal(JSON.parse(h.state.calls.filter(call => call.path.endsWith('/messages')).at(-1).init.body).clientMessageId, firstId);
+  h.unmount();
+});
+
+test('a late send confirmation leaves the restored draft retryable with the same deduplication ID', async () => {
+  const h = harness(); h.read(); await settle();
+  h.input().props.onChangeText('Sending before switching');
+  const pending = deferred();
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = () => pending.promise;
+  h.button('Send').props.onPress();
+  const original = JSON.parse(h.state.calls.find(call => call.path.endsWith('/messages')).init.body);
+  h.state.detail.channel = 'customer_driver';
+  h.switchSession({ channel: 'customer_driver' }); h.read(); await settle();
+  h.state.detail.channel = 'customer_admin';
+  h.switchSession({ channel: 'customer_admin' }); h.read(); await settle();
+  assert.equal(h.input().props.value, 'Sending before switching');
+  pending.resolve(message(original.clientMessageId, original.body)); await settle();
+  assert.equal(h.input().props.value, 'Sending before switching');
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = async () => message(original.clientMessageId, original.body);
+  h.button('Send').props.onPress(); await settle();
+  const retried = JSON.parse(h.state.calls.filter(call => call.path.endsWith('/messages')).at(-1).init.body);
+  assert.equal(retried.clientMessageId, original.clientMessageId);
+  assert.equal(h.input().props.value, '');
+  assert.equal(h.button('Send').props.disabled, true);
+  assert.equal(h.state.calls.filter(call => call.path.endsWith('/messages')).length, 2);
+  h.unmount();
+});
+
+test('a late send confirmation preserves a newer draft written after returning to its channel', async () => {
+  const h = harness(); h.read(); await settle();
+  h.input().props.onChangeText('Earlier message');
+  const pending = deferred();
+  h.state.handlers['/api/chat/conversations/conversation-a/messages'] = () => pending.promise;
+  h.button('Send').props.onPress();
+  h.state.detail.channel = 'customer_driver';
+  h.switchSession({ channel: 'customer_driver' }); h.read(); await settle();
+  h.state.detail.channel = 'customer_admin';
+  h.switchSession({ channel: 'customer_admin' }); h.read(); await settle();
+  h.input().props.onChangeText('A newer draft');
+  pending.resolve(message('confirmed')); await settle();
+  assert.equal(h.input().props.value, 'A newer draft');
   h.unmount();
 });

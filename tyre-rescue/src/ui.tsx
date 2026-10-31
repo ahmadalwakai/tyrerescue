@@ -59,7 +59,7 @@ export function AppHeader({ onBack, backDisabled, backLabel = 'Back', trailing }
   return (
     <View style={styles.appHeader}>
       {onBack ? (
-        <IconButton icon="chevron-left" accessibilityLabel={backLabel} disabled={backDisabled} onPress={onBack} />
+        <BackButton accessibilityLabel={backLabel} disabled={backDisabled} onPress={onBack} />
       ) : null}
       <View style={styles.appHeaderBrand}>
         <Logo compact />
@@ -67,6 +67,26 @@ export function AppHeader({ onBack, backDisabled, backLabel = 'Back', trailing }
       {trailing ? <View style={styles.appHeaderTrailing}>{trailing}</View> : null}
     </View>
   );
+}
+
+/** A visible word and arrow make the navigation action clear without relying on an icon. */
+export function BackButton({ accessibilityLabel = 'Back', disabled = false, onPress }: {
+  accessibilityLabel?: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={accessibilityLabel}
+    accessibilityState={{ disabled }}
+    disabled={disabled}
+    hitSlop={6}
+    onPress={() => { if (!disabled) onPress(); }}
+    style={({ pressed }) => [styles.backButton, disabled ? styles.buttonDisabled : null, pressed && !disabled ? styles.buttonPressed : null]}
+  >
+    <Feather accessible={false} name="chevron-left" size={21} color={colors.accent} />
+    <Text style={styles.backButtonText}>Back</Text>
+  </Pressable>;
 }
 
 export function IconButton({ icon, accessibilityLabel, disabled, onPress }: {
@@ -561,6 +581,7 @@ export const styles = StyleSheet.create({
   },
   logoText: {
     color: colors.text,
+    flexShrink: 1,
     fontFamily: typography.brand,
     fontSize: 22,
     letterSpacing: 1,
@@ -583,6 +604,27 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+  },
+  backButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexShrink: 0,
+    gap: 3,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 86,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  backButtonText: {
+    color: colors.accent,
+    fontFamily: typography.bodyBold,
+    fontSize: 15,
+    lineHeight: 22,
   },
   iconButton: {
     alignItems: 'center',

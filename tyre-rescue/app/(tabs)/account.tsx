@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { customerInvoiceUrl } from '@/src/api';
+import { CustomerEmailVerification } from '@/src/customer-email-verification';
 import { bookingRepeatParams, recentCustomerVehicles } from '@/src/customer-vehicles';
 import {
   humanBookingStatus,
@@ -51,7 +52,8 @@ export default function AccountScreen() {
     setError(null);
     setMessage(null);
     try {
-      await account.login({ email, password });
+      // Autofill often adds a trailing space, which the server rejects as an invalid email.
+      await account.login({ email: email.trim().toLowerCase(), password });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in.');
     } finally {
@@ -135,6 +137,8 @@ export default function AccountScreen() {
         detail={account.profile ? undefined : 'Create an account or sign in to manage bookings, invoices, and tracking.'}
       />
 
+      <PrimaryButton icon="bell" variant="secondary" onPress={() => router.push('/notifications' as import('expo-router').Href)}>Notification settings</PrimaryButton>
+
       {account.connectionError || account.offline ? (
         <Card>
           <Text accessibilityRole="alert" style={styles.mutedText}>
@@ -161,7 +165,8 @@ export default function AccountScreen() {
             {account.profile.phone ? <Row label="Phone" value={account.profile.phone} /> : null}
           </Card>
           <AccountSettings key={`${account.profile.id}-${account.sessionRevision}`} onDeleted={() => { setPassword(''); setConfirmPassword(''); setMessage('Your account has been deleted. Required service and financial records are retained.'); }} />
-          {account.profile.emailVerified === false ? <InlineNotice>Verify your email using the message we sent you, then refresh to securely link your previous bookings.</InlineNotice> : null}
+          {account.profile.emailVerified === false ? <CustomerEmailVerification key={`${account.profile.id}-${account.sessionRevision}`}
+            resendVerification={account.resendVerification} refresh={account.refresh} refreshing={account.refreshing} offline={account.offline} /> : null}
 
           <View style={styles.actionRow}>
             <PrimaryButton icon="plus" style={styles.actionButton} onPress={() => router.push('/')}>
@@ -171,6 +176,12 @@ export default function AccountScreen() {
               Refresh
             </PrimaryButton>
           </View>
+
+          <Card>
+            <Text style={styles.sectionTitle}>Your documents and places</Text>
+            <PrimaryButton icon="file-text" variant="secondary" onPress={() => router.push('/invoices')}>My invoices</PrimaryButton>
+            <PrimaryButton icon="map-pin" variant="secondary" onPress={() => router.push('/addresses')}>Saved addresses</PrimaryButton>
+          </Card>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>My vehicles</Text>
@@ -353,6 +364,8 @@ function BookingCard({ booking }: { booking: CustomerBookingSummary }) {
           Book again
         </PrimaryButton>
       </View>
+      {booking.status === 'completed' ? <PrimaryButton icon="file-text" variant="secondary"
+        onPress={() => router.push({ pathname: '/service-report', params: { ref: booking.refNumber } })}>Service report & feedback</PrimaryButton> : null}
       <PrimaryButton icon="message-circle" variant="secondary" onPress={() => router.push({ pathname: '/chat', params: { bookingId: booking.bookingId, ref: booking.refNumber } })}>Chat with us</PrimaryButton>
       {booking.invoiceDownloadToken ? (
         <PrimaryButton

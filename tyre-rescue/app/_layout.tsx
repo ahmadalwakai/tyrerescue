@@ -18,6 +18,7 @@ import {
 import { colors } from '@/src/theme';
 import { CustomerStripeProvider } from '../src/stripe-provider';
 import { CustomerAccountProvider } from '@/src/customer-account';
+import { CustomerLiveActivityBootstrap } from '@/src/customer-live-activity-ui';
 import { CustomerNotificationBootstrap } from '@/src/customer-notifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -45,6 +46,7 @@ export default function RootLayout() {
     <CustomerStripeProvider>
       <CustomerAccountProvider>
         <CustomerNotificationBootstrap />
+        <CustomerLiveActivityBootstrap />
         <ThemeProvider
           value={{
             dark: true,
@@ -67,6 +69,9 @@ export default function RootLayout() {
           <Stack screenOptions={{ contentStyle: { backgroundColor: colors.bg } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="stripe-redirect" options={{ headerShown: false }} />
+            <Stack.Screen name="invoices" options={{ headerShown: false }} />
+            <Stack.Screen name="addresses" options={{ headerShown: false }} />
+            <Stack.Screen name="notifications" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>

@@ -1,6 +1,6 @@
 workflows:
-  customer-ios21-native:
-    name: Tyre Rescue 1.0.6 (21) - customer iOS
+  customer-ios22-native:
+    name: Tyre Rescue 1.0.7 (22) - customer iOS
     instance_type: mac_mini_m2
     max_build_duration: 120
     working_directory: tyre-rescue
@@ -11,14 +11,14 @@ workflows:
       xcode: '26.2'
       cocoapods: default
       groups:
-        - customer_ios21_public
-        - customer_ios21_signing
+        - customer_ios22_public
+        - customer_ios22_signing
       vars:
         CI: '1'
         EXPO_NO_TELEMETRY: '1'
         EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
         CUSTOMER_APP_DIR: tyre-rescue
-        CUSTOMER_CI_DIR: ci/customer-ios21-codemagic
+        CUSTOMER_CI_DIR: ci/customer-ios22-codemagic
         CM_RECURSIVE_SUBMODULE_INIT: 'false'
         DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
     # Explicit API dispatch only; publishing uploads the verified artifact without requesting review.
@@ -37,25 +37,25 @@ workflows:
           origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
           assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
           PY
-          customer_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/customer-ios21.XXXXXX")"
+          customer_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/customer-ios22.XXXXXX")"
           printf 'CUSTOMER_CI_TEMP=%s\n' "$customer_ci_temp" >> "$CM_ENV"
 
       - name: Verify frozen source and install customer dependencies
         script: |
           set -euo pipefail
-          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
+          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CUSTOMER_IOS_LIVE_ACTIVITY_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
             bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/install-dependencies.sh"
 
-      - name: Typecheck and test customer booking and payment flows
+      - name: Typecheck, lint and test all customer flows
         script: |
           set -euo pipefail
-          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
+          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CUSTOMER_IOS_LIVE_ACTIVITY_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
             bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/check-customer.sh"
 
       - name: Generate native iOS project and install CocoaPods
         script: |
           set -euo pipefail
-          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
+          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CUSTOMER_IOS_LIVE_ACTIVITY_PROFILE_BASE64 -u CM_API_TOKEN -u APP_STORE_CONNECT_PRIVATE_KEY -u APP_STORE_CONNECT_API_KEY -u APP_STORE_CONNECT_KEY_IDENTIFIER -u APP_STORE_CONNECT_ISSUER_ID \
             bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/prepare-native.sh"
 
       - name: Sign existing customer identity, export IPA and verify
@@ -65,8 +65,8 @@ workflows:
             bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/build-native.sh"
 
     artifacts:
-      - $CUSTOMER_CI_TEMP/customer-ios21-output/tyre-rescue-1.0.6-21.ipa
-      - $CUSTOMER_CI_TEMP/customer-ios21-output/manifest.json
+      - $CUSTOMER_CI_TEMP/customer-ios22-output/tyre-rescue-1.0.7-22.ipa
+      - $CUSTOMER_CI_TEMP/customer-ios22-output/manifest.json
 
     publishing:
       app_store_connect:

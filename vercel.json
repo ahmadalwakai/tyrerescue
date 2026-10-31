@@ -2,7 +2,8 @@
   "git": {
     "deploymentEnabled": {
       "release/customer-ios20-20261024": false,
-      "codex/customer-ios21-20261028": false
+      "codex/customer-ios21-20261028": false,
+      "codex/customer-ios22-20261031": false
     }
   }
 }

@@ -47,6 +47,7 @@ function harness(initial = {}, platform = 'ios') {
     './api': { API: { validateLocation: '/isolated/location' }, requestJson: async (url, init) => { const body = JSON.parse(init.body); state.validations.push(body); return state.validate(body); } },
     './booking-safety': { resetBookingQuote: { quoteId: null }, withDeadline: (value) => value },
     './customer-location': { prepareCustomerLocation: async (options) => { state.locations.push(options); return state.prepare(options); } },
+    './customer-saved-address-picker': { CustomerSavedAddressPicker: 'CustomerSavedAddressPicker' },
     './mapbox': { liveLocationMarkers: (lat, lng) => [{ id: 'pin', coordinate: [lng, lat] }], reverseGeocode: async (lat, lng) => { state.geocodes.push({ lat, lng }); return state.reverse(lat, lng); }, searchAddress: async (value) => { state.searches.push(value); return state.search(value); } },
     './pulsing-map': { PulsingMap: 'PulsingMap' },
     './theme': { colors: {}, radii: {}, typography: {} },
@@ -253,4 +254,35 @@ test('web does not prompt automatically and retains the manual address path', as
   h.press('Use current location'); await settle();
   assert.deepEqual(plain(h.state.locations), [{ requestPermission: true, force: true }]);
   h.unmount();
+});
+
+test('choosing a saved address rechecks coverage and waits for explicit booking confirmation', async () => {
+  const h = harness(); h.read(); await settle();
+  const place = { id: 'home', label: 'Home', addressLine: 'Saved home in Glasgow', lat: 55.9, lng: -4.2 };
+  h.find(node => node.type === 'CustomerSavedAddressPicker').props.onSelect(place);
+  await settle();
+  assert.deepEqual(plain(h.state.validations), [{ lat: 55.9, lng: -4.2, address: place.addressLine }]);
+  assert.equal(h.state.locations.length, 0); assert.equal(h.state.advances, 0); assert.equal(h.state.updates.length, 0);
+  h.press('Yes, use this location');
+  assert.deepEqual(plain(h.state.updates[0]), { quoteId: null, address: place.addressLine, lat: 55.9, lng: -4.2, distanceMiles: 3 });
+  assert.equal(h.state.advances, 1); h.unmount();
+});
+
+test('an out-of-area saved address cannot bypass the location check', async () => {
+  const h = harness(); h.state.validate = async () => ({ valid: false, distanceMiles: 100, message: 'Outside the service area.' });
+  h.read(); await settle();
+  h.find(node => node.type === 'CustomerSavedAddressPicker').props.onSelect({ label: 'Work', addressLine: 'Distant saved workplace', lat: 52, lng: -1 });
+  await settle();
+  const confirm = h.button('Yes, use this location'); assert.equal(confirm.props.disabled, true);
+  confirm.props.onPress(); assert.equal(h.state.updates.length, 0); assert.equal(h.state.advances, 0);
+  assert.match(JSON.stringify(h.read()), /Outside the service area/); h.unmount();
+});
+
+test('selecting a saved address invalidates an earlier GPS response', async () => {
+  const h = harness(); const gps = deferred(); h.state.prepare = () => gps.promise;
+  h.read(); h.press('Use current location'); await settle();
+  h.find(node => node.type === 'CustomerSavedAddressPicker').props.onSelect({ label: 'Home', addressLine: 'Chosen saved home', lat: 55.9, lng: -4.2 });
+  await settle(); gps.resolve(ready()); await settle();
+  assert.equal(h.state.validations.length, 1); assert.equal(h.state.validations[0].address, 'Chosen saved home');
+  h.press('Yes, use this location'); assert.equal(h.state.updates[0].address, 'Chosen saved home'); h.unmount();
 });

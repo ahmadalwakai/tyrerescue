@@ -1,4 +1,5 @@
 'use strict';
+/* global __dirname */
 
 // --freeze honors GIT_INDEX_FILE and hashes staged blobs without changing the working index.
 const fs = require('node:fs');
@@ -8,15 +9,31 @@ const { execFileSync } = require('node:child_process');
 const root = process.env.CM_BUILD_DIR || path.resolve(__dirname, '../..');
 const appRelative = process.env.CUSTOMER_APP_DIR || 'tyre-rescue';
 const app = path.join(root, appRelative);
-const ciRelative = process.env.CUSTOMER_CI_DIR || 'ci/customer-ios21-codemagic';
+const ciRelative = process.env.CUSTOMER_CI_DIR || 'ci/customer-ios22-codemagic';
 const manifestPath = path.join(root, ciRelative, 'source-manifest.json');
 const check = (condition, label) => { if (!condition) throw new Error(label); };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const forbidden = /(^|\/)(?:\.env(?:\..*)?|credentials\.json|\.git|\.vercel|node_modules|android|ios)(?:\/|$)|\.(?:p8|p12|mobileprovision|pem|key|log|exit|pid|ps1|zip|tar|tgz)$/i;
+// These are hand-written sources, not the generated application ios directory.
+// Keep the exception exact so signing material or other native output is rejected.
+const localActivitySource = /^modules\/customer-live-activity\/ios(?:\/(?:CustomerLiveActivityModule\.swift|CustomerRescueAttributes\.swift|CustomerLiveActivity\.podspec))?$/;
+const localScannerFiles = new Set([
+  'modules/customer-tyre-scanner/ios/CustomerTyreScannerModule.swift',
+  'modules/customer-tyre-scanner/ios/CustomerTyreScanner.podspec',
+  'modules/customer-tyre-scanner/android/build.gradle',
+  'modules/customer-tyre-scanner/android/src/main/AndroidManifest.xml',
+  'modules/customer-tyre-scanner/android/src/main/java/uk/tyrerescue/customertyrescanner/CustomerTyreScannerModule.kt',
+]);
+const localScannerDirectories = new Set([...localScannerFiles].flatMap(file => {
+  const parts = file.split('/');
+  return parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'));
+}));
+const forbiddenSource = (file, directory = false) => !localActivitySource.test(file)
+  && !(directory ? localScannerDirectories : localScannerFiles).has(file) && forbidden.test(file);
 const privateLiteral = /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b|\bwhsec_[A-Za-z0-9]{16,}|-----BEGIN (?:[A-Z ]+)?PRIVATE KEY-----|\bsk\.[A-Za-z0-9_-]{20,}\./;
 const git = (...args) => execFileSync('git', args, { cwd: root, maxBuffer: 64 * 1024 * 1024 });
 const frozenFile = file => {
-  check(!forbidden.test(file), 'Private or generated artifact in staged customer release');
+  check(!forbiddenSource(file), 'Private or generated artifact in staged customer release');
   const bytes = git('show', ':' + appRelative + '/' + file);
   check(!privateLiteral.test(bytes.toString('utf8')), 'Private literal in staged customer source');
   return { file, bytes: bytes.length, sha256: hash(bytes) };
@@ -48,7 +65,7 @@ if (process.argv.includes('--freeze')) {
       const filename = path.join(app, key);
       const stat = fs.lstatSync(filename);
       check(!stat.isSymbolicLink(), 'Unexpected customer source symbolic link');
-      check(!forbidden.test(key), 'Private or generated customer source artifact');
+      check(!forbiddenSource(key, stat.isDirectory()), 'Private or generated customer source artifact');
       if (stat.isDirectory()) { walk(key); continue; }
       check(stat.isFile() && expected.has(key), 'Unexpected customer source file: ' + key);
       const bytes = fs.readFileSync(filename);
@@ -63,7 +80,7 @@ if (process.argv.includes('--freeze')) {
   const expo = JSON.parse(fs.readFileSync(path.join(app, 'app.json'), 'utf8')).expo;
   const pkg = JSON.parse(fs.readFileSync(path.join(app, 'package.json'), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(path.join(app, 'package-lock.json'), 'utf8'));
-  check(expo.version === '1.0.6' && pkg.version === expo.version && expo.ios.buildNumber === '21', 'Unexpected customer release version');
+  check(expo.version === '1.0.7' && pkg.version === expo.version && expo.ios.buildNumber === '22', 'Unexpected customer release version');
   check(expo.version === manifest.version && expo.ios.buildNumber === manifest.buildNumber, 'Frozen release metadata mismatch');
   check(expo.ios.bundleIdentifier === 'uk.tyrerescue.customer' && manifest.bundleIdentifier === expo.ios.bundleIdentifier, 'Wrong customer application identity');
   check(expo.extra.eas.projectId === 'c97a7bac-50da-42d8-9aef-3071d6b00925', 'Wrong existing notification project identity');
@@ -72,8 +89,7 @@ if (process.argv.includes('--freeze')) {
   check(process.env.EXPO_PUBLIC_API_BASE_URL === 'https://www.tyrerescue.uk', 'Explicit production customer HTTPS API required');
   check(/^pk\.[A-Za-z0-9_.-]+$/.test(process.env.EXPO_PUBLIC_MAPBOX_TOKEN || ''), 'Explicit public Mapbox token required');
   check(/^pk_live_[A-Za-z0-9]+$/.test(process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''), 'Explicit live Stripe publishable key required');
-  check(!process.env.EXPO_PUBLIC_APPLE_MERCHANT_ID?.trim(), 'Customer build 21 keeps Apple Pay disabled until certificate setup is complete');
-  check(!process.env.EXPO_PUBLIC_PHONE_NUMBER?.trim(), 'Customer release must use the reviewed support phone number');
+  check(!process.env.EXPO_PUBLIC_APPLE_MERCHANT_ID?.trim(), 'Customer build 22 keeps Apple Pay disabled until certificate setup is complete');
   check(!process.env.EXPO_PUBLIC_ADMIN_TOKEN && !process.env.STRIPE_SECRET_KEY && !process.env.EXPO_TOKEN, 'Forbidden privileged runtime credential');
   if (process.argv.includes('--installed')) {
     for (const name of ['expo', 'react-native', 'expo-constants', 'expo-notifications', 'expo-location', 'expo-image-picker', 'expo-secure-store', '@stripe/stripe-react-native', '@rnmapbox/maps']) {

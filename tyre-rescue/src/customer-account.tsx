@@ -51,6 +51,7 @@ interface CustomerAccountPayload {
 }
 
 interface ClaimBookingInput {
+  mode?: 'create' | 'signin';
   refNumber: string;
   name: string;
   email: string;
@@ -83,6 +84,7 @@ interface CustomerAccountContextValue {
   connectionError: string | null;
   createAccountFromBooking: (input: ClaimBookingInput) => Promise<CustomerAccountPayload>;
   forgotPassword: (email: string) => Promise<string>;
+  resendVerification: () => Promise<string>;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<CustomerAccountPayload>;
   logout: () => Promise<void>;
@@ -278,6 +280,25 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
     await refreshWithToken(savedToken);
   }, [refreshWithToken]);
 
+  const resendVerification = useCallback(async () => {
+    const currentToken = activeToken.current;
+    if (!currentToken) throw new Error('Sign in to resend your verification email.');
+    try {
+      const payload = await requestJson<{ message: string; alreadyVerified?: boolean }>(API.customerResendVerification, {
+        method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }, body: '{}',
+      });
+      if (activeToken.current !== currentToken) throw new Error('Your account session changed. Please try again.');
+      if (payload.alreadyVerified) await refreshWithToken(currentToken);
+      if (activeToken.current !== currentToken) throw new Error('Your account session changed. Please try again.');
+      return payload.message;
+    } catch (error) {
+      if (activeToken.current === currentToken && error instanceof CustomerApiError && (error.status === 401 || error.status === 403)) {
+        await clearAccount();
+      }
+      throw error;
+    }
+  }, [clearAccount, refreshWithToken]);
+
   const updateProfile = useCallback(async (input: { name: string; phone: string | null }) => {
     const currentToken = activeToken.current;
     const requestScope = ++scope.current;
@@ -320,6 +341,7 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
       connectionError,
       createAccountFromBooking,
       forgotPassword,
+      resendVerification,
       login,
       register,
       logout,
@@ -327,7 +349,7 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
       updateProfile,
       deleteAccount,
     }),
-    [bookings, connectionError, createAccountFromBooking, deleteAccount, forgotPassword, lastSyncedAt, loading, login, logout, offline, profile, refresh, refreshing, register, sessionRevision, token, updateProfile],
+    [bookings, connectionError, createAccountFromBooking, deleteAccount, forgotPassword, lastSyncedAt, loading, login, logout, offline, profile, refresh, refreshing, register, resendVerification, sessionRevision, token, updateProfile],
   );
 
   return <CustomerAccountContext.Provider value={value}>{children}</CustomerAccountContext.Provider>;

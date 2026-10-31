@@ -5,9 +5,10 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pres
 
 import { PHONE_TEL } from '@/src/config';
 import { useCustomerAccount } from '@/src/customer-account';
-import { customerChatHeaders, customerChatRequest, isCustomerChatChannel, mergeCustomerChatMessages, newCustomerChatMessageId,
+import { createCustomerChatDrafts, createCustomerChatHistory, customerChatHeaders, customerChatRequest, isCustomerChatChannel,
   type CustomerChatChannel, type CustomerChatConversation, type CustomerChatMessage, type CustomerChatPage } from '@/src/customer-chat';
 import { loadBookingAccess } from '@/src/customer-booking-access';
+import { requestCustomerNotificationBadgeRefresh } from '@/src/customer-notification-badge';
 import { useBookingParamAccess } from '@/src/use-booking-param-access';
 import { colors, spacing, typography } from '@/src/theme';
 import { AppHeader, Card, PrimaryButton, ScreenHeader, useScreenContentInsets } from '@/src/ui';
@@ -24,6 +25,7 @@ export default function CustomerChatScreen() {
   const refNumber = single(params.refNumber) || single(params.ref);
   const parameterAccess = useBookingParamAccess(single(params.bookingAccessToken), sessionRevision);
   const providedAccess = parameterAccess.value;
+  const draftScope = useMemo(() => ({ sessionRevision, token, drafts: createCustomerChatDrafts() }), [sessionRevision, token]);
   const [savedAccess, setSavedAccess] = useState<{ ref: string; revision: number; value: string | null } | null>(null);
   useEffect(() => {
     if (parameterAccess.invalidated) router.setParams({ bookingAccessToken: undefined });
@@ -40,13 +42,14 @@ export default function CustomerChatScreen() {
   if (loading || (refNumber && !providedAccess && !savedReady)) {
     return <View style={styles.loading}><ActivityIndicator color={colors.accent} /><Text style={styles.muted}>Opening secure chat…</Text></View>;
   }
-  // Remount the session on account/booking changes so old requests and drafts cannot cross scopes.
+  // Requests/history remount; drafts stay in this screen's account-scoped memory.
   return <ChatSession key={JSON.stringify([sessionRevision, token, access, bookingId, conversationId, channel])} token={token} access={access}
-    bookingId={bookingId} initialConversationId={conversationId} initialChannel={channel} />;
+    bookingId={bookingId} initialConversationId={conversationId} initialChannel={channel} drafts={draftScope.drafts} />;
 }
 
-function ChatSession({ token, access, bookingId, initialConversationId, initialChannel }: {
+function ChatSession({ token, access, bookingId, initialConversationId, initialChannel, drafts }: {
   token: string | null; access: string | null; bookingId: string; initialConversationId: string; initialChannel: CustomerChatChannel;
+  drafts: ReturnType<typeof createCustomerChatDrafts>;
 }) {
   const router = useRouter();
   const focused = useIsFocused();
@@ -61,15 +64,20 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
   const [olderLoading, setOlderLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [catchingUp, setCatchingUp] = useState(false);
+  const [readWarning, setReadWarning] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const alive = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const pendingSend = useRef<{ id: string; body: string } | null>(null);
   const sendBusy = useRef(false);
   const refreshBusy = useRef(false);
+  const badgeReadMarker = useRef<string | null>(null);
+  const history = useRef(createCustomerChatHistory());
+  const draftKey = useRef<string | null>(null);
+  const focusedRef = useRef(focused);
   const scroll = useRef<ScrollView>(null);
   const scrollAfterLoad = useRef(true);
-  const paginationInitialized = useRef(false);
   const request = useCallback(<T,>(path: string, init?: RequestInit) => customerChatRequest<T>(path, headers,
     { ...init, signal: controller.current?.signal }), [headers]);
 
@@ -78,23 +86,50 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
     controller.current = new AbortController();
     return () => { alive.current = false; controller.current?.abort(); };
   }, []);
+  useEffect(() => { focusedRef.current = focused; }, [focused]);
 
   const refreshConversation = useCallback(async (id: string, olderCursor?: string) => {
+    if (refreshBusy.current) return;
+    refreshBusy.current = true;
     const path = `/api/chat/conversations/${encodeURIComponent(id)}`;
-    const [detail, page] = await Promise.all([
-      request<CustomerChatConversation>(path),
-      request<CustomerChatPage>(`${path}/messages?limit=50${olderCursor ? `&cursor=${encodeURIComponent(olderCursor)}` : ''}`),
-    ]);
-    if (!alive.current) return;
-    if (!isCustomerChatChannel(detail.channel)) throw new Error('This conversation is not available to customers.');
-    setConversation(detail);
-    setMessages((current) => mergeCustomerChatMessages(current, page.messages));
-    if (olderCursor || !paginationInitialized.current) { setNextCursor(page.nextCursor); paginationInitialized.current = true; }
-    if (!pendingSend.current) setError('');
-    if (!olderCursor && page.messages.length) {
-      void request(`${path}/read`, { method: 'POST', body: JSON.stringify({ lastReadMessageId: page.messages[page.messages.length - 1].id }) }).catch(() => {});
-    }
-  }, [request]);
+    try {
+      const detail = await request<CustomerChatConversation>(path);
+      if (!alive.current) return;
+      if (!isCustomerChatChannel(detail.channel)) throw new Error('This conversation is not available to customers.');
+      setConversation(detail);
+      if (!draftKey.current) {
+        // Access may resolve after a notification opens this booking. Account/session
+        // isolation belongs to draftScope; changing proof must not orphan its draft.
+        draftKey.current = JSON.stringify([detail.bookingId ?? (bookingId || detail.id), detail.channel]);
+        const saved = drafts.read(draftKey.current);
+        setDraft(saved?.text ?? '');
+        pendingSend.current = saved?.pending ?? null;
+      }
+      const fetchPage = async (cursor?: string) => {
+        const page = await request<CustomerChatPage>(`${path}/messages?limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+        if (!alive.current) throw new Error('Chat session ended.');
+        return page;
+      };
+      const result = olderCursor ? await history.current.older(olderCursor, fetchPage) : await history.current.refresh(fetchPage);
+      if (!alive.current) return;
+      setMessages(result.messages);
+      setNextCursor(result.nextCursor);
+      setCatchingUp(result.catchingUp);
+      if (!pendingSend.current) setError('');
+      if (result.readMessageId && focusedRef.current) {
+        try {
+          await request(`${path}/read`, { method: 'POST', body: JSON.stringify({ lastReadMessageId: result.readMessageId }) });
+          if (alive.current) {
+            setReadWarning(false);
+            if (badgeReadMarker.current !== result.readMessageId) {
+              badgeReadMarker.current = result.readMessageId;
+              requestCustomerNotificationBadgeRefresh();
+            }
+          }
+        } catch { if (alive.current) setReadWarning(true); }
+      }
+    } finally { refreshBusy.current = false; }
+  }, [bookingId, drafts, request]);
 
   useEffect(() => {
     if (!focused) return;
@@ -129,17 +164,16 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
     const id = conversation.id;
     const timer = setInterval(() => {
       if (refreshBusy.current || sendBusy.current) return;
-      refreshBusy.current = true;
-      void refreshConversation(id).catch(() => { if (alive.current) setError('Chat could not refresh. Check your connection and tap Refresh.'); })
-        .finally(() => { refreshBusy.current = false; });
+      void refreshConversation(id).catch(() => { if (alive.current) setError('Chat could not refresh. Check your connection and tap Refresh.'); });
     }, 6000);
     return () => clearInterval(timer);
   }, [conversation?.id, focused, refreshConversation]);
 
   async function send() {
     const body = draft.trim();
-    if (!conversation || !body || sendBusy.current || conversation.locked || conversation.status !== 'open') return;
-    const pending = pendingSend.current?.body === body ? pendingSend.current : { id: newCustomerChatMessageId(), body };
+    if (!conversation || !body || !draftKey.current || sendBusy.current || conversation.locked || conversation.status !== 'open') return;
+    const key = draftKey.current;
+    const pending = drafts.prepare(key, body);
     pendingSend.current = pending;
     sendBusy.current = true;
     setSending(true);
@@ -149,7 +183,8 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
         method: 'POST', body: JSON.stringify({ body, messageType: 'text', clientMessageId: pending.id }),
       });
       if (!alive.current) return;
-      setMessages((current) => mergeCustomerChatMessages(current, [message]));
+      drafts.confirm(key, pending.id);
+      setMessages(history.current.addSent(message));
       setDraft('');
       pendingSend.current = null;
       scrollAfterLoad.current = true;
@@ -176,15 +211,17 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
   const currentBookingId = conversation?.bookingId || bookingId;
   function selectChannel(channel: CustomerChatChannel) {
     if (!currentBookingId || channel === activeChannel) return;
-    // A changed route scope remounts the session, cancelling requests and clearing its draft/history.
+    // Remount requests/history while retaining the draft for this booking/channel.
     router.setParams({ bookingId: currentBookingId, conversationId: undefined, channel,
       ...(conversation?.bookingRef ? { refNumber: conversation.bookingRef } : {}) });
   }
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, contentInsets]}
+      <View style={[styles.navigation, { paddingTop: contentInsets.paddingTop }]}>
+        <AppHeader onBack={() => router.canGoBack() ? router.back() : router.replace('/track')} />
+      </View>
+      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, contentInsets, { paddingTop: 12 }]}
         onContentSizeChange={() => { if (scrollAfterLoad.current && conversation && messages.length) { scroll.current?.scrollToEnd({ animated: true }); scrollAfterLoad.current = false; } }}>
-        <AppHeader />
         <ScreenHeader eyebrow={conversation?.bookingRef || 'Messages'} title={driverChat ? 'Chat with your driver' : 'Chat with our support team'}
           detail={driverChat ? 'Message the driver assigned to your booking. For urgent help, call our team.' : 'Message the Tyre Rescue team about your booking. For urgent help, call us.'} />
         {currentBookingId ? <View style={styles.channelSelector}>
@@ -196,6 +233,8 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
         </View> : null}
         <PrimaryButton icon="phone" variant="secondary" onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>Call Tyre Rescue</PrimaryButton>
         {loading ? <ActivityIndicator accessibilityLabel="Loading conversations" color={colors.accent} /> : null}
+        {catchingUp ? <Text accessibilityLiveRegion="polite" style={styles.muted}>Catching up on missed messages… Your current history is saved.</Text> : null}
+        {readWarning ? <Text accessibilityLiveRegion="polite" style={styles.muted}>Messages are loaded. Read status will retry when your connection returns.</Text> : null}
         {error ? <Card><Text accessibilityRole="alert" style={styles.error}>{error}</Text><PrimaryButton variant="secondary" onPress={() => setRefreshTick((value) => value + 1)}>Refresh</PrimaryButton></Card> : null}
         {!loading && !conversation ? <>
           {conversations.map((item) => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Open ${item.channel === 'customer_driver' ? 'driver' : 'support'} chat for ${item.bookingRef}${item.unreadCount ? `, ${item.unreadCount} unread` : ''}`}
@@ -222,7 +261,7 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
           </View>)}
           {readOnly ? <Card><Text style={styles.muted}>This conversation is {conversation.locked ? 'locked' : conversation.status}. You can still read messages or call the team.</Text></Card> : <View style={styles.composer}>
             <TextInput accessibilityLabel={driverChat ? 'Message to your driver' : 'Message to Tyre Rescue support'} placeholder="Type your message…" placeholderTextColor={colors.muted} value={draft}
-              onChangeText={setDraft} editable={!sending} multiline maxLength={5000} style={styles.input} />
+              onChangeText={(text) => { setDraft(text); if (draftKey.current) drafts.write(draftKey.current, text); }} editable={!sending} multiline maxLength={5000} style={styles.input} />
             <PrimaryButton icon="send" disabled={!draft.trim()} loading={sending} onPress={() => void send()}>Send</PrimaryButton>
           </View>}
         </> : null}
@@ -233,6 +272,7 @@ function ChatSession({ token, access, bookingId, initialConversationId, initialC
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
+  navigation: { paddingHorizontal: spacing.page, paddingBottom: 8, backgroundColor: colors.bg },
   content: { padding: spacing.page, gap: 14, flexGrow: 1 },
   loading: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', gap: 14 },
   heading: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 17 },

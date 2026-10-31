@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue",
     "slug": "tyre-rescue",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tyrerescue",
@@ -11,15 +11,18 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "uk.tyrerescue.customer",
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
+      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Tyre Rescue uses your location to find your address and check emergency availability for your booking.",
-        "NSPhotoLibraryUsageDescription": "Tyre Rescue lets you attach an optional tyre photo so the driver can prepare for your booking.",
-        "NSCameraUsageDescription": "Take a photo of your damaged tyre so the technician can prepare for your booking."
+        "NSPhotoLibraryUsageDescription": "Choose a tyre photo to read its size on your phone or attach a photo to your booking.",
+        "NSCameraUsageDescription": "Photograph your tyre to read its size on your phone or help the technician prepare for your booking."
       },
       "config": {
         "usesNonExemptEncryption": false
       },
-      "buildNumber": "21"
+      "buildNumber": "22"
     },
     "android": {
       "adaptiveIcon": {
@@ -50,8 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Tyre Rescue lets you attach an optional tyre photo so the driver can prepare for your booking.",
-          "cameraPermission": "Take a photo of your damaged tyre so the technician can prepare for your booking.",
+          "photosPermission": "Choose a tyre photo to read its size on your phone or attach a photo to your booking.",
+          "cameraPermission": "Photograph your tyre to read its size on your phone or help the technician prepare for your booking.",
           "microphonePermission": false
         }
       ],
@@ -79,7 +82,10 @@
         {
           "mode": "production",
           "color": "#F97316",
-          "defaultChannel": "booking_updates"
+          "defaultChannel": "booking_updates",
+          "sounds": [
+            "./assets/sounds/tyre_rescue_chime.wav"
+          ]
         }
       ],
       "expo-font",
