@@ -78,6 +78,7 @@ import { AdminQuotesModal } from './AdminQuotesModal';
 import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { CustomerAudienceCard } from './CustomerAudienceCard';
+import { AdminCustomersModal } from './AdminCustomersModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { ProjectSourcesModal } from './ProjectSourcesModal';
 import { AddAdminModal } from './AddAdminModal';
@@ -176,10 +177,15 @@ import { OperatorStepProgress } from './workflow/OperatorStepProgress';
 
 logStartupModuleStarted('Assisted Chat module');
 
+let cachedStartupNotificationResponse: Promise<unknown | null> | null = null;
+let startupNotificationResponseHandled = false;
+
 interface AssistedChatScreenProps {
   user?: { name: string; email: string } | null;
   onLogout?: () => void | Promise<void>;
   activeProjectId?: string | null;
+  workspaceSourceApp?: string | null;
+  workspaceLabel?: string;
 }
 
 interface SheetAction {
@@ -683,7 +689,7 @@ function StageContainer({ stageKey, children }: { stageKey: string; children: im
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
-export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatScreenProps = {}) {
+export function AssistedChatScreen({ onLogout, activeProjectId, workspaceSourceApp = null, workspaceLabel = 'All workspaces' }: AssistedChatScreenProps = {}) {
   const driverJourneys = useDriverJourneys(activeProjectId);
   const openDriverJourney = driverJourneys.open;
   const router = useRouter();
@@ -695,6 +701,16 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const callAssistApiRevision = getApiContextRevision();
   const callAssistSessionRevision = getAdminSessionRevision();
   const callAssistKey = `${activeProjectId ?? 'tyrerescue'}:${callAssistApiRevision}:${callAssistSessionRevision}:${callDraftGeneration}`;
+  const paymentActionScope = useLatestRef({ key: callAssistKey, draft });
+  const paymentUiMounted = useRef(true);
+  useEffect(() => {
+    paymentUiMounted.current = true;
+    return () => { paymentUiMounted.current = false; };
+  }, []);
+  const isPaymentActionCurrent = useCallback(() => paymentUiMounted.current && api.hasAdminToken
+    && paymentActionScope.current.key === callAssistKey && paymentActionScope.current.draft === draft
+    && getApiContextRevision() === callAssistApiRevision && getAdminSessionRevision() === callAssistSessionRevision,
+  [callAssistApiRevision, callAssistKey, callAssistSessionRevision, draft, paymentActionScope]);
   const [phoneInput, setPhoneInput] = useState(draft.customer.phone);
   const phoneInputRef = useLatestRef(phoneInput);
   const phoneFocusedRef = useRef(false);
@@ -715,9 +731,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [bookingsOpen, setBookingsOpen] = useState(false);
   const [bookingInitialRef, setBookingInitialRef] = useState<string | null>(null);
-  const [bookingInitialSource, setBookingInitialSource] = useState<string | null>(null);
+  const [bookingInitialSource, setBookingInitialSource] = useState<string | null>(workspaceSourceApp);
   const [projectSourcesOpen, setProjectSourcesOpen] = useState(false);
   const [visitorsOpen, setVisitorsOpen] = useState(false);
+  const [customersScope, setCustomersScope] = useState<string | null>(null);
+  const [customersDismissing, setCustomersDismissing] = useState(false);
+  const [customerManagementRevision, setCustomerManagementRevision] = useState(0);
+  const customersScopeKey = `${activeProjectId ?? 'tyrerescue'}:${getApiContextRevision()}:${getAdminSessionRevision()}`;
+  const customersOpen = api.hasAdminToken && customersScope === customersScopeKey;
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
@@ -737,7 +758,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [modalPresentation] = useState(() => new ModalPresentationController());
   const primaryPresentation = useSyncExternalStore(modalPresentation.subscribe, modalPresentation.getState, modalPresentation.getState);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
-  const [activeJobsInitialSource, setActiveJobsInitialSource] = useState<string | null>(null);
+  const [activeJobsInitialSource, setActiveJobsInitialSource] = useState<string | null>(workspaceSourceApp);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
   const [chatNotificationTarget, setChatNotificationTarget] = useState<{ conversationId: string; channel: ChatNotificationChannel; apiRevision: number; sessionRevision: number } | null>(null);
@@ -761,24 +782,24 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const notificationsStartupStarted = useRef(false);
   const notificationsStartupCompleted = useRef(false);
   const liveVisitors = useLiveVisitorCount(api.hasAdminToken);
-  const openBookingsInApp = useCallback((refNumber: string | null = null, sourceApp: string | null = null) => {
+  const openBookingsInApp = useCallback((refNumber: string | null = null, sourceApp: string | null = workspaceSourceApp) => {
     setBookingInitialRef(refNumber);
     setBookingInitialSource(sourceApp);
     setBookingsOpen(true);
-  }, []);
+  }, [workspaceSourceApp]);
   const closeBookingsInApp = useCallback(() => {
     setBookingsOpen(false);
     setBookingInitialRef(null);
-    setBookingInitialSource(null);
-  }, []);
-  const openActiveJobsInApp = useCallback((sourceApp: string | null = null) => {
+    setBookingInitialSource(workspaceSourceApp);
+  }, [workspaceSourceApp]);
+  const openActiveJobsInApp = useCallback((sourceApp: string | null = workspaceSourceApp) => {
     setActiveJobsInitialSource(sourceApp);
     setActiveJobsOpen(true);
-  }, []);
+  }, [workspaceSourceApp]);
   const closeActiveJobsInApp = useCallback(() => {
     setActiveJobsOpen(false);
-    setActiveJobsInitialSource(null);
-  }, []);
+    setActiveJobsInitialSource(workspaceSourceApp);
+  }, [workspaceSourceApp]);
   const handleNotificationOpenData = useCallback((data: unknown) => {
     const callbackRequest = parseCallbackNotificationOpenRequest(data);
     if (callbackRequest) {
@@ -801,7 +822,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     const followUpRequest = parsePaymentFollowUpNotificationOpenRequest(data);
     if (followUpRequest) {
       if (!api.hasAdminToken) return;
-      openBookingsInApp(followUpRequest.refNumber);
+      openBookingsInApp(followUpRequest.refNumber, null);
       return;
     }
     const request = getUrgentBookingNotificationOpenRequest(data);
@@ -811,7 +832,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       });
       return;
     }
-    openBookingsInApp(request.refNumber);
+    openBookingsInApp(request.refNumber, null);
     void clearAdminBadge().catch((error) => {
       logStartupModuleFailed('notifications.open-request.clear-badge.failed', error);
     });
@@ -951,14 +972,21 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     const journeyReceived = addAdminNotificationReceivedListener((data) => {
       if (!cancelled && getDriverJourneyNotificationOpenRequest(data)) handleNotificationOpenData(data);
     });
-    void getLastAdminNotificationResponseData()
-      .then((data) => {
-        if (cancelled || !data) return;
-        handleNotificationOpenData(data);
-      })
-      .catch((error) => {
+    if (!startupNotificationResponseHandled) {
+      const pending = cachedStartupNotificationResponse ?? getLastAdminNotificationResponseData();
+      cachedStartupNotificationResponse = pending;
+      void pending.then((data) => {
+        if (cancelled || startupNotificationResponseHandled) return;
+        // Changing workspace remounts this screen. Expo's cached launch tap
+        // is consumed once while live response listeners remain independent.
+        startupNotificationResponseHandled = true;
+        cachedStartupNotificationResponse = null;
+        if (data) handleNotificationOpenData(data);
+      }).catch((error) => {
+        if (cachedStartupNotificationResponse === pending) cachedStartupNotificationResponse = null;
         logStartupModuleFailed('notifications.last-response.effect.failed', error);
       });
+    }
     return () => {
       cancelled = true;
       notifResponseRef.current?.remove();
@@ -977,7 +1005,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       try {
         const pending = await consumePendingOpenBookings();
         if (cancelled || !pending) return;
-        openBookingsInApp();
+        openBookingsInApp(null, null);
         void clearAdminBadge().catch((error) => {
           logStartupModuleFailed('notifications.pending-open.clear-badge.failed', error);
         });
@@ -1099,8 +1127,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     void markBookingsSeen().catch((error) => {
       logStartupModuleFailed('notifications.urgent-open.mark-seen.failed', error);
     });
-    openBookingsInApp();
-  }, [markBookingsSeen, openBookingsInApp, urgentBookingId]);
+    openBookingsInApp(latestNewBooking?.refNumber ?? null, latestNewBooking?.sourceApp ?? null);
+  }, [latestNewBooking, markBookingsSeen, openBookingsInApp, urgentBookingId]);
 
   const handleUrgentDismiss = useCallback(() => {
     // Close the popup but keep the All-bookings red shimmer active until
@@ -1121,11 +1149,11 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       void markBookingsSeen().catch((error) => {
         logStartupModuleFailed('notifications.header-open.mark-seen.failed', error);
       });
-      openBookingsInApp();
+      openBookingsInApp(latestNewBooking?.refNumber ?? null, latestNewBooking?.sourceApp ?? null);
       return;
     }
     setNotifSetupOpen(true);
-  }, [hasNewCustomerBooking, markBookingsSeen, openBookingsInApp]);
+  }, [hasNewCustomerBooking, latestNewBooking, markBookingsSeen, openBookingsInApp]);
 
   const handleOpenHeaderChatHub = useCallback(() => {
     if (!modalPresentation.open('chat')) return;
@@ -1145,14 +1173,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     setChatHubOpen(false);
     if (Platform.OS !== 'ios') {
       bookingAfterChatRef.current = null;
-      openBookingsInApp(refNumber);
+      openBookingsInApp(refNumber, null);
     }
   }, [modalPresentation, openBookingsInApp]);
   const handleChatHubDismissed = useCallback(() => {
     modalPresentation.didDismiss('chat');
     const refNumber = bookingAfterChatRef.current;
     bookingAfterChatRef.current = null;
-    if (refNumber) openBookingsInApp(refNumber);
+    if (refNumber) openBookingsInApp(refNumber, null);
   }, [modalPresentation, openBookingsInApp]);
   const handleOpenProfile = useCallback(() => {
     if (!modalPresentation.open('account')) return;
@@ -1376,8 +1404,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     if (!ref || !id) return null;
     return {
       bookingRef: ref,
-      sourceApp: 'tyre_rescue',
-      sourceLabel: 'Tyre Rescue',
+      sourceApp: workspaceSourceApp ?? 'tyre_rescue',
+      sourceLabel: workspaceSourceApp ? workspaceLabel : 'Tyre Rescue',
       externalReference: null,
       bookingId: id,
       status: 'driver_assigned',
@@ -1429,6 +1457,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     draft.location.address,
     draft.location.lat,
     draft.location.lng,
+    workspaceSourceApp,
+    workspaceLabel,
   ]);
 
   const currentActiveJob = useMemo(() => {
@@ -1865,6 +1895,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // Copies what the customer needs to pay: the Stripe link once it exists,
   // otherwise the quote reference, total and the chosen payment split.
   const handleCopyPaymentDetails = useCallback(async () => {
+    if (!isPaymentActionCurrent()) return;
     const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
     const deposit = getDepositSummary(totalPence);
     const reference = draft.dispatchedRefNumber ? `booking ${draft.dispatchedRefNumber}` : savedQuoteRef ? `quote ${savedQuoteRef}` : null;
@@ -1873,31 +1904,37 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     if (draft.paymentChoice === 'cash') lines.push('Payment on arrival.');
     if (draft.paymentLink) lines.push(`Pay securely here: ${draft.paymentLink.paymentUrl}`);
     const ok = await copyToClipboard(lines.join('\n'));
+    if (!isPaymentActionCurrent()) return;
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? (draft.paymentLink ? 'Payment link and amount copied.' : 'Payment details copied.') : 'Could not copy payment details.' });
-  }, [draft.dispatchedRefNumber, draft.paymentChoice, draft.paymentLink, effectiveTotal, flashNotice, savedQuoteRef]);
+  }, [draft.dispatchedRefNumber, draft.paymentChoice, draft.paymentLink, effectiveTotal, flashNotice, isPaymentActionCurrent, savedQuoteRef]);
 
   const handleMarkPaid = useCallback(async (kind: 'full' | 'deposit') => {
     const refNumber = draft.dispatchedRefNumber;
-    if (!refNumber || manualPaymentBusy) return;
+    if (!isPaymentActionCurrent() || !refNumber || manualPaymentBusy) return;
     const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
     const amountText = kind === 'deposit' ? formatPence(getDepositSummary(totalPence).depositAmountPence)
       : draft.manualPaymentRecorded === 'deposit' || draft.paymentChoice === 'deposit' ? 'the remaining balance' : formatPence(totalPence);
     if (!await confirmManualPayment(kind, amountText, Boolean(draft.paymentLink))) return;
+    if (!isPaymentActionCurrent()) return;
     setManualPaymentBusy(kind);
     try {
       const result = await api.post<{ status: string; amountPence?: number }>(
         `/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}/manual-payment`, { kind },
       );
+      if (!isPaymentActionCurrent()) return;
       update({ manualPaymentRecorded: kind, externalPayment: null });
       flashNotice({ kind: 'ok', text: result.status === 'already_recorded'
         ? 'Already recorded as paid. Nothing was added.'
         : `${kind === 'deposit' ? 'Deposit' : 'Payment'} marked as paid${typeof result.amountPence === 'number' ? ` (${formatPence(result.amountPence)})` : ''}.` });
     } catch (error) {
+      if (!isPaymentActionCurrent()) return;
       flashNotice({ kind: 'err', text: error instanceof Error ? error.message : 'Could not mark it as paid.' });
     } finally {
-      setManualPaymentBusy(null);
+      // A draft update may invalidate this action while the same screen stays
+      // mounted. Always release its local busy state after the request settles.
+      if (paymentUiMounted.current) setManualPaymentBusy(null);
     }
-  }, [draft.dispatchedRefNumber, draft.manualPaymentRecorded, draft.paymentChoice, draft.paymentLink, effectiveTotal, flashNotice, manualPaymentBusy, update]);
+  }, [draft.dispatchedRefNumber, draft.manualPaymentRecorded, draft.paymentChoice, draft.paymentLink, effectiveTotal, flashNotice, isPaymentActionCurrent, manualPaymentBusy, update]);
 
   const handleCopyJobDetails = useCallback(async () => {
     const ok = await copyToClipboard(buildJobDetails(draft, effectiveTotal, lockingNutCharge, selectedPaymentOption));
@@ -1920,10 +1957,11 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [customerMessage, flashNotice]);
 
   const handleCopyPaymentLink = useCallback(async () => {
-    if (!draft.paymentLink || draft.bookingTimingNeedsReview) return;
+    if (!isPaymentActionCurrent() || !draft.paymentLink || draft.bookingTimingNeedsReview) return;
     const ok = await copyToClipboard(draft.paymentLink.paymentUrl);
+    if (!isPaymentActionCurrent()) return;
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Payment link copied.' : 'Could not copy payment link.' });
-  }, [draft.bookingTimingNeedsReview, draft.paymentLink, flashNotice]);
+  }, [draft.bookingTimingNeedsReview, draft.paymentLink, flashNotice, isPaymentActionCurrent]);
 
   const handleOpenPaymentLink = useCallback(async () => {
     if (!draft.paymentLink || draft.bookingTimingNeedsReview) return;
@@ -1988,6 +2026,40 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     if (sent) setReviewOpen(false);
   }, [dispatch, draft.paymentChoice]);
 
+  const paymentBookingExists = Boolean(draft.dispatchedBookingId || draft.dispatchedRefNumber);
+  const paymentAlreadyConfirmed = activeQuote?.quoteStatus === 'PAID' || paymentLinkActions.liveStatus === 'paid';
+  const paymentHasStripeChoice = !draft.externalPayment && !draft.manualPaymentRecorded
+    && (draft.paymentChoice === 'full' || draft.paymentChoice === 'deposit');
+  const paymentCanContinue = Boolean(draft.paymentLink || (paymentBookingExists && (draft.paymentChoice === 'cash' || paymentAlreadyConfirmed || draft.manualPaymentRecorded)));
+  const paymentNeedsBookingReview = Boolean(draft.bookingTimingNeedsReview
+    || (paymentAlreadyConfirmed && !paymentBookingExists)
+    || (paymentBookingExists && !paymentCanContinue && !dispatch.canRetryPaymentLink));
+  const paymentCreationBlockedReason = !api.hasAdminToken ? 'Sign in before creating a payment link.'
+    : draft.bookingTimingNeedsReview ? 'Review the saved appointment in Bookings before taking payment.'
+    : !paymentBookingExists && (!draft.quickBookingId || !draft.quote || draft.priceNeedsRefresh) ? 'Get a current price before creating a payment link.'
+    : !paymentBookingExists && (!savedQuoteRef || !quoteConfirmed) ? 'Save and confirm the quote before creating a payment link.'
+    : !paymentBookingExists && activeQuote?.isExpired ? 'Refresh and confirm the expired quote before creating a payment link.'
+    : !paymentBookingExists && (price.loading || quoteActions.busy) ? 'Wait for the quote update to finish.'
+    : !paymentBookingExists && workflow.currentStage !== 'READY_TO_DISPATCH' ? 'Complete the booking details and confirm the quote before creating a payment link.'
+    : !paymentBookingExists && workflow.primaryActionDisabled ? workflow.primaryActionDisabledReason ?? 'Complete the booking details before creating a payment link.'
+    : null;
+
+  const handleCreatePaymentLink = useCallback(async () => {
+    if (!isPaymentActionCurrent() || dispatch.busy || paymentLinkActions.busy) return;
+    if (draft.bookingTimingNeedsReview) { openBookingsInApp(draft.dispatchedRefNumber); return; }
+    if (draft.paymentLink || paymentAlreadyConfirmed || draft.externalPayment || draft.manualPaymentRecorded) return;
+    if (paymentCreationBlockedReason) { flashNotice({ kind: 'warn', text: paymentCreationBlockedReason }); return; }
+    if (paymentBookingExists && !dispatch.canRetryPaymentLink) { openBookingsInApp(draft.dispatchedRefNumber); return; }
+    if (!dispatch.canRetryPaymentLink && !paymentHasStripeChoice) return;
+    Keyboard.dismiss();
+    // Keep the payment tools visible even when the server saves the booking
+    // before its checkout request completes. Never advance on an async result.
+    setEditingStage('PAYMENT');
+    if (dispatch.canRetryPaymentLink) await dispatch.retryPaymentLink();
+    else if (draft.paymentChoice === 'full' || draft.paymentChoice === 'deposit') await dispatch.createPaymentLink(draft.paymentChoice);
+  }, [dispatch, draft.bookingTimingNeedsReview, draft.dispatchedRefNumber, draft.externalPayment, draft.manualPaymentRecorded, draft.paymentChoice, draft.paymentLink, flashNotice, isPaymentActionCurrent,
+    openBookingsInApp, paymentAlreadyConfirmed, paymentBookingExists, paymentCreationBlockedReason, paymentHasStripeChoice, paymentLinkActions.busy]);
+
   const handlePrimaryAction = useCallback(async () => {
     if (draft.bookingTimingNeedsReview) {
       openBookingsInApp(draft.dispatchedRefNumber);
@@ -2001,7 +2073,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       return;
     }
     if (activeStage === 'PAYMENT') {
-      if (dispatch.busy) return;
+      if (!isPaymentActionCurrent() || dispatch.busy || paymentLinkActions.busy) return;
+      if (paymentNeedsBookingReview) { openBookingsInApp(draft.dispatchedRefNumber); return; }
+      if (!paymentCanContinue && (paymentHasStripeChoice || dispatch.canRetryPaymentLink)) { await handleCreatePaymentLink(); return; }
+      if (paymentCanContinue) { Keyboard.dismiss(); setEditingStage(null); return; }
       if (!draft.paymentChoice) { flashNotice({ kind: 'info', text: 'Choose a payment method before continuing.' }); return; }
       Keyboard.dismiss();
       setEditingStage(null);
@@ -2067,7 +2142,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     if (workflow.currentStage === 'DISPATCHED' && draft.dispatchedRefNumber) {
       openBookingsInApp(draft.dispatchedRefNumber);
     }
-  }, [activeStage, dispatch.busy, draft, editingStage, flashNotice, handleReviewDispatch, locationShare, openBookingsInApp, price, quoteActions, workflow]);
+  }, [activeStage, dispatch.busy, dispatch.canRetryPaymentLink, draft, editingStage, flashNotice, handleCreatePaymentLink, handleReviewDispatch, isPaymentActionCurrent,
+    locationShare, openBookingsInApp, paymentCanContinue, paymentHasStripeChoice, paymentLinkActions.busy, paymentNeedsBookingReview, price, quoteActions, workflow]);
 
   const sheetActions = useMemo<SheetAction[]>(() => {
     const actions: SheetAction[] = [];
@@ -2222,9 +2298,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       });
     }
 
+    const paymentLinkActionIndex = actions.length;
     if (draft.paymentLink && !draft.bookingTimingNeedsReview) {
       actions.push(
-        { id: 'copy-payment-link', label: 'Copy payment link', description: 'Copy the Stripe payment link.', onPress: handleCopyPaymentLink },
         { id: 'open-payment-link', label: 'Open payment link', description: 'Open the Stripe payment link.', onPress: handleOpenPaymentLink },
         { id: 'whatsapp-payment-link', label: 'WhatsApp payment link', description: 'Send the payment link to the customer.', onPress: handleWhatsAppPaymentLink },
       );
@@ -2242,8 +2318,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
 
     actions.push({
       id: 'admin-bookings',
-      label: 'All bookings',
-      description: 'Browse, search, and filter all admin bookings.',
+      label: workspaceSourceApp ? 'Workspace bookings' : 'All bookings',
+      description: workspaceSourceApp ? `Browse and search bookings for ${workspaceLabel}.` : 'Browse, search, and filter all admin bookings.',
       disabledReason: noToken,
       onPress: () => openBookingsInApp(),
     });
@@ -2315,7 +2391,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     actions.push({
       id: 'garage',
       label: 'Garage',
-      description: 'City stock buying list, driver reductions, additions, missing tyres and shifts.',
+      description: 'Shared across workspaces: city stock, driver reductions, additions, missing tyres and shifts.',
       disabledReason: noToken,
       onPress: () => setGarageOpen(true),
     });
@@ -2323,7 +2399,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     actions.push({
       id: 'admin-stock',
       label: 'Stock',
-      description: 'Manage tyre stock levels, prices and availability.',
+      description: 'Shared across workspaces: tyre stock levels, prices and availability.',
       disabledReason: noToken,
       onPress: () => setStockOpen(true),
     });
@@ -2377,11 +2453,17 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       });
     }
 
-    // Appended as an array element rather than via push(): handing a
-    // ref-reading callback to an arbitrary call during render is something
-    // the React compiler cannot prove safe.
+    // Slice the plain actions before adding scoped callbacks. Those callbacks
+    // only read their refs after the operator presses a menu action.
+    const orderedActions = draft.paymentLink && !draft.bookingTimingNeedsReview
+      ? [
+          ...actions.slice(0, paymentLinkActionIndex),
+          { id: 'copy-payment-link', label: 'Copy payment link', description: 'Copy the Stripe payment link.', onPress: handleCopyPaymentLink },
+          ...actions.slice(paymentLinkActionIndex),
+        ]
+      : actions;
     const actionsWithClear = [
-      ...actions,
+      ...orderedActions,
       {
         id: 'clear-draft',
         label: 'Clear draft',
@@ -2406,6 +2488,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       : actionsWithClear;
   }, [
     activeProjectId,
+    workspaceSourceApp,
+    workspaceLabel,
     draft,
     draftHasContent,
     handleConfirmClear,
@@ -2433,9 +2517,18 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     urgentBookingId,
   ]);
 
-  const primaryLabel = draft.bookingTimingNeedsReview ? 'Review in Bookings' : isManualLocationEditing || activeStage === 'PAYMENT' ? 'Done Editing' : editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
-  const primaryDisabled = draft.bookingTimingNeedsReview ? false : isManualLocationEditing ? Boolean(manualLocationBlockedReason) : activeStage === 'PAYMENT' ? dispatch.busy || !draft.paymentChoice : editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
-  const primaryDisabledReason = draft.bookingTimingNeedsReview ? null : isManualLocationEditing ? manualLocationBlockedReason : activeStage === 'PAYMENT' ? (draft.paymentChoice ? null : 'Choose a payment method before continuing.') : editingStage ? null : workflow.primaryActionDisabledReason;
+  const paymentStepPrimaryLabel = paymentNeedsBookingReview ? 'Review in Bookings'
+    : paymentCanContinue ? draft.bookingType === 'scheduled' ? 'Continue to booking' : 'Continue to driver assignment'
+    : dispatch.canRetryPaymentLink ? draft.paymentChoice === 'deposit' ? 'Retry deposit payment link' : 'Retry payment link'
+    : paymentHasStripeChoice ? draft.paymentChoice === 'deposit' ? 'Create deposit payment link' : 'Create payment link'
+    : 'Done Editing';
+  const paymentStepPrimaryDisabledReason = paymentNeedsBookingReview || paymentCanContinue ? null
+    : paymentHasStripeChoice || dispatch.canRetryPaymentLink ? paymentCreationBlockedReason
+    : draft.paymentChoice ? null : 'Choose a payment method before continuing.';
+  const paymentStepPrimaryDisabled = dispatch.busy || paymentLinkActions.busy || Boolean(paymentStepPrimaryDisabledReason);
+  const primaryLabel = draft.bookingTimingNeedsReview ? 'Review in Bookings' : activeStage === 'PAYMENT' ? paymentStepPrimaryLabel : isManualLocationEditing ? 'Done Editing' : editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
+  const primaryDisabled = draft.bookingTimingNeedsReview ? false : isManualLocationEditing ? Boolean(manualLocationBlockedReason) : activeStage === 'PAYMENT' ? paymentStepPrimaryDisabled : editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
+  const primaryDisabledReason = draft.bookingTimingNeedsReview ? null : isManualLocationEditing ? manualLocationBlockedReason : activeStage === 'PAYMENT' ? paymentStepPrimaryDisabledReason : editingStage ? null : workflow.primaryActionDisabledReason;
   const hasCustomerSummary = Boolean(
     draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim(),
   );
@@ -2495,6 +2588,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [activeStage]);
   const handleSelectOperatorStep = useCallback(
     (stepId: typeof operatorSteps[number]['id']) => {
+      if (activeStage === 'PAYMENT' && (dispatch.busy || paymentLinkActions.busy)) return;
       if (draft.bookingTimingNeedsReview) {
         openBookingsInApp(draft.dispatchedRefNumber);
         return;
@@ -2522,7 +2616,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         setActionNotice(null);
       }
     },
-    [draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, openBookingsInApp, quoteConfirmed],
+    [activeStage, dispatch.busy, draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, openBookingsInApp, paymentLinkActions.busy, quoteConfirmed],
   );
   const hasHeaderInvoiceRef = Boolean(draft.dispatchedRefNumber);
   const headerInvoiceBusy = headerInvoiceLoading;
@@ -2549,7 +2643,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // Background feeds keep their unread state, but never present another UIKit
   // controller over a screen the operator is opening, using or dismissing.
   const operatorModalActive = Boolean(primaryPresentation.owner || historyOpen || recentOpen || quotesOpen || bookingsOpen
-    || projectSourcesOpen || visitorsOpen || invoicesOpen || stockOpen || garageOpen || trafficOpen || callbacksOpen || callbacksDismissing
+    || projectSourcesOpen || visitorsOpen || customersOpen || customersDismissing || invoicesOpen || stockOpen || garageOpen || trafficOpen || callbacksOpen || callbacksDismissing
     || bonlineCallsOpen || bonlineCallsDismissing
     || revenueOpen || contactsOpen || demandOpen || addAdminOpen || devicesOpen || activeJobsOpen || driverTrackingOpen
     || messageSenderOpen || virtualLandlineOpen || trackingMapOpen || moreOpen || moreDismissing || reviewOpen || editPriceOpen || notifSetupOpen);
@@ -2720,8 +2814,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             invoiceBusy={headerInvoiceBusy}
           />
 
+          <View style={styles.workspaceBanner} testID="current-workspace-banner">
+            <Text style={styles.workspaceLabel}>Workspace · {workspaceLabel}</Text>
+            <Text style={styles.workspaceHint}>Quotes, stock, garage and drivers are shared across workspaces.</Text>
+          </View>
           {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
-          <CustomerAudienceCard enabled={api.hasAdminToken} projectId={activeProjectId} />
+          <CustomerAudienceCard key={`${customersScopeKey}:${customerManagementRevision}`} enabled={api.hasAdminToken} projectId={activeProjectId}
+            onManageCustomers={() => { Keyboard.dismiss(); setCustomersScope(customersScopeKey); }} />
           {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
           {callAttributionError ? <InlineNotice kind="warn">{callAttributionError}</InlineNotice> : null}
           {followUpQueue.data?.enabled && (followUpQueue.data.summary?.openFollowUps ?? 0) > 0 ? (
@@ -2829,6 +2928,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               dispatch,
               handleCopyCustomerDetails,
               handleCopyReferenceNumber,
+              handleCreatePaymentLink,
+              handleCopyPaymentLink,
+              paymentCreationBlockedReason,
               originalCalculatedPriceGbp,
               setEditPriceOpen,
               breakdownVisible,
@@ -2923,7 +3025,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
                         </Text>
                       ) : null}
                       <AppButton
-                        label="Copy link"
+                        label="Copy payment link"
                         variant="secondary"
                         onPress={() => { void handleCopyPaymentLink(); }}
                         fullWidth
@@ -2984,6 +3086,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         <View style={[styles.bottomBar, { paddingBottom: bottomBarPaddingBottom }]}>
           <Pressable
             onPress={editingStage ? () => setEditingStage(null) : () => setMoreOpen(true)}
+            disabled={activeStage === 'PAYMENT' && (dispatch.busy || paymentLinkActions.busy)}
+            accessibilityState={{ disabled: activeStage === 'PAYMENT' && (dispatch.busy || paymentLinkActions.busy) }}
             accessibilityRole="button"
             accessibilityLabel={editingStage ? 'Back' : 'Open quick actions'}
             style={({ pressed }) => [styles.bottomUtilityButton, pressed && styles.contactButtonPressed]}
@@ -2995,11 +3099,11 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               label={primaryLabel}
               icon={isManualLocationEditing || activeStage === 'PAYMENT' ? 'check' : 'paper-plane'}
               multilineLabel={isManualLocationEditing || activeStage === 'PAYMENT'}
-              helper={isManualLocationEditing ? 'Confirm this address and continue to the next step' : activeStage === 'PAYMENT' ? 'Review your payment selection and continue' : activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : 'Continue the assisted workflow'}
+              helper={isManualLocationEditing ? 'Confirm this address and continue to the next step' : activeStage === 'PAYMENT' ? paymentCanContinue ? 'Your booking is saved. Continue when you are ready.' : paymentHasStripeChoice || dispatch.canRetryPaymentLink ? 'Create the link here, then copy it for the customer' : 'Review your payment selection and continue' : activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : 'Continue the assisted workflow'}
               onPress={() => {
                 void handlePrimaryAction();
               }}
-              loading={activeStage === 'PAYMENT' ? dispatch.busy : !isManualLocationEditing && ((editingStage === 'LOCATION' && Boolean(locationShare.busy)) || (!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)))}
+              loading={activeStage === 'PAYMENT' ? dispatch.busy || paymentLinkActions.busy : !isManualLocationEditing && ((editingStage === 'LOCATION' && Boolean(locationShare.busy)) || (!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)))}
               disabled={primaryDisabled}
             />
             {primaryDisabledReason ? (
@@ -3098,6 +3202,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       />
       <DriverJourneysModal journeys={{ ...driverJourneys, visible: driverJourneys.visible && !urgentPopupOpen && !operatorModalActive }} />
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
+      <AdminCustomersModal visible={customersOpen} projectId={activeProjectId}
+        onCustomerUpdated={() => setCustomerManagementRevision((value) => value + 1)}
+        onClose={() => { setCustomersScope(null); setCustomersDismissing(Platform.OS === 'ios'); }}
+        onDismiss={() => setCustomersDismissing(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminTrafficModal visible={trafficOpen} onClose={() => setTrafficOpen(false)} />
       <AdminCallbacksModal visible={callbacksOpen}
@@ -3259,6 +3367,9 @@ interface RenderActiveStageArgs {
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
   handleCopyReferenceNumber: () => void | Promise<void>;
+  handleCreatePaymentLink: () => Promise<void>;
+  handleCopyPaymentLink: () => Promise<void>;
+  paymentCreationBlockedReason: string | null;
   originalCalculatedPriceGbp: number;
   setEditPriceOpen: (value: boolean) => void;
   breakdownVisible: boolean;
@@ -3306,6 +3417,9 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     dispatch,
     handleCopyCustomerDetails,
     handleCopyReferenceNumber,
+    handleCreatePaymentLink,
+    handleCopyPaymentLink,
+    paymentCreationBlockedReason,
     originalCalculatedPriceGbp,
     setEditPriceOpen,
     breakdownVisible,
@@ -3317,6 +3431,9 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     manualPaymentBusy,
     handleCopyPaymentDetails,
   } = args;
+  const lockedQuoteReason = dispatch.busy ? 'The booking is being saved. Please wait.'
+    : draft.dispatchedBookingId || draft.dispatchedRefNumber || draft.paymentLink ? 'This booking is saved. Manage price changes from Bookings.'
+    : activeQuote?.quoteStatus === 'PAID' ? 'Payment is confirmed. The paid quote is locked.' : null;
 
   if (draft.bookingTimingNeedsReview) {
     return (
@@ -3491,6 +3608,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
           onContinueAnyway={() => setDuplicateAck(true)}
         />
         <CompactQuoteCard
+          lockedReason={lockedQuoteReason}
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
           originalCalculatedPriceGbp={originalCalculatedPriceGbp}
@@ -3542,6 +3660,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
             checking={paymentLinkActions.checking}
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCopy={handleCopyPaymentLink}
             onCheck={paymentLinkActions.checkNow}
             onRetry={paymentLinkActions.createForDispatchedBooking}
             retrying={paymentLinkActions.busy}
@@ -3561,6 +3680,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     return (
       <View style={styles.stepStack}>
         <CompactQuoteCard
+          lockedReason={lockedQuoteReason}
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
           originalCalculatedPriceGbp={originalCalculatedPriceGbp}
@@ -3613,6 +3733,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
             checking={paymentLinkActions.checking}
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCopy={handleCopyPaymentLink}
             onCheck={paymentLinkActions.checkNow}
             onRetry={paymentLinkActions.createForDispatchedBooking}
             retrying={paymentLinkActions.busy}
@@ -3632,6 +3753,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     return (
       <View style={styles.stepStack}>
         <CompactQuoteCard
+          lockedReason={lockedQuoteReason}
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
           originalCalculatedPriceGbp={originalCalculatedPriceGbp}
@@ -3684,6 +3806,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
             checking={paymentLinkActions.checking}
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCopy={handleCopyPaymentLink}
             onCheck={paymentLinkActions.checkNow}
             onRetry={paymentLinkActions.createForDispatchedBooking}
             retrying={paymentLinkActions.busy}
@@ -3702,7 +3825,22 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
     });
     return (
       <View style={styles.stepStack}>
+        {draft.paymentLink ? (
+          <PaymentLinkInline
+            link={draft.paymentLink}
+            isManualPrice={draft.manualPriceGbp != null}
+            liveStatus={paymentLinkActions.liveStatus}
+            checking={paymentLinkActions.checking}
+            error={paymentLinkActions.error}
+            autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCopy={handleCopyPaymentLink}
+            onCheck={paymentLinkActions.checkNow}
+            onRetry={paymentLinkActions.createForDispatchedBooking}
+            retrying={paymentLinkActions.busy}
+          />
+        ) : null}
         <CompactQuoteCard
+          lockedReason={lockedQuoteReason}
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
           originalCalculatedPriceGbp={originalCalculatedPriceGbp}
@@ -3728,7 +3866,7 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
           paymentLink={draft.paymentLink}
           dispatchedRefNumber={draft.dispatchedRefNumber}
           dispatchedBookingId={draft.dispatchedBookingId}
-          paymentConfirmed={activeQuote?.quoteStatus === 'PAID'}
+          paymentConfirmed={activeQuote?.quoteStatus === 'PAID' || paymentLinkActions.liveStatus === 'paid'}
           onChoose={(choice) => update({ paymentChoice: choice, externalPayment: null })}
           externalPayment={draft.externalPayment ?? null}
           manualPaymentRecorded={draft.manualPaymentRecorded ?? null}
@@ -3736,6 +3874,10 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
           onMarkPaid={(kind) => { void handleMarkPaid(kind); }}
           markPaidBusy={manualPaymentBusy}
           onCopyPaymentDetails={() => { void handleCopyPaymentDetails(); }}
+          onCreatePaymentLink={handleCreatePaymentLink}
+          canRetryPaymentLink={dispatch.canRetryPaymentLink}
+          linkBusy={paymentLinkActions.busy}
+          createBlockedReason={paymentCreationBlockedReason}
         />
         {breakdownVisible && draft.quote ? (
           <PriceSummary
@@ -3762,19 +3904,6 @@ function ActiveStageContent(args: RenderActiveStageArgs) {
         ) : null}
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
         {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
-        {draft.paymentLink ? (
-          <PaymentLinkInline
-            link={draft.paymentLink}
-            isManualPrice={draft.manualPriceGbp != null}
-            liveStatus={paymentLinkActions.liveStatus}
-            checking={paymentLinkActions.checking}
-            error={paymentLinkActions.error}
-            autoCheckMessage={paymentLinkActions.autoCheckMessage}
-            onCheck={paymentLinkActions.checkNow}
-            onRetry={paymentLinkActions.createForDispatchedBooking}
-            retrying={paymentLinkActions.busy}
-          />
-        ) : null}
       </View>
     );
   }
@@ -4423,6 +4552,7 @@ function PaymentLinkInline({
   checking,
   error,
   autoCheckMessage,
+  onCopy,
   onCheck,
   onRetry,
   retrying,
@@ -4433,14 +4563,12 @@ function PaymentLinkInline({
   checking: boolean;
   error: string | null;
   autoCheckMessage: string | null;
+  onCopy: () => Promise<void>;
   onCheck: () => Promise<PaymentLinkLiveStatus | null>;
   onRetry: () => Promise<StripePaymentLinkState | null>;
   retrying: boolean;
 }) {
   const kindLabel = link.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link';
-  const handleCopy = (): void => {
-    void copyToClipboard(link.paymentUrl);
-  };
   const statusLabel = getPaymentLinkStatusLabel(liveStatus);
   const checkLabel = checking ? 'Checking Stripe...' : getStripeCheckButtonLabel(liveStatus);
   const checkDisabled = checking || liveStatus === 'paid';
@@ -4475,7 +4603,7 @@ function PaymentLinkInline({
         <Text style={styles.paymentAutoCheckText}>{autoCheckMessage}</Text>
       ) : null}
       <View style={styles.paymentLinkActions}>
-        <AppButton label="Copy link" variant="primary" onPress={handleCopy} fullWidth />
+        <AppButton label="Copy payment link" variant="primary" onPress={() => { void onCopy(); }} fullWidth testID="copy-payment-link" />
         <AppButton
           label={checkLabel}
           variant="secondary"
@@ -4559,6 +4687,10 @@ function PaymentDispatchPanel({
   onMarkPaid,
   markPaidBusy,
   onCopyPaymentDetails,
+  onCreatePaymentLink,
+  canRetryPaymentLink = false,
+  linkBusy = false,
+  createBlockedReason = null,
 }: {
   effectiveTotal: number;
   selectedChoice: AssistedChatPaymentChoice | null;
@@ -4574,16 +4706,21 @@ function PaymentDispatchPanel({
   onMarkPaid: (kind: 'full' | 'deposit') => void;
   markPaidBusy: 'full' | 'deposit' | null;
   onCopyPaymentDetails: () => void;
+  onCreatePaymentLink?: () => Promise<void>;
+  canRetryPaymentLink?: boolean;
+  linkBusy?: boolean;
+  createBlockedReason?: string | null;
 }) {
   const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
   const deposit = getDepositSummary(totalPence);
   const finalized = Boolean(dispatchedRefNumber || dispatchedBookingId || paymentLink);
-  const disabled = busy || finalized || paymentConfirmed;
+  const disabled = busy || linkBusy || finalized || paymentConfirmed;
   const doneMessage = paymentConfirmed
     ? 'Payment is already confirmed. Its recorded method is locked.'
     : finalized
     ? paymentLink
       ? `${paymentLink.kind === 'deposit' ? '20% deposit' : 'Full payment'} link ready${dispatchedRefNumber ? ` for ${dispatchedRefNumber}` : ''}.`
+      : canRetryPaymentLink ? `Booking${dispatchedRefNumber ? ` ${dispatchedRefNumber}` : ''} is saved. Retry its payment link below.`
       : `Booking${dispatchedRefNumber ? ` ${dispatchedRefNumber}` : ''} already created. Review its payment details in Bookings.`
     : null;
   const options: Array<{ choice: AssistedChatPaymentChoice; label: string; detail: string }> = [
@@ -4686,6 +4823,19 @@ function PaymentDispatchPanel({
         onPress={onCopyPaymentDetails}
         fullWidth
       />
+      {onCreatePaymentLink && !paymentLink && !paymentConfirmed && !externalPayment && !manualPaymentRecorded && (canRetryPaymentLink || (!finalized && (selectedChoice === 'full' || selectedChoice === 'deposit'))) ? (
+        <View style={styles.stepStack}>
+          <Text style={styles.bodyText}>{canRetryPaymentLink ? 'Use the saved booking to recover its payment link.' : 'Create the secure payment link now. You can copy it here before assigning a driver.'}</Text>
+          <AppButton
+            label={canRetryPaymentLink ? selectedChoice === 'deposit' ? 'Retry deposit payment link' : 'Retry payment link' : selectedChoice === 'deposit' ? 'Create deposit payment link' : 'Create payment link'}
+            onPress={() => { void onCreatePaymentLink(); }}
+            loading={busy || linkBusy}
+            disabled={busy || linkBusy || Boolean(createBlockedReason)}
+            fullWidth testID="create-payment-link"
+          />
+          {createBlockedReason ? <Text style={styles.bodyText} accessibilityRole="alert">{createBlockedReason}</Text> : null}
+        </View>
+      ) : null}
     </SectionCard>
   );
 }
@@ -5219,6 +5369,9 @@ const styles = StyleSheet.create({
   headerClearDraftLabelDisabled: { color: colors.muted },
   contactButtonPressed: { opacity: 0.82 },
   scroll: { paddingHorizontal: 14, paddingTop: 0, gap: 10, paddingBottom: 148 },
+  workspaceBanner: { paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, gap: 4 },
+  workspaceLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '800' },
+  workspaceHint: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 18 },
   iconBadge: {
     width: 44,
     height: 44,

@@ -1,4 +1,4 @@
- 
+
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -261,7 +261,10 @@ assert.match(assistedChatScreenSource, /NOTIFICATIONS_INIT_COMPLETE/);
 assert.match(assistedChatScreenSource, /isNotificationStartupDisabled\(\)/);
 assert.match(assistedChatScreenSource, /getUrgentBookingNotificationOpenRequest/);
 assert.match(assistedChatScreenSource, /missing-route-or-booking-id/);
-assert.match(assistedChatScreenSource, /getLastAdminNotificationResponseData\(\)\s*\r?\n\s*\.then/);
+assert.match(assistedChatScreenSource, /let cachedStartupNotificationResponse: Promise<unknown \| null> \| null = null/);
+assert.match(assistedChatScreenSource, /let startupNotificationResponseHandled = false/);
+assert.match(assistedChatScreenSource, /cachedStartupNotificationResponse \?\? getLastAdminNotificationResponseData\(\)/);
+assert.match(assistedChatScreenSource, /pending\.then\(\(data\) => \{\s*if \(cancelled \|\| startupNotificationResponseHandled\) return/);
 assert.doesNotMatch(assistedChatScreenSource, /void \(async \(\) => \{\r?\n\s*const pending = await consumePendingOpenBookings/);
 
 const bookingAlertHookSource = fs.readFileSync(bookingAlertHookPath, 'utf8');

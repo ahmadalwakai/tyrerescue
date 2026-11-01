@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createWorkspaceStorage } from '@/lib/workspace-storage';
 import type {
   AssistedChatPaymentChoice,
   AssistedChatServiceType,
@@ -86,6 +86,7 @@ export interface TodayBookingsState {
 }
 
 export function useTodayBookings(): TodayBookingsState {
+  const [storage] = useState(() => createWorkspaceStorage());
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<StoredHistory>({
     date: todayKey(),
@@ -101,7 +102,7 @@ export function useTodayBookings(): TodayBookingsState {
     let cancelled = false;
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await storage.getItem(STORAGE_KEY);
         if (!cancelled && raw) {
           const parsed = JSON.parse(raw) as Partial<StoredHistory>;
           const today = todayKey();
@@ -120,13 +121,13 @@ export function useTodayBookings(): TodayBookingsState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storage]);
 
   // Persist on change (best-effort; ignore quota errors).
   useEffect(() => {
     if (!hydrated) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
-  }, [hydrated, state]);
+    storage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
+  }, [hydrated, state, storage]);
 
   // Date-rollover safety: if the local date changes while the screen is open,
   // reset on the next render tick so the modal reflects the new day.

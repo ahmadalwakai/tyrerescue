@@ -1,4 +1,4 @@
- 
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -54,6 +54,7 @@ function renderRecovery(options = {}) {
       busy: options.busy ?? false,
       retryPaymentLink: () => { retries += 1; return Promise.resolve(true); },
       choosePaymentAndDispatch: forbidden,
+      createPaymentLink: forbidden,
     },
     paymentLinkActions: { busy: options.linkBusy ?? false, createForDispatchedBooking: forbidden },
     price: { getPrice: forbidden }, api: { post: forbidden, patch: forbidden }, update: forbidden,
@@ -104,7 +105,7 @@ test('the actual review effect reveals recovery only after dispatch settles and 
   ]) {
     const closes = [];
     execute(`(${closeReviewEffect.getText(screen)})();`, {
-      dispatch: { busy, choosePaymentAndDispatch: forbidden, retryPaymentLink: forbidden },
+      dispatch: { busy, choosePaymentAndDispatch: forbidden, createPaymentLink: forbidden, retryPaymentLink: forbidden },
       draft: { dispatchedBookingId: bookingId, dispatchedRefNumber: refNumber },
       setReviewOpen: (open) => { closes.push(open); }, update: forbidden, api: { post: forbidden, patch: forbidden },
     });

@@ -135,23 +135,28 @@ function encodeSession(session: StoredAdminSession): string {
   return value;
 }
 
-async function persist(session: StoredAdminSession & { apiBaseUrl: string }): Promise<void> {
+async function persist(session: StoredAdminSession & { apiBaseUrl: string }, isCurrent?: () => boolean): Promise<void> {
   const scope = keys(session.apiBaseUrl);
   const value = encodeSession(session);
   const previous = await getCredential(scope.credential);
   const previousLogout = await AsyncStorage.getItem(scope.logout);
+  if (isCurrent && !isCurrent()) throw new Error('Saved sign-in operation was cancelled.');
   await setCredential(scope.credential, value);
   // Commit credentials first. A crash before this step remains safely logged
   // out; a failed write must never remove an existing logout barrier.
-  if (previousLogout) {
+  if (previousLogout || (isCurrent && !isCurrent())) {
     try {
-      await AsyncStorage.removeItem(scope.logout);
+      if (isCurrent && !isCurrent()) throw new Error('Saved sign-in operation was cancelled.');
+      if (previousLogout) await AsyncStorage.removeItem(scope.logout);
+      if (isCurrent && !isCurrent()) throw new Error('Saved sign-in operation was cancelled.');
     } catch {
       try {
         if (previous !== null) await setCredential(scope.credential, previous);
         else await deleteCredential(scope.credential);
       } catch { safeFailure('session.storage.write-rollback.failed'); }
-      try { await AsyncStorage.setItem(scope.logout, previousLogout); } catch { safeFailure('session.storage.logout-rollback.failed'); }
+      if (previousLogout) {
+        try { await AsyncStorage.setItem(scope.logout, previousLogout); } catch { safeFailure('session.storage.logout-rollback.failed'); }
+      }
       throw new Error('Saved sign-in could not be committed.');
     }
   }
@@ -182,8 +187,8 @@ async function blockRestoreAndRemove(apiBaseUrl: string): Promise<boolean> {
 }
 
 /** I/O or malformed-data failures reject without clearing any credentials. */
-export function readStoredAdminSession(): Promise<StoredAdminSession | null> {
-  const apiBaseUrl = normalizeAdminSessionApiBaseUrl(getApiBaseUrl());
+export function readStoredAdminSession(backend?: string): Promise<StoredAdminSession | null> {
+  const apiBaseUrl = normalizeAdminSessionApiBaseUrl(backend ?? getApiBaseUrl());
   return serialized(async () => {
     try {
       const scope = keys(apiBaseUrl);
@@ -215,15 +220,16 @@ export function readStoredAdminSession(): Promise<StoredAdminSession | null> {
   });
 }
 
-export function writeStoredAdminSession(session: StoredAdminSession): Promise<void> {
+export function writeStoredAdminSession(session: StoredAdminSession, isCurrent?: () => boolean): Promise<void> {
   const validated = validateSession(session);
   if (!validated?.apiBaseUrl) return Promise.reject(new Error('A saved sign-in requires its backend.'));
   const scoped = { ...validated, apiBaseUrl: validated.apiBaseUrl };
   const capturedGeneration = clearGeneration;
+  const canWrite = () => capturedGeneration === clearGeneration && (!isCurrent || isCurrent());
   revision += 1;
   return serialized(async () => {
-    if (capturedGeneration !== clearGeneration) throw safeFailure('session.storage.write-cancelled');
-    try { await persist(scoped); } catch { throw safeFailure('session.storage.write.failed'); }
+    if (!canWrite()) throw safeFailure('session.storage.write-cancelled');
+    try { await persist(scoped, canWrite); } catch { throw safeFailure('session.storage.write.failed'); }
     try { await removeMatchingLegacy(scoped.apiBaseUrl); } catch { safeFailure('session.storage.legacy-cleanup.failed'); }
     notify('write', scoped.apiBaseUrl);
   });

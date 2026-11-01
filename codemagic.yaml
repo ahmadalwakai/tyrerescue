@@ -1,6 +1,6 @@
 workflows:
-  assisted-ios58-native:
-    name: Assisted Chat 1.0.14 (58) - iOS TestFlight upload
+  assisted-ios59-native:
+    name: Assisted Chat 1.0.15 (58) - iOS TestFlight upload
     instance_type: mac_mini_m2
     max_build_duration: 120
     working_directory: assisted-chat-app
@@ -12,13 +12,13 @@ workflows:
       cocoapods: default
       groups:
         - assisted_ios49_public
-        - assisted_ios58_signing
+        - assisted_ios59_signing
       vars:
         CI: '1'
         EXPO_NO_TELEMETRY: '1'
         EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
         ASSISTED_APP_DIR: assisted-chat-app
-        ASSISTED_CI_DIR: ci/assisted-ios58-codemagic
+        ASSISTED_CI_DIR: ci/assisted-ios59-codemagic
         CM_RECURSIVE_SUBMODULE_INIT: 'false'
         DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
     # Explicit API dispatch only. Publishing uploads the verified IPA without requesting review.
@@ -37,7 +37,7 @@ workflows:
           origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
           assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
           PY
-          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios58.XXXXXX")"
+          assisted_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/assisted-ios59.XXXXXX")"
           printf 'ASSISTED_CI_TEMP=%s\n' "$assisted_ci_temp" >> "$CM_ENV"
 
       - name: Verify frozen app, install exact dependencies and native patch
@@ -65,8 +65,8 @@ workflows:
             bash "$CM_BUILD_DIR/$ASSISTED_CI_DIR/build-native.sh"
 
     artifacts:
-      - $ASSISTED_CI_TEMP/assisted-ios58-output/assisted-chat-1.0.14-58.ipa
-      - $ASSISTED_CI_TEMP/assisted-ios58-output/manifest.json
+      - $ASSISTED_CI_TEMP/assisted-ios59-output/assisted-chat-1.0.15-59.ipa
+      - $ASSISTED_CI_TEMP/assisted-ios59-output/manifest.json
 
     publishing:
       app_store_connect:

@@ -15,6 +15,7 @@ const scheduleHelpers = loadSource('lib/booking-schedule.ts', {});
 const geo = loadSource('lib/geo.ts', {});
 const workflow = loadSource('lib/assisted-chat-workflow.ts', { './geo': geo, './booking-schedule': loadSource('lib/booking-schedule.ts', {}) });
 const pricing = loadSource('lib/pricing-context.ts', {});
+const paymentStatus = loadSource('lib/payment-link-status.ts', {});
 
 function findNode(source, predicate, label) {
   let found;
@@ -70,6 +71,7 @@ function findNodes(tree, predicate) {
 const uiGlobals = {
   ...scheduleHelpers,
   ...workflow,
+  ...paymentStatus,
   DEPOSIT_PERCENT: 20,
   PAYMENT_OPTIONS: [{ value: 'FULL_PAYMENT', label: 'Full payment' }, { value: 'CASH_ON_DELIVERY', label: 'Cash on arrival' }],
   styles: new Proxy({}, { get: () => ({}) }), colors: { text: '#fff', success: '#0f0' },
@@ -78,7 +80,8 @@ const uiGlobals = {
   View: 'View', Text: 'Text', Pressable: 'Pressable', AppIcon: 'AppIcon', StatusBanner: 'StatusBanner',
   Modal: 'Modal', ScrollView: 'ScrollView', CopyAddressButton: 'CopyAddressButton', AppButton: 'AppButton', Switch: 'Switch',
 };
-const uiDeclarations = ['formatPence', 'getQuotePricingDistanceMiles', 'getDepositSummary', 'paymentChoiceLabel', 'paymentOptionLabel'].map(declaration).join('\n');
+const uiDeclarations = ['formatPence', 'getQuotePricingDistanceMiles', 'getDepositSummary', 'paymentChoiceLabel', 'paymentOptionLabel',
+  'computeCompactQuoteStatus', 'paymentLinkStatusColor', 'paymentLinkStatusBadgeStyle'].map(declaration).join('\n');
 function renderFunction(name, props, globals = {}) {
   return execute(`${uiDeclarations}\n${declaration(name)}\n${name}(props);`, { ...uiGlobals, ...globals, props });
 }
@@ -101,15 +104,31 @@ function createSelectionHarness(options = {}) {
     draft: newDraft(options.draft), editingStage: options.editingStage ?? null,
     busy: Boolean(options.busy), updates: [], order: [], errors: [], notices: [], keyboardDismisses: 0,
     dispatches: [], reviewOpen: false, selectedPaymentOption: 'FULL_PAYMENT', activeQuote: options.activeQuote ?? null,
+    creations: [], retries: 0, copies: [], openedBookings: [], current: options.current ?? true,
+    canRetryPaymentLink: options.canRetryPaymentLink ?? false, linkBusy: options.linkBusy ?? false,
   };
   function read() {
-    const model = workflow.getAssistedChatWorkflow({ draft: state.draft, quoteStatus: 'CONFIRMED_BY_PHONE', quoteConfirmedAt: '2026-10-22T12:00:00Z', canUseApi: true, dispatchBusy: state.busy });
+    const quoteConfirmed = options.quoteConfirmed ?? true;
+    const model = workflow.getAssistedChatWorkflow({ draft: state.draft, quoteStatus: quoteConfirmed ? 'CONFIRMED_BY_PHONE' : 'DRAFT', quoteConfirmedAt: quoteConfirmed ? '2026-10-22T12:00:00Z' : null, quoteExpired: Boolean(state.activeQuote?.isExpired), canUseApi: options.hasAdminToken ?? true, dispatchBusy: state.busy });
     const globals = {
       ...uiGlobals, draft: state.draft, editingStage: state.editingStage, workflow: model, activeQuote: state.activeQuote,
+      quoteConfirmed, savedQuoteRef: state.draft.savedQuoteRef,
+      api: { hasAdminToken: options.hasAdminToken ?? true },
+      isPaymentActionCurrent: () => state.current,
+      copyToClipboard: async (value) => { state.copies.push(value); return options.copyHandler ? options.copyHandler(state) : options.copyResult ?? true; },
+      paymentLinkActions: { busy: state.linkBusy, liveStatus: options.liveStatus ?? null },
       dispatch: {
         busy: state.busy,
+        canRetryPaymentLink: state.canRetryPaymentLink,
         setError: (error) => { state.errors.push(error); },
         choosePaymentAndDispatch: async (choice) => { state.dispatches.push(choice); return true; },
+        createPaymentLink: async (choice) => {
+          state.creations.push(choice);
+          if (options.createHandler) return options.createHandler(state, choice);
+          state.draft = { ...state.draft, dispatchedBookingId: 'test-payment-booking', dispatchedRefNumber: 'TEST-PAYMENT', paymentLink: { kind: choice, paymentUrl: 'https://example.invalid/checkout?session=isolated', bookingId: 'test-payment-booking', refNumber: 'TEST-PAYMENT', amountPence: choice === 'deposit' ? 2400 : 12000, remainingBalancePence: choice === 'deposit' ? 9600 : null } };
+          return true;
+        },
+        retryPaymentLink: async () => { state.retries += 1; return true; },
       },
       update: (patch) => { state.order.push('update'); state.updates.push(patch); state.draft = { ...state.draft, ...patch }; },
       setEditingStage: (stage) => { state.order.push('stage'); state.editingStage = stage; },
@@ -118,13 +137,18 @@ function createSelectionHarness(options = {}) {
       Keyboard: { dismiss: () => { state.keyboardDismisses += 1; } },
       handleReviewDispatch: () => { state.reviewOpen = true; },
       locationShare: { busy: null, requestLink: () => { throw new Error('Unexpected location request'); } },
-      price: { loading: false, getPrice: () => { throw new Error('Unexpected price request'); } },
-      quoteActions: { busy: null }, openBookingsInApp: () => { throw new Error('Unexpected booking navigation'); },
+      price: { loading: options.priceLoading ?? false, getPrice: () => { throw new Error('Unexpected price request'); } },
+      quoteActions: { busy: options.quoteBusy ?? null }, openBookingsInApp: (reference) => { state.openedBookings.push(reference); },
     };
-    const names = ['activeStage', 'isManualLocationEditing', 'manualLocationBlockedReason', 'setDispatchError', 'primaryLabel', 'primaryDisabled', 'primaryDisabledReason'];
-    const declarations = names.map((name) => `const ${name} = ${expression(screen, name)};`).join('\n');
+    const names = ['activeStage', 'isManualLocationEditing', 'manualLocationBlockedReason', 'setDispatchError',
+      'paymentBookingExists', 'paymentAlreadyConfirmed', 'paymentHasStripeChoice', 'paymentCanContinue', 'paymentNeedsBookingReview', 'paymentCreationBlockedReason',
+      'paymentStepPrimaryLabel', 'paymentStepPrimaryDisabledReason', 'paymentStepPrimaryDisabled', 'primaryLabel', 'primaryDisabled', 'primaryDisabledReason'];
+    const declarations = `${names.map((name) => `const ${name} = ${expression(screen, name)};`).join('\n')}
+      const handleCreatePaymentLink = (${callback(screen, 'handleCreatePaymentLink')});
+      const handleCopyPaymentLink = (${callback(screen, 'handleCopyPaymentLink')});`;
     const action = execute(`${declarations}\n({
       stage: activeStage, label: primaryLabel, disabled: primaryDisabled, reason: primaryDisabledReason,
+      createBlockedReason: paymentCreationBlockedReason, create: handleCreatePaymentLink, copy: handleCopyPaymentLink,
       helper: (${attribute(bottom, 'helper')}), loading: (${attribute(bottom, 'loading')}),
       update: (${callback(screen, 'handleActiveStageUpdate')}),
       done: (${callback(screen, 'handlePrimaryAction')}), send: (${callback(screen, 'handleSendToDriver')}),
@@ -133,11 +157,31 @@ function createSelectionHarness(options = {}) {
     action.choose = execute(`(${attribute(panel, 'onChoose')})`, { ...globals, update: action.update });
     return action;
   }
-  function choices() {
-    const globals = { ...uiGlobals, draft: state.draft, activeQuote: state.activeQuote, dispatch: { busy: state.busy }, effectiveTotal: 120, update: read().update,
-      manualPaymentBusy: null, handleMarkPaid: async (kind) => { state.markPaid = [...(state.markPaid ?? []), kind]; }, handleCopyPaymentDetails: async () => { state.copies = (state.copies ?? 0) + 1; } };
+  function paymentPanel() {
+    const actions = read();
+    const globals = { ...uiGlobals, draft: state.draft, activeQuote: state.activeQuote, dispatch: { busy: state.busy, canRetryPaymentLink: state.canRetryPaymentLink },
+      paymentLinkActions: { busy: state.linkBusy, liveStatus: options.liveStatus ?? null },
+      handleCreatePaymentLink: actions.create, handleCopyPaymentLink: actions.copy, paymentCreationBlockedReason: actions.createBlockedReason,
+      effectiveTotal: 120, update: actions.update,
+      manualPaymentBusy: null, handleMarkPaid: async (kind) => { state.markPaid = [...(state.markPaid ?? []), kind]; },
+      handleCopyPaymentDetails: async () => { state.paymentDetailCopies = (state.paymentDetailCopies ?? 0) + 1; } };
     const props = Object.fromEntries(panel.attributes.properties.filter((item) => ts.isJsxAttribute(item) && item.initializer && ts.isJsxExpression(item.initializer)).map((item) => [item.name.getText(screen), execute(`(${item.initializer.expression.getText(screen)})`, globals)]));
-    return findNodes(renderFunction('PaymentDispatchPanel', props), (item) => item.type === 'Pressable');
+    return renderFunction('PaymentDispatchPanel', props);
+  }
+  function choices() {
+    return findNodes(paymentPanel(), (item) => item.type === 'Pressable');
+  }
+  function paymentContent() {
+    const actions = read();
+    return renderFunction('ActiveStageContent', {
+      activeStage: 'PAYMENT', draft: state.draft, update: actions.update, activeQuote: state.activeQuote,
+      savedQuoteRef: state.draft.savedQuoteRef, quoteConfirmed: options.quoteConfirmed ?? true,
+      price: { loading: false }, quoteActions: { busy: null, message: null },
+      dispatch: { busy: state.busy, canRetryPaymentLink: state.canRetryPaymentLink, error: null },
+      paymentLinkActions: { busy: state.linkBusy, liveStatus: options.liveStatus ?? null },
+      handleCreatePaymentLink: actions.create, handleCopyPaymentLink: actions.copy, paymentCreationBlockedReason: actions.createBlockedReason,
+      effectiveTotal: 120, originalCalculatedPriceGbp: 120, breakdownVisible: false,
+    }, { CompactQuoteCard: 'CompactQuoteCard', PaymentDispatchPanel: 'PaymentDispatchPanel', PaymentLinkInline: 'PaymentLinkInline' });
   }
   function review() {
     return renderFunction('DispatchReviewSheet', {
@@ -146,10 +190,10 @@ function createSelectionHarness(options = {}) {
       onClose: () => { state.reviewOpen = false; }, onSend: read().send, onEditPayment: read().editPayment,
     });
   }
-  return { state, read, choices, review };
+  return { state, read, choices, review, paymentPanel, paymentContent };
 }
 
-test('payment methods remain selectable until Done Editing, with no dispatch side effects', async () => {
+test('payment methods remain selectable until explicit confirmation, with no booking or link side effects', async () => {
   const h = createSelectionHarness();
   assert.equal(h.read().stage, 'PAYMENT');
   for (const choice of ['full', 'cash', 'deposit', 'full']) {
@@ -163,6 +207,7 @@ test('payment methods remain selectable until Done Editing, with no dispatch sid
     assert.deepEqual(h.choices().map((card) => card.props.accessibilityState.selected), ['full', 'deposit', 'cash'].map((item) => item === choice));
   }
   assert.deepEqual(h.state.dispatches, []);
+  assert.deepEqual(h.state.creations, []);
   assert.equal(h.state.draft.dispatchedBookingId, null);
   assert.equal(h.state.draft.paymentLink, null);
   assert.deepEqual(h.state.errors, [null, null, null, null]);
@@ -229,7 +274,7 @@ test('dispatch review shows the latest selection rather than an older confirmed 
 
 test('Change payment method reopens the editor from review without discarding the booking draft', async () => {
   const h = createSelectionHarness();
-  h.read().choose('full');
+  h.read().choose('cash');
   await h.read().done();
   await h.read().done();
   assert.equal(h.state.reviewOpen, true);
@@ -278,18 +323,219 @@ test('review cannot bypass existing booking and checkout locks when a reference 
   }
 });
 
-test('only explicit Send to Driver confirms the currently selected payment method', async () => {
+test('cash still requires explicit Send to Driver after payment selection and review', async () => {
   const h = createSelectionHarness();
   h.read().choose('full');
-  h.read().choose('deposit');
+  h.read().choose('cash');
   await h.read().done();
   await h.read().done();
   assert.deepEqual(h.state.dispatches, []);
   const send = findNodes(h.review(), (item) => item.type === 'AppButton' && item.props.label === 'Send to Driver')[0];
   assert.equal(send.props.disabled, false);
   await send.props.onPress();
-  assert.deepEqual(h.state.dispatches, ['deposit']);
+  assert.deepEqual(h.state.dispatches, ['cash']);
+  assert.deepEqual(h.state.creations, []);
   assert.equal(h.state.reviewOpen, false);
+});
+
+for (const choice of ['full', 'deposit']) {
+  test(`an outside ${choice} payment keeps review confirmation and cannot create a Stripe link from Payment`, async () => {
+    const h = createSelectionHarness({ editingStage: 'PAYMENT', draft: { paymentChoice: choice, externalPayment: choice } });
+    assert.equal(h.read().label, 'Done Editing');
+    assert.equal(h.read().disabled, false);
+    assert.equal(findNodes(h.paymentPanel(), (item) => item.props.testID === 'create-payment-link').length, 0);
+    await h.read().create();
+    assert.deepEqual(h.state.creations, []);
+    await h.read().done();
+    assert.equal(h.read().stage, 'READY_TO_DISPATCH');
+    assert.equal(h.state.draft.externalPayment, choice);
+    assert.deepEqual(h.state.dispatches, []);
+    await h.read().done();
+    assert.equal(h.state.reviewOpen, true);
+    await h.read().send();
+    assert.deepEqual(h.state.dispatches, [choice]);
+    assert.deepEqual(h.state.creations, []);
+  });
+
+  test(`a saved manually recorded ${choice} payment continues without another checkout or finalize`, async () => {
+    const h = createSelectionHarness({ editingStage: 'PAYMENT', draft: {
+      paymentChoice: choice, manualPaymentRecorded: choice,
+      dispatchedBookingId: 'test-manually-paid', dispatchedRefNumber: 'TEST-MANUALLY-PAID',
+    } });
+    assert.equal(h.read().label, 'Continue to driver assignment');
+    assert.equal(h.read().disabled, false);
+    assert.equal(findNodes(h.paymentPanel(), (item) => item.props.testID === 'create-payment-link').length, 0);
+    await h.read().create();
+    await h.read().done();
+    assert.equal(h.state.editingStage, null);
+    assert.equal(h.read().stage, 'DISPATCHED');
+    assert.deepEqual(h.state.creations, []);
+    assert.deepEqual(h.state.dispatches, []);
+    assert.deepEqual(h.state.openedBookings, []);
+    assert.equal(h.state.draft.manualPaymentRecorded, choice);
+  });
+}
+
+for (const choice of ['full', 'deposit']) {
+  for (const entry of ['footer', 'inline']) {
+    test(`${entry} creates the ${choice} link in PAYMENT and leaves driver assignment for the next step`, async () => {
+      const h = createSelectionHarness();
+      h.read().choose(choice);
+      const label = choice === 'deposit' ? 'Create deposit payment link' : 'Create payment link';
+      assert.equal(h.read().label, label);
+      assert.equal(h.read().disabled, false);
+      assert.deepEqual(h.state.creations, [], 'changing the option must not create a booking');
+      if (entry === 'footer') await h.read().done();
+      else {
+        const button = findNodes(h.paymentPanel(), (item) => item.type === 'AppButton' && item.props.label === label)[0];
+        assert.ok(button, 'the Payment card exposes an explicit creation action');
+        assert.equal(button.props.disabled, false);
+        await button.props.onPress();
+        await settle();
+      }
+      assert.deepEqual(h.state.creations, [choice]);
+      assert.deepEqual(h.state.dispatches, []);
+      assert.equal(h.state.reviewOpen, false);
+      assert.equal(h.state.editingStage, 'PAYMENT');
+      assert.equal(h.read().stage, 'PAYMENT');
+      assert.equal(h.state.draft.paymentLink.kind, choice);
+      assert.equal(h.read().label, 'Continue to driver assignment');
+      assert.ok(h.choices().every((card) => card.props.disabled), 'saved booking payment method is locked');
+      await h.read().create();
+      assert.deepEqual(h.state.creations, [choice], 'the explicit create handler also rejects existing links');
+      await h.read().done();
+      assert.equal(h.state.editingStage, null);
+      assert.equal(h.read().stage, 'DISPATCHED');
+      assert.deepEqual(h.state.dispatches, [], 'continuing after payment-link creation never finalizes again');
+    });
+  }
+}
+
+test('the Payment editor stays visible while a confirmed booking waits for its checkout URL', async () => {
+  const checkout = deferred();
+  const h = createSelectionHarness({
+    createHandler: async (state) => {
+      state.busy = true;
+      state.draft = { ...state.draft, dispatchedBookingId: 'test-pending-booking', dispatchedRefNumber: 'TEST-PENDING' };
+      await checkout.promise;
+      state.busy = false;
+      return false;
+    },
+  });
+  h.read().choose('deposit');
+  const creating = h.read().done();
+  assert.equal(h.read().stage, 'PAYMENT');
+  assert.equal(h.read().disabled, true);
+  assert.ok(h.choices().every((card) => card.props.disabled));
+  await h.read().done();
+  assert.deepEqual(h.state.creations, ['deposit']);
+  checkout.resolve();
+  await creating;
+  assert.equal(h.read().stage, 'PAYMENT');
+  assert.equal(h.state.draft.dispatchedBookingId, 'test-pending-booking');
+  assert.deepEqual(h.state.dispatches, []);
+});
+
+for (const [label, options, reason] of [
+  ['unconfirmed quote', { quoteConfirmed: false }, /confirm the quote/],
+  ['missing saved quote', { draft: { savedQuoteRef: null } }, /confirm the quote/],
+  ['expired quote', { activeQuote: { isExpired: true } }, /expired quote/],
+  ['stale price', { draft: { priceNeedsRefresh: true } }, /current price/],
+  ['missing server quote', { draft: { quickBookingId: null } }, /current price/],
+  ['price update in progress', { priceLoading: true }, /update to finish/],
+  ['quote update in progress', { quoteBusy: 'save' }, /update to finish/],
+  ['incomplete location', { draft: { location: { address: '', lat: null, lng: null, status: 'idle' } } }, /booking details/],
+]) {
+  test(`payment link creation refuses ${label} through inline and footer actions`, async () => {
+    const h = createSelectionHarness({ ...options, editingStage: 'PAYMENT', draft: { ...options.draft, paymentChoice: 'full' } });
+    assert.equal(h.read().disabled, true);
+    assert.match(h.read().reason, reason);
+    const button = findNodes(h.paymentPanel(), (item) => item.type === 'AppButton' && item.props.label === 'Create payment link')[0];
+    assert.ok(button);
+    assert.equal(button.props.disabled, true);
+    await h.read().create();
+    await h.read().done();
+    assert.deepEqual(h.state.creations, []);
+    assert.deepEqual(h.state.dispatches, []);
+    assert.equal(h.state.editingStage, 'PAYMENT');
+  });
+}
+
+for (const options of [{ busy: true }, { linkBusy: true }, { current: false }]) {
+  test(`stale or busy payment controls cannot initiate checkout: ${JSON.stringify(options)}`, async () => {
+    const h = createSelectionHarness({ ...options, editingStage: 'PAYMENT', draft: { paymentChoice: 'full' } });
+    await h.read().create();
+    await h.read().done();
+    assert.deepEqual(h.state.creations, []);
+    assert.equal(h.state.editingStage, 'PAYMENT');
+  });
+}
+
+test('saved booking retry remains in Payment and bypasses fresh quote validation without a second booking', async () => {
+  const h = createSelectionHarness({ editingStage: 'PAYMENT', canRetryPaymentLink: true, quoteConfirmed: false,
+    activeQuote: { isExpired: true }, draft: { paymentChoice: 'deposit', dispatchedBookingId: 'test-saved', dispatchedRefNumber: 'TEST-SAVED', priceNeedsRefresh: true, savedQuoteRef: null } });
+  assert.equal(h.read().label, 'Retry deposit payment link');
+  assert.equal(h.read().disabled, false);
+  await h.read().done();
+  assert.equal(h.state.retries, 1);
+  assert.deepEqual(h.state.creations, []);
+  assert.deepEqual(h.state.dispatches, []);
+  assert.equal(h.read().stage, 'PAYMENT');
+});
+
+test('copying a payment link uses the real checkout URL and reports success without changing stage', async () => {
+  const h = createSelectionHarness();
+  h.read().choose('deposit');
+  await h.read().done();
+  const content = h.paymentContent();
+  const link = findNodes(content, (item) => item.type === 'PaymentLinkInline')[0];
+  assert.ok(link, 'the Payment step renders its saved checkout');
+  assert.equal(content.props.children[0].type, 'PaymentLinkInline', 'copy controls remain above the locked quote and methods');
+  const card = renderFunction('PaymentLinkInline', link.props);
+  const copy = findNodes(card, (item) => item.type === 'AppButton' && item.props.label === 'Copy payment link')[0];
+  assert.ok(copy);
+  await copy.props.onPress();
+  await settle();
+  assert.deepEqual(h.state.copies, ['https://example.invalid/checkout?session=isolated']);
+  assert.equal(h.state.notices.at(-1).text, 'Payment link copied.');
+  assert.equal(h.state.notices.at(-1).kind, 'ok');
+  assert.equal(h.read().stage, 'PAYMENT');
+  assert.deepEqual(h.state.dispatches, []);
+});
+
+test('copy failure is shown while stale copy completions cannot notify another scope', async () => {
+  const link = { kind: 'full', paymentUrl: 'https://example.invalid/real-session' };
+  const failed = createSelectionHarness({ copyResult: false, draft: { paymentLink: link } });
+  await failed.read().copy();
+  assert.equal(failed.state.notices.at(-1).kind, 'err');
+  assert.equal(failed.state.notices.at(-1).text, 'Could not copy payment link.');
+  const pending = deferred();
+  const stale = createSelectionHarness({ draft: { paymentLink: link }, copyHandler: () => pending.promise });
+  const copying = stale.read().copy();
+  stale.state.current = false;
+  pending.resolve(true);
+  await copying;
+  assert.deepEqual(stale.state.notices, []);
+  await stale.read().copy();
+  assert.equal(stale.state.copies.length, 1);
+});
+
+test('actual payment UI scope guard rejects old drafts, projects, sessions and unmounted controls', () => {
+  const draft = newDraft();
+  const globals = {
+    paymentUiMounted: { current: true }, api: { hasAdminToken: true },
+    paymentActionScope: { current: { key: 'project-1:1:1:1', draft } },
+    callAssistKey: 'project-1:1:1:1', draft, callAssistApiRevision: 1, callAssistSessionRevision: 1,
+    getApiContextRevision: () => 1, getAdminSessionRevision: () => 1,
+  };
+  const current = (patch = {}) => execute(`(${callback(screen, 'isPaymentActionCurrent')})()`, { ...globals, ...patch });
+  assert.equal(current(), true);
+  for (const patch of [
+    { paymentUiMounted: { current: false } }, { api: { hasAdminToken: false } },
+    { paymentActionScope: { current: { key: 'project-2:1:1:1', draft } } },
+    { paymentActionScope: { current: { key: globals.callAssistKey, draft: newDraft() } } },
+    { getApiContextRevision: () => 2 }, { getAdminSessionRevision: () => 2 },
+  ]) assert.equal(current(patch), false);
 });
 
 function createDispatchHarness(patch = {}) {
@@ -354,6 +600,62 @@ function createDispatchHarness(patch = {}) {
   }
   return { state, read, api, ApiError, react, unmount: () => { for (const hook of state.hooks) hook?.cleanup?.(); } };
 }
+
+for (const choice of ['full', 'deposit']) {
+  test(`Payment-stage ${choice} creation saves one canonical booking and link without assigning a driver`, async () => {
+    const h = createDispatchHarness({ paymentChoice: choice });
+    assert.equal(await h.read().createPaymentLink(choice), true);
+    assert.equal(h.state.posts.filter((call) => call.url.endsWith('/finalize')).length, 1);
+    assert.equal(h.state.draft.paymentLink.kind, choice);
+    assert.equal(h.state.draft.paymentLink.bookingId, h.state.draft.dispatchedBookingId);
+    assert.equal(h.state.draft.paymentLink.refNumber, h.state.draft.dispatchedRefNumber);
+    assert.equal(h.state.draft.paymentLink.amountPence, choice === 'deposit' ? 2400 : 12000);
+    assert.equal(h.state.posts.some((call) => /\/assign|\/dispatch|\/drivers\//.test(call.url)), false);
+    assert.equal(h.state.created.length, 1);
+    assert.equal(await h.read().createPaymentLink(choice), false, 'an existing booking cannot be finalized again');
+    assert.equal(await h.read().choosePaymentAndDispatch(choice), false, 'the later review action shares the same booking lock');
+    assert.equal(h.state.posts.filter((call) => call.url.endsWith('/finalize')).length, 1);
+  });
+}
+
+test('Payment-stage creation shares its mutex with both repeated creation and review confirmation', async () => {
+  const h = createDispatchHarness({ paymentChoice: 'deposit' });
+  const pending = deferred();
+  h.state.getHandler = () => pending.promise;
+  const first = h.read().createPaymentLink('deposit');
+  assert.equal(await h.read().createPaymentLink('deposit'), false);
+  assert.equal(await h.read().choosePaymentAndDispatch('deposit'), false);
+  assert.equal(h.state.gets.length, 1);
+  pending.resolve({ finalized: false });
+  assert.equal(await first, true);
+  assert.equal(h.state.posts.filter((call) => call.url.endsWith('/finalize')).length, 1);
+});
+
+test('a failed Payment-stage deposit is retried against its saved booking without another finalize', async () => {
+  const h = createDispatchHarness({ paymentChoice: 'deposit' });
+  h.state.failDeposit = new Error('Synthetic checkout interruption');
+  assert.equal(await h.read().createPaymentLink('deposit'), false);
+  const bookingId = h.state.draft.dispatchedBookingId;
+  assert.ok(bookingId);
+  assert.equal(h.read().canRetryPaymentLink, true);
+  h.state.failDeposit = null;
+  assert.equal(await h.read().retryPaymentLink(), true);
+  assert.equal(h.state.draft.paymentLink.bookingId, bookingId);
+  assert.equal(h.state.patches.length, 1);
+  assert.equal(h.state.posts.filter((call) => call.url.endsWith('/finalize')).length, 1);
+  assert.equal(h.state.created.length, 1);
+});
+
+test('Payment-stage creation cannot continue into a different workspace after the recovery read', async () => {
+  const h = createDispatchHarness({ paymentChoice: 'full' });
+  const pending = deferred(); h.state.getHandler = () => pending.promise;
+  const first = h.read().createPaymentLink('full');
+  h.state.revision += 1;
+  pending.resolve({ finalized: false });
+  assert.equal(await first, false);
+  assert.equal(h.state.posts.length, 0); assert.equal(h.state.patches.length, 0);
+  assert.equal(h.state.created.length, 0);
+});
 
 for (const [choice, expected] of [['full', 'stripe'], ['deposit', 'deposit'], ['cash', 'cash']]) {
   test(`explicit ${choice} dispatch sends the canonical ${expected} payload exactly once`, async () => {

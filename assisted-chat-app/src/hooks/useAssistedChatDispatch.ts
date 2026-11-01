@@ -115,9 +115,9 @@ export interface UseAssistedChatDispatchArgs {
 }
 
 // Reuses the existing PATCH (for adminAdjustmentAmount) + POST /finalize flow.
-// The explicit review confirmation calls this finalizer. Payment option cards
-// only update the local choice; finalize creates the booking and transitions
-// the quick_booking to dispatched.
+// Explicit payment-link creation or cash review calls this finalizer. Payment
+// option cards only update the local choice. Finalize saves the real booking;
+// full/deposit bookings await payment and do not assign a driver.
 export function useAssistedChatDispatch({
   draft,
   update,
@@ -406,6 +406,9 @@ export function useAssistedChatDispatch({
   const choosePaymentAndDispatch = useCallback(
     (choice: AssistedChatPaymentChoice) => runDispatch(choice, false), [runDispatch],
   );
+  const createPaymentLink = useCallback(
+    (choice: 'full' | 'deposit') => runDispatch(choice, false), [runDispatch],
+  );
   const retryPaymentLink = useCallback(
     () => runDispatch(draft.paymentChoice, true), [draft.paymentChoice, runDispatch],
   );
@@ -416,5 +419,5 @@ export function useAssistedChatDispatch({
     !draft.paymentLink && draft.paymentChoice !== 'cash' && !draft.externalPayment && !draft.manualPaymentRecorded,
   );
 
-  return { busy, error, result, setError, choosePaymentAndDispatch, retryPaymentLink, canRetryPaymentLink, bookingNeedsReview: draft.bookingTimingNeedsReview === true };
+  return { busy, error, result, setError, choosePaymentAndDispatch, createPaymentLink, retryPaymentLink, canRetryPaymentLink, bookingNeedsReview: draft.bookingTimingNeedsReview === true };
 }

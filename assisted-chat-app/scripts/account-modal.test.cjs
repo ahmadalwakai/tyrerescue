@@ -26,6 +26,7 @@ function harness() {
     visible: true,
     token: 'fixture-private-session-never-real', revision: 1, apiRevision: 1, baseUrl: 'https://www.tyrerescue.uk',
     session: { status: 'logged-in', user: { id: 'fixture-admin-id', name: 'Authoritative Admin', email: 'admin@example.invalid' }, activeProject: { name: 'Tyre Rescue' } },
+    workspace: { selectedWorkspace: null, items: [], loading: false, hydrated: true },
     preferences: { version: 1, language: 'en', timeFormat: '24h' }, preferenceError: null, preferenceLoading: false,
     alert: null, closes: 0, logouts: 0, notificationChanges: 0, preferenceChanges: [],
   };
@@ -79,6 +80,7 @@ function harness() {
     },
     'expo-constants': { platform: { ios: { buildNumber: '99' } }, expoConfig: { version: '1.0.12', ios: { buildNumber: '48' } } },
     '@/hooks/useAdminSession': { useAdminSession: () => state.session, getAdminSessionRevision: () => state.revision },
+    '@/hooks/useAdminWorkspace': { useAdminWorkspace: () => state.workspace },
     '@/hooks/useAccountPreferences': { useAccountPreferences: () => ({
       preferences: state.preferences, loading: state.preferenceLoading, saving: false, error: state.preferenceError, refresh: () => {},
       setPreferences: async (next) => { state.preferenceChanges.push(next); state.preferences = { ...state.preferences, ...next }; return true; },
@@ -87,6 +89,7 @@ function harness() {
     '@/lib/account-preferences': preferences,
     '@/lib/admin-device-metadata': { readAdminDeviceMetadata: () => ({ platform: 'ios', modelName: 'iPhone 16 Pro', osVersion: '26.0', appVersion: '1.0.12', deviceName: 'PRIVATE DEVICE NAME' }) },
     './AdminDevicesModal': { AdminDevicesPanel: 'AdminDevicesPanel' },
+    './WorkspaceSwitchPanel': { WorkspaceSwitchPanel: 'WorkspaceSwitchPanel' },
     './layout/AdminModalShell': { AdminModalHeader: 'AdminModalHeader', AdminModalShell: 'AdminModalShell' },
     './alerts/NotificationReliabilityCard': { NotificationReliabilityCard: 'NotificationReliabilityCard' },
     './security/AdminAppLockProvider': { useAdminAppLock: () => appLock },
@@ -134,6 +137,42 @@ test('devices view forwards selected locale/time formatter and the guarded remov
   assert.equal(panel.props.formatTimestamp('2026-10-22T13:05:00Z'), preferences.formatAccountTimestamp('2026-10-22T13:05:00Z', h.state.preferences));
   panel.props.onBusyChange(true); assert.equal(h.find((value) => value.type === 'AdminModalHeader').props.onClose, undefined);
   panel.props.onBusyChange(false); await panel.props.onCurrentDeviceRemoved(); assert.equal(h.state.logouts, 1); h.unmount();
+});
+
+test('account settings open the workspace switcher in both languages and preserve sign-in on back', () => {
+  for (const [language, label] of [['en', 'Switch workspace'], ['ar', 'تبديل مكان العمل']]) {
+    const h = harness(); h.state.preferences.language = language; h.read(); h.press(label);
+    const panel = h.find((value) => value.type === 'WorkspaceSwitchPanel');
+    assert.ok(panel); assert.equal(panel.props.enabled, true); assert.equal(panel.props.language, language);
+    assert.equal(h.find((value) => value.type === 'AdminModalShell').props.keyboardAvoidingEnabled, false);
+    h.find((value) => value.type === 'AdminModalHeader').props.onClose();
+    assert.equal(h.find((value) => value.type === 'WorkspaceSwitchPanel'), null);
+    assert.equal(h.state.logouts, 0); assert.equal(h.state.closes, 0); h.unmount();
+  }
+});
+
+test('account identity uses the selected workspace label while retaining the same administrator', () => {
+  const h = harness(); h.state.workspace.selectedWorkspace = { sourceApp: 'source_b', sourceLabel: 'Workspace B' };
+  const selected = JSON.stringify(h.read());
+  assert.match(selected, /Workspace B/); assert.match(selected, /Authoritative Admin/); assert.match(selected, /admin@example.invalid/);
+  h.state.workspace.selectedWorkspace = null;
+  assert.match(JSON.stringify(h.read()), /All workspaces/); assert.equal(h.state.logouts, 0); h.unmount();
+});
+
+test('workspace busy immediately guards stale close controls and hidden account hosts disable switching', () => {
+  const h = harness(); h.read(); h.press('Switch workspace');
+  const closeBeforeRender = h.find((value) => value.type === 'AdminModalHeader').props.onClose;
+  const panel = h.find((value) => value.type === 'WorkspaceSwitchPanel');
+  panel.props.onBusyChange(true); closeBeforeRender();
+  assert.ok(h.find((value) => value.type === 'WorkspaceSwitchPanel'));
+  assert.equal(h.find((value) => value.type === 'AdminModalHeader').props.onClose, undefined);
+  assert.equal(h.state.closes, 0); assert.equal(h.state.logouts, 0);
+  panel.props.onBusyChange(false); h.state.visible = false;
+  const hidden = h.read();
+  const serialized = JSON.stringify(hidden); assert.match(serialized, /"visible":false/);
+  const hiddenPanel = h.find((value) => value.type === 'WorkspaceSwitchPanel');
+  if (hiddenPanel) assert.equal(hiddenPanel.props.enabled, false);
+  h.unmount();
 });
 
 test('account and app information expose no diagnostic report or copy controls in either language', () => {

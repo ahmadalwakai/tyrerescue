@@ -21,7 +21,7 @@ function loadTs(relative, dependencies, globals) {
   return module.exports;
 }
 
-function loadApi(fetchImpl) {
+function loadApi(fetchImpl, options = {}) {
   return loadTs('lib/api.ts', {
     'expo-constants': { default: { expoConfig: null } },
     'react-native': { Platform: { OS: 'ios' } },
@@ -31,14 +31,14 @@ function loadApi(fetchImpl) {
       logStartupModuleFailed() {},
     },
   }, {
-    __DEV__: false,
-    process: { env: { NODE_ENV: 'production' } },
+    __DEV__: options.dev ?? false,
+    process: { env: { NODE_ENV: 'production', ...options.env } },
     fetch: fetchImpl,
     AbortController,
     setTimeout,
     clearTimeout,
     URL,
-    console,
+    console: { log() {}, warn() {}, error() {} },
   });
 }
 
@@ -91,4 +91,46 @@ test('createRequestSignal forwards an already-aborted caller signal', () => {
   assert.equal(deadline.signal.aborted, true);
   assert.equal(deadline.timedOut(), false);
   deadline.dispose();
+});
+
+test('workspace selection changes the request source while retaining the application API and administrator token', async () => {
+  const calls = [];
+  const api = loadApi(async (url, init) => {
+    calls.push({ url, init });
+    return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => ({ ok: true }) };
+  }, { env: { EXPO_PUBLIC_API_BASE_URL: 'https://www.tyrerescue.uk' } });
+  assert.equal(api.getApiBaseUrl(), 'https://www.tyrerescue.uk');
+  api.setAdminToken('fixture-central-token');
+  const revision = api.getApiContextRevision();
+  api.setWorkspaceSourceApp('fixture_workspace');
+  assert.equal(api.getApiBaseUrl(), 'https://www.tyrerescue.uk');
+  assert.equal(api.getAdminToken(), 'fixture-central-token');
+  assert.equal(api.getWorkspaceSourceApp(), 'fixture_workspace');
+  assert.ok(api.getApiContextRevision() > revision);
+  await api.api.get('/api/isolated');
+  assert.equal(calls[0].url, 'https://www.tyrerescue.uk/api/isolated');
+  assert.equal(calls[0].init.headers.Authorization, 'Bearer fixture-central-token');
+  assert.equal(calls[0].init.headers['x-workspace-source-app'], 'fixture_workspace');
+  api.setWorkspaceSourceApp(null); await api.api.get('/api/isolated');
+  assert.equal(calls[1].init.headers['x-workspace-source-app'], undefined);
+  assert.equal(api.getAdminToken(), 'fixture-central-token');
+});
+
+test('development builds retain their explicit local API override', () => {
+  const api = loadApi(async () => { throw new Error('No network allowed'); }, {
+    dev: true, env: { NODE_ENV: 'development', EXPO_PUBLIC_API_BASE_URL: 'http://127.0.0.1:8999' },
+  });
+  const revision = api.getApiContextRevision(); api.setApiBaseUrl('https://target.example.invalid');
+  assert.equal(api.getApiBaseUrl(), 'http://127.0.0.1:8999'); assert.equal(api.getApiContextRevision(), revision);
+});
+
+test('workspace request scope cannot survive a token change or attach to a foreign backend', () => {
+  const api = loadApi(async () => { throw new Error('No network allowed'); });
+  api.setAdminToken('fixture-account-a'); api.setWorkspaceSourceApp('source_a');
+  assert.equal(api.getWorkspaceSourceApp(), 'source_a');
+  api.setAdminToken('fixture-account-b'); assert.equal(api.getWorkspaceSourceApp(), null);
+  api.setWorkspaceSourceApp('source_b'); api.setApiBaseUrl('https://foreign.example.invalid');
+  assert.equal(api.getWorkspaceSourceApp(), null);
+  api.setWorkspaceSourceApp('source_a'); assert.equal(api.getWorkspaceSourceApp(), null);
+  assert.throws(() => api.setWorkspaceSourceApp('../invalid'), /Invalid workspace/);
 });

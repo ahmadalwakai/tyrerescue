@@ -115,6 +115,9 @@ function inferBaseUrl(): string {
 
 let resolvedApiBaseUrl: string;
 let apiContextRevision = 0;
+let workspaceSourceApp: string | null = null;
+let workspaceSourceToken: string | null = null;
+let workspaceSourceBaseUrl: string | null = null;
 try {
   resolvedApiBaseUrl = inferBaseUrl();
   logStartupModuleCompleted('API config module', {
@@ -143,12 +146,39 @@ export function getApiContextRevision(): number {
   return apiContextRevision;
 }
 
-// EXPO_PUBLIC_API_BASE_URL always wins (dev LAN override).
-// In production, calling setApiBaseUrl switches the active project backend.
+/** Workspaces are booking sources on the central service, never foreign APIs. */
+export function isCentralAdminApiBaseUrl(value = resolvedApiBaseUrl): boolean {
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password
+      || url.search || url.hash || !['', '/'].includes(url.pathname)) return false;
+    return url.origin === PRODUCTION_API_URL || (__DEV__ && isLocalDevHost(url.hostname));
+  } catch { return false; }
+}
+
+export function getWorkspaceSourceApp(): string | null {
+  return currentToken && workspaceSourceToken === currentToken && workspaceSourceBaseUrl === resolvedApiBaseUrl
+    && isCentralAdminApiBaseUrl() ? workspaceSourceApp : null;
+}
+
+export function setWorkspaceSourceApp(sourceApp: string | null): void {
+  if (sourceApp !== null && !/^[a-z0-9][a-z0-9_]{0,59}$/.test(sourceApp)) throw new Error('Invalid workspace.');
+  const next = currentToken && isCentralAdminApiBaseUrl() ? sourceApp : null;
+  if (next !== getWorkspaceSourceApp()) apiContextRevision += 1;
+  workspaceSourceApp = next;
+  workspaceSourceToken = next ? currentToken : null;
+  workspaceSourceBaseUrl = next ? resolvedApiBaseUrl : null;
+}
+
+// A development override keeps the local API fixed. In release builds the env
+// URL is only the startup default; workspace selection controls the backend.
 export function setApiBaseUrl(url: string): void {
-  if (process.env.EXPO_PUBLIC_API_BASE_URL?.trim()) return;
+  if (__DEV__ && process.env.EXPO_PUBLIC_API_BASE_URL?.trim()) return;
   const next = url.replace(/\/$/, '');
-  if (next !== resolvedApiBaseUrl) apiContextRevision += 1;
+  if (next !== resolvedApiBaseUrl) {
+    setWorkspaceSourceApp(null);
+    apiContextRevision += 1;
+  }
   resolvedApiBaseUrl = next;
 }
 
@@ -174,7 +204,10 @@ let currentToken: string | null =
   (__DEV__ && process.env.EXPO_PUBLIC_ADMIN_TOKEN?.trim()) || null;
 export function setAdminToken(token: string | null): void {
   const next = token && token.trim() ? token.trim() : null;
-  if (next !== currentToken) apiContextRevision += 1;
+  if (next !== currentToken) {
+    setWorkspaceSourceApp(null);
+    apiContextRevision += 1;
+  }
   currentToken = next;
 }
 
@@ -268,17 +301,19 @@ async function requestWithSignal<T>(
   signal: AbortSignal,
 ): Promise<T> {
   const options = { signal: callerSignal };
+  normalizeDevWebApiBaseUrl();
+  const sourceApp = getWorkspaceSourceApp();
   const requestInit: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
       ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
+      ...(sourceApp ? { 'x-workspace-source-app': sourceApp } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
     signal,
   };
 
-  normalizeDevWebApiBaseUrl();
   const requestContextRevision = apiContextRevision;
 
   let res: Response | null = null;

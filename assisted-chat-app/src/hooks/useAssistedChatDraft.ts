@@ -1,7 +1,7 @@
 import { normalizeBookingTiming } from '@/lib/booking-schedule';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePhoneForWhatsApp } from '@/lib/money';
+import { createWorkspaceStorage } from '@/lib/workspace-storage';
 import {
   createBookingTyreLine,
   ensureBookingTyreLines,
@@ -225,6 +225,7 @@ export const EMPTY_DRAFT: AssistedChatDraft = {
 };
 
 export function useAssistedChatDraft() {
+  const [storage] = useState(() => createWorkspaceStorage());
   const [draft, setDraft] = useState<AssistedChatDraft>(EMPTY_DRAFT);
   const [hydrated, setHydrated] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -238,11 +239,11 @@ export function useAssistedChatDraft() {
         // operator's draft is not lost on the version bump. Any legacy
         // payload found is migrated through the sanitizer below and the
         // legacy key is deleted.
-        let raw = await AsyncStorage.getItem(STORAGE_KEY);
+        let raw = await storage.getItem(STORAGE_KEY);
         let usedLegacyKey: string | null = null;
         if (!raw) {
           for (const key of LEGACY_KEYS) {
-            const legacy = await AsyncStorage.getItem(key);
+            const legacy = await storage.getItem(key);
             if (legacy) {
               raw = legacy;
               usedLegacyKey = key;
@@ -307,7 +308,7 @@ export function useAssistedChatDraft() {
             };
             setDraft(merged);
             if (usedLegacyKey) {
-              AsyncStorage.removeItem(usedLegacyKey).catch((error) => {
+              storage.removeItem(usedLegacyKey).catch((error) => {
                 logStartupModuleFailed('assistedChat.legacyDraft.cleanup.failed', error);
               });
             }
@@ -318,12 +319,8 @@ export function useAssistedChatDraft() {
         }
       } catch (error) {
         logStartupModuleFailed('assistedChat.draft.hydration.failed', error);
-        await Promise.all([
-          AsyncStorage.removeItem(STORAGE_KEY),
-          ...LEGACY_KEYS.map((key) => AsyncStorage.removeItem(key)),
-        ]).catch((cleanupError) => {
-          logStartupModuleFailed('assistedChat.draft.cleanup.failed', cleanupError);
-        });
+        // A temporary storage/migration failure must not delete the saved draft.
+        // A later successful edit will replace malformed data in this workspace.
         if (!cancelled) {
           setDraft(EMPTY_DRAFT);
           logStartupModuleCompleted('Assisted Chat draft hydration', {
@@ -337,16 +334,16 @@ export function useAssistedChatDraft() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storage]);
 
   const persist = useCallback((next: AssistedChatDraft) => {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch((error) => {
+      storage.setItem(STORAGE_KEY, JSON.stringify(next)).catch((error) => {
         logStartupModuleFailed('assistedChat.draft.persist.failed', error);
       });
     }, 200);
-  }, []);
+  }, [storage]);
 
   const update = useCallback(
     (patch: Partial<AssistedChatDraft>) => {
@@ -372,11 +369,13 @@ export function useAssistedChatDraft() {
   );
 
   const clear = useCallback(() => {
+    if (writeTimer.current) clearTimeout(writeTimer.current);
+    writeTimer.current = null;
     setDraft(EMPTY_DRAFT);
-    AsyncStorage.removeItem(STORAGE_KEY).catch((error) => {
+    storage.removeItem(STORAGE_KEY).catch((error) => {
       logStartupModuleFailed('assistedChat.draft.clear.failed', error);
     });
-  }, []);
+  }, [storage]);
 
   return { draft, hydrated, update, replace, clear };
 }

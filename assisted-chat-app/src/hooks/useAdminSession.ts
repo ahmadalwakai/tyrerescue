@@ -8,12 +8,9 @@ import {
   writeStoredAdminSession,
   type StoredAdminSession,
 } from '@/lib/admin-session-storage';
-import { getAdminToken, getApiBaseUrl, setAdminToken, setApiBaseUrl } from '@/lib/api';
+import { getAdminToken, getApiBaseUrl, isCentralAdminApiBaseUrl, setAdminToken, setApiBaseUrl } from '@/lib/api';
 import {
-  clearStoredProjectId,
   getProjectById,
-  isStoredProjectPickerSelected,
-  setStoredProjectId,
   type ProjectConfig,
   type ProjectId,
 } from '@/lib/project-config';
@@ -30,7 +27,7 @@ import { retainAdminDeviceHeartbeat, setAdminDeviceHeartbeatContext } from '@/li
 const GENERIC_LOGIN_ERROR = 'Login failed. Please try again.';
 const STORAGE_RECOVERY_ERROR = 'Your saved sign-in could not be read. Retry to restore it; it has not been deleted.';
 const LOGOUT_RECOVERY_ERROR = 'Sign-out could not be saved on this device. Retry to finish signing out before reopening the app.';
-const PROJECT_RECOVERY_ERROR = 'The workspace selection could not be saved. Retry; your saved sign-ins have not been deleted.';
+const CENTRAL_API_ERROR = 'This build is not connected to the central admin service.';
 const FRIENDLY_LOGIN_ERRORS = new Set([
   'Email or password is incorrect, or this account is not an admin.',
   'This account is not allowed to sign in here.',
@@ -38,6 +35,7 @@ const FRIENDLY_LOGIN_ERRORS = new Set([
   'Cannot reach the local API server. Make sure the web API is running.',
   'API base URL is not reachable. Check EXPO_PUBLIC_API_BASE_URL.',
   GENERIC_LOGIN_ERROR,
+  CENTRAL_API_ERROR,
 ]);
 
 type MobileAdminUser = { id: string; name: string; email: string; role: 'admin' };
@@ -69,9 +67,6 @@ let pendingLogout: {
   apiBaseUrl: string; token: string | null; project: ProjectConfig | null;
   reason?: string; notice?: string;
 } | null = null;
-type ProjectAction = { kind: 'select'; project: ProjectConfig } | { kind: 'clear' };
-let pendingProjectAction: ProjectAction | null = null;
-let projectOperations: Promise<unknown> = Promise.resolve();
 const listeners = new Set<(value: SessionSnapshot) => void>();
 
 /** Guards explicit logout cleanup against a later sign-in/project transition. */
@@ -174,7 +169,6 @@ function observeStorage(): void {
     restorePromise = null;
     loginOperation = null;
     pendingLogout = null;
-    pendingProjectAction = null;
     publish(signedOut(snapshot?.activeProject ?? null));
   });
 }
@@ -246,32 +240,30 @@ async function attemptLegacyUpgrade(session: StoredAdminSession, revision: numbe
   }
 }
 
-async function restoreSession(projectOverride?: ProjectConfig | null): Promise<void> {
+async function restoreSession(): Promise<void> {
   if (restorePromise) return restorePromise;
   const revision = sessionRevision;
   restorePromise = (async () => {
-    let project = projectOverride ?? snapshot?.activeProject ?? null;
+    const project = getProjectById('tyrerescue');
     logStartupModuleStarted('Session hydration');
     logStartupCheckpoint('Session hydration started');
     try {
-      if (projectOverride === undefined) {
-        const projectId = await readStoredAdminProjectId();
-        if (revision !== sessionRevision) return;
-        project = projectId ? getProjectById(projectId) : null;
-      }
+      // Preserve legacy selection metadata: an old unbound credential uses it
+      // as provenance. Rewriting a foreign selection could rebind that token.
+      await readStoredAdminProjectId();
       if (revision !== sessionRevision) return;
-      if (project) setApiBaseUrl(project.apiBaseUrl);
+      setApiBaseUrl(project.apiBaseUrl);
       const apiBaseUrl = normaliseBaseUrl(getApiBaseUrl());
+      if (!isCentralAdminApiBaseUrl(apiBaseUrl)) {
+        recovery(project, CENTRAL_API_ERROR);
+        return;
+      }
       if (isSessionRestoreDisabled()) {
         recovery(project, 'This build has saved sign-in restore paused. Your saved sign-in has not been deleted.');
         logStartupCheckpoint('Session restore skipped', { reason: 'startup-disabled' });
         return;
       }
-      if (!project && await isStoredProjectPickerSelected()) {
-        if (currentOperation(revision, apiBaseUrl)) publish(signedOut(null));
-        return;
-      }
-      const stored = await readStoredAdminSession();
+      const stored = await readStoredAdminSession(apiBaseUrl);
       if (!currentOperation(revision, apiBaseUrl)) return;
       const validated = validateLoginResponse(stored);
       if (stored && (!validated || (stored.apiBaseUrl &&
@@ -329,50 +321,12 @@ function finishRemoteDeviceSignOut(capturedRevision: number, apiBaseUrl: string,
   };
   restorePromise = null;
   loginOperation = null;
-  pendingProjectAction = null;
   publish(signedOut(pendingLogout.project, notice));
   // The server already revoked this device. Do not wait on notification
   // cleanup or send authenticated requests using its revoked credential.
   void finishLogout(revision).catch(() => {
     if (currentOperation(revision, apiBaseUrl)) recovery(snapshot?.activeProject ?? null, LOGOUT_RECOVERY_ERROR);
   });
-}
-
-async function performProjectAction(action: ProjectAction, revision: number): Promise<void> {
-  const previousProject = snapshot?.activeProject ?? null;
-  const oldBaseUrl = normaliseBaseUrl(getApiBaseUrl());
-  const operation = projectOperations.catch(() => {}).then(async () => {
-    if (!currentOperation(revision, oldBaseUrl)) return false;
-    if (action.kind === 'select') await setStoredProjectId(action.project.id);
-    else await clearStoredProjectId();
-    if (!currentOperation(revision, oldBaseUrl)) {
-      // An explicit newer action won while AsyncStorage was completing. Keep
-      // its current selection instead of leaving this old write on disk.
-      const currentProject = snapshot?.activeProject;
-      if (currentProject) await setStoredProjectId(currentProject.id);
-      else await clearStoredProjectId();
-      return false;
-    }
-    return true;
-  });
-  projectOperations = operation;
-  try {
-    if (!await operation || !currentOperation(revision, oldBaseUrl)) return;
-    pendingProjectAction = null;
-    if (action.kind === 'clear') {
-      publish(signedOut(null));
-      return;
-    }
-    // Retain A's secure envelope. Only after B's selection is durable may any
-    // B-scoped cached credential be restored or its API receive requests.
-    setApiBaseUrl(action.project.apiBaseUrl);
-    await restoreSession(action.project);
-  } catch {
-    if (currentOperation(revision, oldBaseUrl)) {
-      safeFailure('session.project-selection.persist.failed');
-      recovery(previousProject, PROJECT_RECOVERY_ERROR);
-    }
-  }
 }
 
 export interface AdminSession {
@@ -422,7 +376,6 @@ export function useAdminSession(): AdminSession {
       project: snapshot?.activeProject ?? null,
     };
     restorePromise = null;
-    pendingProjectAction = null;
     loginOperation = null;
     setLoggingIn(false);
     setLoginError(null);
@@ -437,42 +390,16 @@ export function useAdminSession(): AdminSession {
       await finishLogout(revision);
       return;
     }
-    if (pendingProjectAction) {
-      await performProjectAction(pendingProjectAction, revision);
-      return;
-    }
     publish({ status: 'loading', session: null, activeProject: snapshot?.activeProject ?? null, recoveryError: null });
     await restoreSession();
   }, []);
 
+  // Compatibility for older callers. Workspaces no longer change the auth
+  // backend, and foreign credentials must never be restored as central ones.
   const selectProject = useCallback(async (id: ProjectId) => {
-    let project: ProjectConfig;
-    try { project = getProjectById(id); } catch { return; }
-    const revision = ++sessionRevision;
-    restorePromise = null;
-    loginOperation = null;
-    pendingLogout = null;
-    setLoggingIn(false);
-    setLoginError(null);
-    const oldProject = snapshot?.activeProject ?? null;
-    publish({ status: 'loading', session: null, activeProject: oldProject, recoveryError: null });
-    pendingProjectAction = { kind: 'select', project };
-    await performProjectAction(pendingProjectAction, revision);
-  }, []);
-
-  const clearProject = useCallback(async () => {
-    const revision = ++sessionRevision;
-    const project = snapshot?.activeProject ?? null;
-    restorePromise = null;
-    loginOperation = null;
-    pendingLogout = null;
-    setLoggingIn(false);
-    setLoginError(null);
-    publish(signedOut(project));
-    pendingProjectAction = { kind: 'clear' };
-    await performProjectAction(pendingProjectAction, revision);
-  }, []);
-
+    if (id === 'tyrerescue') await retryRestore();
+  }, [retryRestore]);
+  const clearProject = useCallback(async () => { await retryRestore(); }, [retryRestore]);
   const login = useCallback(async (email: string, password: string) => {
     if (loginOperation) {
       logStartupCheckpoint('auth.submit.duplicate', { ignored: true });
@@ -484,12 +411,12 @@ export function useAdminSession(): AdminSession {
     const apiBaseUrl = normaliseBaseUrl(getApiBaseUrl());
     restorePromise = null;
     pendingLogout = null;
-    pendingProjectAction = null;
     setLoginError(null);
     setLoggingIn(true);
     logStartupModuleStarted('auth.submit');
     logStartupCheckpoint('auth.submit.started', { hasEmail: Boolean(email.trim()), hasPassword: Boolean(password) });
     try {
+      if (!isCentralAdminApiBaseUrl(apiBaseUrl)) throw new Error(CENTRAL_API_ERROR);
       let response: Response;
       try {
         response = await fetch(`${apiBaseUrl}/api/mobile/admin/auth/login`, {

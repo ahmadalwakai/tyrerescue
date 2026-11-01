@@ -39,6 +39,8 @@ interface CompactQuoteCardProps {
   payBusy: boolean;
   payLabel?: string;
   showPayAction?: boolean;
+  /** A saved booking or an in-flight payment must keep its quoted amount. */
+  lockedReason?: string | null;
 
   onEditPrice: () => void;
   onSaveQuote: () => void;
@@ -78,6 +80,7 @@ export function CompactQuoteCard({
   payBusy,
   payLabel = 'Send payment link',
   showPayAction = true,
+  lockedReason = null,
   onEditPrice,
   onSaveQuote,
   onPay,
@@ -91,13 +94,15 @@ export function CompactQuoteCard({
     : null;
 
   let saveDisabledReason: string | undefined;
-  if (missingQuickBooking) saveDisabledReason = 'Pull a price first.';
+  if (lockedReason) saveDisabledReason = lockedReason;
+  else if (missingQuickBooking) saveDisabledReason = 'Pull a price first.';
   else if (!hasPrice) saveDisabledReason = 'No price available yet.';
   else if (priceNeedsRefresh) saveDisabledReason = 'Refresh the price before saving.';
   else if (priceLoading) saveDisabledReason = 'Wait for the current price calculation.';
 
   let payDisabledReason: string | undefined;
-  if (missingQuickBooking) payDisabledReason = 'Pull a price first.';
+  if (lockedReason) payDisabledReason = lockedReason;
+  else if (missingQuickBooking) payDisabledReason = 'Pull a price first.';
   else if (!hasPrice) payDisabledReason = 'No price available yet.';
   else if (priceNeedsRefresh) payDisabledReason = 'Refresh the price before sending payment.';
   else if (priceLoading) payDisabledReason = 'Wait for the current price calculation.';
@@ -105,7 +110,7 @@ export function CompactQuoteCard({
   const saveDisabled = saveDisabledReason !== undefined;
   const payDisabled = payDisabledReason !== undefined;
 
-  const editDisabled = missingQuickBooking || priceLoading;
+  const editDisabled = Boolean(lockedReason) || missingQuickBooking || priceLoading;
 
   return (
     <View style={styles.card}>
@@ -146,7 +151,7 @@ export function CompactQuoteCard({
           </View>
         ) : null}
         <Text style={styles.priceHint}>
-          {editDisabled ? 'Pull a price to enable editing.' : 'Tap price to edit'}
+          {lockedReason || (editDisabled ? 'Pull a price to enable editing.' : 'Tap price to edit')}
         </Text>
       </Pressable>
 

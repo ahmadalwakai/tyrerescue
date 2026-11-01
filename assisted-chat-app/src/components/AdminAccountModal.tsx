@@ -4,17 +4,19 @@ import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollVi
 import Constants from 'expo-constants';
 import { getAdminSessionRevision, useAdminSession } from '@/hooks/useAdminSession';
 import { useAccountPreferences } from '@/hooks/useAccountPreferences';
+import { useAdminWorkspace } from '@/hooks/useAdminWorkspace';
 import { getAdminToken, getApiBaseUrl, getApiContextRevision } from '@/lib/api';
 import { formatAccountTimestamp } from '@/lib/account-preferences';
 import { readAdminDeviceMetadata } from '@/lib/admin-device-metadata';
 import { AdminDevicesPanel } from './AdminDevicesModal';
+import { WorkspaceSwitchPanel } from './WorkspaceSwitchPanel';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
 import { useAdminAppLock } from './security/AdminAppLockProvider';
 import { AppButton, StatusBanner } from './ui';
 import { colors, radius, space } from './theme';
 
-type Page = 'account' | 'devices' | 'notifications' | 'preferences' | 'about';
+type Page = 'account' | 'workspaces' | 'devices' | 'notifications' | 'preferences' | 'about';
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -25,11 +27,12 @@ interface Props {
 
 const COPY = {
   en: {
-    account: 'My account & settings', devices: 'Devices & sessions', notifications: 'iPhone notifications', preferences: 'Display preferences', about: 'App information',
-    close: 'Close', back: 'Back', admin: 'Administrator', project: 'Connected project', workspace: 'Connected workspace',
+    account: 'My account & settings', workspaces: 'Switch workspace', devices: 'Devices & sessions', notifications: 'iPhone notifications', preferences: 'Display preferences', about: 'App information',
+    close: 'Close', back: 'Back', admin: 'Administrator', project: 'Connected project', workspace: 'Current workspace', allWorkspaces: 'All workspaces',
     security: 'App security', securityInfo: 'Keep your sign-in saved and require biometrics when reopening the app.',
     lock: 'Biometric app lock', lockNow: 'Lock app now', refresh: 'Check biometrics again',
     signedIn: 'Your sign-in stays saved when you close the app. Signing out is a separate manual action.',
+    workspaceInfo: 'Choose a workspace for bookings using your current administrator account.',
     deviceInfo: 'Check last sign-in and activity, and remove a device from your account.',
     notificationInfo: 'Check permissions, register this iPhone and send a test only to this device.',
     preferencesInfo: 'Language for this account screen, time format and iPhone text size.',
@@ -46,11 +49,12 @@ const COPY = {
     enabled: 'Enabled', disabled: 'Disabled', noBiometrics: 'Biometrics are not available on this device or installed build.',
   },
   ar: {
-    account: 'حسابي وإعداداتي', devices: 'الأجهزة والجلسات', notifications: 'إشعارات الآيفون', preferences: 'تفضيلات العرض', about: 'معلومات التطبيق',
-    close: 'إغلاق', back: 'رجوع', admin: 'أدمن', project: 'المشروع المتصل', workspace: 'المشروع المتصل',
+    account: 'حسابي وإعداداتي', workspaces: 'تبديل مكان العمل', devices: 'الأجهزة والجلسات', notifications: 'إشعارات الآيفون', preferences: 'تفضيلات العرض', about: 'معلومات التطبيق',
+    close: 'إغلاق', back: 'رجوع', admin: 'أدمن', project: 'المشروع المتصل', workspace: 'مكان العمل الحالي', allWorkspaces: 'جميع أماكن العمل',
     security: 'أمان التطبيق', securityInfo: 'احتفظ بتسجيل الدخول واطلب البصمة عند العودة إلى التطبيق.',
     lock: 'قفل التطبيق بالبصمة', lockNow: 'قفل التطبيق الآن', refresh: 'فحص البصمة مجددًا',
     signedIn: 'إغلاق التطبيق لا يسجّل خروجك. تسجيل الخروج إجراء يدوي مستقل.',
+    workspaceInfo: 'اختر مكان العمل للحجوزات باستخدام حساب الأدمن الحالي.',
     deviceInfo: 'راجع آخر دخول ونشاط، وأزل جهازًا من حسابك عند الحاجة.',
     notificationInfo: 'راجع الأذونات وتسجيل هذا الآيفون، وأرسل إشعار اختبار إلى هذا الجهاز فقط.',
     preferencesInfo: 'لغة شاشة الحساب وتنسيق الوقت وحجم خط الآيفون.',
@@ -68,9 +72,10 @@ const COPY = {
   },
 } as const;
 
-/** Account controls contain no credential editing and never sign out on close. */
+/** Account controls never sign out on close or when choosing a booking workspace. */
 export function AdminAccountModal({ visible, onClose, onDismiss, onLogout, onNotificationsChanged }: Props) {
   const session = useAdminSession();
+  const workspace = useAdminWorkspace();
   const appLock = useAdminAppLock();
   const apiBaseUrl = getApiBaseUrl();
   const token = getAdminToken();
@@ -86,28 +91,38 @@ export function AdminAccountModal({ visible, onClose, onDismiss, onLogout, onNot
   const preferences = useAccountPreferences({ visible: visible && session.status === 'logged-in', userId: session.user?.id, apiBaseUrl });
   const [page, setPage] = useState<Page>('account');
   const [deviceBusy, setDeviceBusy] = useState(false);
+  const [workspaceBusy, setWorkspaceBusy] = useState(false);
+  const workspaceBusyRef = useRef(false);
   const [signingOut, setSigningOut] = useState(false);
   const logoutInFlight = useRef(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
-  useLayoutEffect(() => { setPage('account'); setNotice(null); }, [visible, token, revision, apiRevision]);
+  useLayoutEffect(() => {
+    setPage('account'); setNotice(null);
+    workspaceBusyRef.current = false; setWorkspaceBusy(false);
+  }, [visible, token, revision, apiRevision]);
+  const handleWorkspaceBusyChange = useCallback((nextBusy: boolean) => {
+    if (!current()) return;
+    workspaceBusyRef.current = nextBusy;
+    setWorkspaceBusy(nextBusy);
+  }, [current]);
   const metadata = useMemo(() => readAdminDeviceMetadata(), []);
   const buildNumber = String(Platform.OS === 'ios'
     ? Constants.platform?.ios?.buildNumber ?? Constants.expoConfig?.ios?.buildNumber ?? 'Unknown'
     : Constants.expoConfig?.android?.versionCode ?? 'Unknown');
   const appVersion = Constants.expoConfig?.version ?? metadata.appVersion;
-  const projectName = session.activeProject?.name ?? COPY.en.workspace;
   const t = COPY[preferences.preferences.language];
+  const workspaceName = workspace.selectedWorkspace?.sourceLabel ?? t.allWorkspaces;
   const rtl = preferences.preferences.language === 'ar';
   const direction = rtl ? styles.rtl : undefined;
-  const busy = appLock.busy || preferences.saving || deviceBusy || signingOut;
+  const busy = appLock.busy || preferences.saving || deviceBusy || workspaceBusy || signingOut;
   const origin = useMemo(() => {
     try {
       const url = new URL(apiBaseUrl);
       return ['http:', 'https:'].includes(url.protocol) ? url.origin : t.unavailable;
     } catch { return t.unavailable; }
   }, [apiBaseUrl, t.unavailable]);
-  const navigate = (next: Page) => { if (current() && !busy) { setNotice(null); setPage(next); } };
-  const close = () => { if (current() && !busy) onClose(); };
+  const navigate = (next: Page) => { if (current() && !busy && !workspaceBusyRef.current) { setNotice(null); setPage(next); } };
+  const close = () => { if (current() && !busy && !workspaceBusyRef.current) onClose(); };
   const back = () => { if (page === 'account') close(); else navigate('account'); };
   const openSettings = async () => {
     if (!current() || busy) return;
@@ -143,7 +158,7 @@ export function AdminAccountModal({ visible, onClose, onDismiss, onLogout, onNot
         <AdminModalHeader title={t[page]} closeLabel={page === 'account' ? t.close : t.back} onClose={busy ? undefined : back} style={styles.header} />
         {page === 'devices' ? <AdminDevicesPanel enabled={visible} onBusyChange={setDeviceBusy} language={preferences.preferences.language}
           formatTimestamp={(value) => formatAccountTimestamp(value, preferences.preferences)} onCurrentDeviceRemoved={onLogout} /> :
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             {notice ? <StatusBanner kind={notice.kind} message={notice.message} /> : null}
             {page === 'account' ? <>
               <View style={styles.identityCard}>
@@ -152,9 +167,10 @@ export function AdminAccountModal({ visible, onClose, onDismiss, onLogout, onNot
                 <Text selectable style={styles.email}>{session.user.email}</Text>
                 <Text style={styles.role}>{t.admin}</Text>
                 <View style={styles.separator} />
-                {information(t.project, projectName)}
+                {information(t.workspace, workspaceName)}
                 <Text selectable style={styles.origin}>{origin}</Text>
               </View>
+              {row('workspaces', t.workspaces, t.workspaceInfo)}
               <View style={styles.card}>
                 <Text style={[styles.sectionTitle, direction]}>{t.security}</Text>
                 <Text style={[styles.hint, direction]}>{t.securityInfo}</Text>
@@ -175,6 +191,7 @@ export function AdminAccountModal({ visible, onClose, onDismiss, onLogout, onNot
               <Text style={[styles.hint, direction]}>{t.signedIn}</Text>
               <AppButton label={t.signOut} variant="danger" loading={signingOut} disabled={busy} onPress={requestSignOut} fullWidth />
             </> : null}
+            {page === 'workspaces' ? <WorkspaceSwitchPanel enabled={visible} language={preferences.preferences.language} onBusyChange={handleWorkspaceBusyChange} /> : null}
             {page === 'notifications' ? <>
               <Text style={[styles.hint, direction]}>{t.notificationsNote}</Text>
               <NotificationReliabilityCard key={apiRevision} language={preferences.preferences.language} onSetupChanged={onNotificationsChanged} />

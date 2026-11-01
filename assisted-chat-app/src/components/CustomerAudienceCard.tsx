@@ -7,6 +7,7 @@ import { colors, fontSize, radius, space } from './theme';
 interface Props {
   enabled: boolean;
   projectId?: string | null;
+  onManageCustomers: () => void;
 }
 
 function checkedAt(value: string): string {
@@ -23,7 +24,7 @@ function Detail({ label, value }: { label: string; value: number }) {
   return <View style={styles.detail}><Text style={styles.hint}>{label}</Text><Text style={styles.detailValue}>{value.toLocaleString('en-GB')}</Text></View>;
 }
 
-export function CustomerAudienceCard({ enabled, projectId }: Props) {
+export function CustomerAudienceCard({ enabled, projectId, onManageCustomers }: Props) {
   const audience = useCustomerAudience(enabled, projectId);
   const [expanded, setExpanded] = useState(false);
   if (!enabled) return null;
@@ -39,13 +40,17 @@ export function CustomerAudienceCard({ enabled, projectId }: Props) {
   return (
     <View style={styles.card} testID="customer-audience-card">
       <View style={styles.metrics}>
-        <View style={styles.metric}>
+        <Pressable style={({ pressed }) => [styles.metric, pressed && styles.metricPressed]} onPress={onManageCustomers}
+          accessibilityRole="button" accessibilityLabel="Manage registered customers"
+          accessibilityHint="Search customer accounts, view bookings, and edit contact details"
+          testID="manage-registered-customers">
           <Text style={styles.label}>Registered customers</Text>
           <Text style={styles.value} testID="registered-customers-count" accessibilityLabel={stats ? `${stats.customers} registered customer accounts` : customer.loading ? 'Loading registered customers' : 'Registered customer count unavailable'}>{count}</Text>
           <Text style={styles.hint}>Customer accounts only</Text>
           {customer.data ? <Text style={styles.time}>{customer.error ? 'Last available' : 'Checked'} {checkedAt(customer.data.checkedAt)} UK</Text> : null}
           {customer.error ? <Text style={styles.error} accessibilityRole="alert">{customer.error}</Text> : null}
-        </View>
+          <Text style={styles.manageLabel}>Manage customers ›</Text>
+        </Pressable>
         {download.visible ? <View style={[styles.metric, styles.downloadMetric]}>
           <Text style={styles.label}>First-time App Store downloads</Text>
           <Text style={styles.value} testID="app-store-downloads-count" accessibilityLabel={apple?.status === 'ready' ? `${apple.firstTimeDownloads} first-time App Store downloads` : apple?.status === 'pending' ? 'Preparing Apple reports' : 'App Store download count unavailable'}>{downloadCount}</Text>
@@ -86,6 +91,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.cardMuted, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: space.md, paddingTop: space.md, marginBottom: space.sm },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   metric: { flex: 1, minWidth: 125, gap: 4 },
+  metricPressed: { opacity: 0.65 },
+  manageLabel: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '700', paddingVertical: space.sm },
   downloadMetric: { borderLeftWidth: 1, borderLeftColor: colors.border, paddingLeft: space.md },
   label: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '600', lineHeight: 17 },
   value: { color: colors.text, fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },

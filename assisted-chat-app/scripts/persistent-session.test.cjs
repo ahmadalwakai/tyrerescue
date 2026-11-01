@@ -50,8 +50,9 @@ function harness(options = {}) {
     projectGate: null,
     device: { deviceName: 'Test iPhone', modelName: 'iPhone test', platform: 'ios', osVersion: '26.0', appVersion: '1.0.12' },
     heartbeatContext: null,
+    workspacePrepareError: false,
   };
-  const calls = { reads: 0, writes: [], clears: [], requests: [], log: [], unauthorizedHandlers: 0 };
+  const calls = { reads: 0, readBackends: [], writes: [], clears: [], requests: [], log: [], contextChanges: [], preparedWorkspaces: [], unauthorizedHandlers: 0 };
   const subscribers = new Set();
   const appStateListeners = new Set();
   const timers = new Map();
@@ -69,21 +70,24 @@ function harness(options = {}) {
       if (state.projectReadError) throw new Error('Project storage unavailable');
       return disk.project;
     },
-    readStoredAdminSession: async () => {
+    readStoredAdminSession: async (requestedBackend) => {
       calls.reads += 1;
-      const backend = state.apiBaseUrl;
+      const backend = requestedBackend ?? state.apiBaseUrl;
+      calls.readBackends.push(backend);
       if (state.readHandler) return state.readHandler(backend);
       await storagePending.catch(() => {});
       if (state.readError) throw new Error('Secure storage unavailable');
       return disk.tombstones.has(backend) ? null : disk.sessions.get(backend) ?? null;
     },
-    writeStoredAdminSession: (session) => {
+    writeStoredAdminSession: (session, isCurrent) => {
       calls.writes.push(session);
       const revision = ++diskRevision;
       const generation = clearGeneration;
       const operation = storagePending.catch(() => {}).then(async () => {
         if (generation !== clearGeneration) throw new Error('Cancelled by explicit clear');
+        if (isCurrent && !isCurrent()) return;
         if (state.writeGate) await state.writeGate;
+        if (isCurrent && !isCurrent()) return;
         if (state.writeError) throw new Error('Secure write unavailable');
         disk.sessions.set(session.apiBaseUrl, session);
         disk.tombstones.delete(session.apiBaseUrl);
@@ -156,9 +160,10 @@ function harness(options = {}) {
     '@/lib/admin-session-storage': storage,
     '@/lib/api': {
       getAdminToken: () => state.token,
-      setAdminToken: (value) => { state.token = value; },
+      setAdminToken: (value) => { state.token = value; calls.contextChanges.push({ apiBaseUrl: state.apiBaseUrl, token: value }); },
       getApiBaseUrl: () => state.apiBaseUrl,
-      setApiBaseUrl: (value) => { state.apiBaseUrl = value; },
+      isCentralAdminApiBaseUrl: (value = state.apiBaseUrl) => value === TYRE,
+      setApiBaseUrl: (value) => { state.apiBaseUrl = value; calls.contextChanges.push({ apiBaseUrl: value, token: state.token }); },
       setOnUnauthorized: () => { calls.unauthorizedHandlers += 1; },
     },
     '@/lib/project-config': {
@@ -192,6 +197,10 @@ function harness(options = {}) {
       retainAdminDeviceHeartbeat: () => () => {},
       setAdminDeviceHeartbeatContext: (next) => { state.heartbeatContext = next; },
     },
+    '@/lib/workspace-storage': { prepareWorkspaceStorage: async (apiBaseUrl) => {
+      calls.preparedWorkspaces.push(apiBaseUrl);
+      if (state.workspacePrepareError) throw new Error('Workspace data unavailable');
+    } },
   };
   const compiled = ts.transpileModule(fs.readFileSync(SOURCE, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -199,6 +208,8 @@ function harness(options = {}) {
   const module = { exports: {} };
   const execute = vm.runInNewContext(`(function(require, module, exports) {${compiled}\n})`, {
     console,
+    process: { env: options.env ?? {} },
+    __DEV__: options.dev ?? false,
     AbortController,
     fetch: async (url, init) => {
       calls.requests.push({ url, init });
@@ -211,7 +222,7 @@ function harness(options = {}) {
     },
     clearInterval: (id) => timers.delete(id),
     setTimeout: (callback, milliseconds) => {
-      assert.equal(milliseconds, 8_000, 'Only the optional legacy HTTP request may time out');
+      assert.ok([8_000, 15_000].includes(milliseconds), 'Only legacy or staged workspace HTTP requests may time out');
       timers.set(++timerId, { callback, milliseconds, kind: 'timeout' });
       return timerId;
     },
@@ -484,40 +495,7 @@ test('late legacy upgrade after logout cannot replace the cached credential or r
   assert.equal(h.state.token, null);
 });
 
-test('project switching unsets the old token before changing backend, preserves its envelope and fences pending upgrade', async () => {
-  const h = harness({ session: record(LEGACY) });
-  const gate = deferred();
-  h.request(() => gate.promise);
-  const hook = h.mount();
-  await settle();
-  const switching = hook.read().selectProject('other');
-  assert.equal(h.state.token, null);
-  await switching;
-  assert.equal(h.state.apiBaseUrl, OTHER);
-  assert.equal(hook.read().status, 'logged-out');
-  gate.resolve(response(200, { token: OPAQUE, user: USER }));
-  await settle();
-  assert.equal(h.state.token, null);
-  assert.equal(h.calls.writes.length, 0);
-  assert.equal(h.calls.requests.every(({ url }) => url.startsWith(TYRE)), true);
-  assert.equal(h.calls.clears.length, 0);
-  assert.equal(h.disk.sessions.get(TYRE).token, LEGACY);
-});
 
-test('late login responses from a previous backend never bind to the newly selected project', async () => {
-  const h = harness();
-  const hook = h.mount();
-  await settle();
-  const gate = deferred();
-  h.request(() => gate.promise);
-  const signingIn = hook.read().login('admin@example.invalid', 'isolated-password');
-  await hook.read().selectProject('other');
-  gate.resolve(response(200, { token: OPAQUE, user: USER }));
-  await signingIn;
-  assert.equal(h.state.apiBaseUrl, OTHER);
-  assert.equal(h.state.token, null);
-  assert.equal(h.calls.writes.length, 0);
-});
 
 test('explicit storage recovery signs out every mounted hook, without treating API failures as logout', async () => {
   const h = harness({ session: record() });
@@ -540,6 +518,42 @@ test('cached sign-in from another backend is never forwarded, even if storage re
   assert.equal(h.state.token, null);
   assert.equal(h.calls.requests.length, 0);
   assert.equal(h.calls.clears.length, 0);
+});
+
+test('legacy foreign workspace selection restores only the central application credential', async () => {
+  const h = harness({ session: record() }); h.disk.project = 'other';
+  h.disk.sessions.set(OTHER, record('fixture-foreign-token', OTHER));
+  const hook = h.mount(); await settle();
+  assert.equal(hook.read().status, 'logged-in'); assert.equal(hook.read().activeProject.id, 'tyrerescue');
+  assert.equal(h.state.apiBaseUrl, TYRE); assert.equal(h.state.token, OPAQUE);
+  assert.deepEqual(h.calls.readBackends, [TYRE]); assert.equal(h.calls.requests.length, 0);
+  assert.equal(h.disk.project, 'other', 'legacy provenance is not overwritten before unbound credentials can be validated');
+  assert.equal(h.disk.sessions.get(OTHER).token, 'fixture-foreign-token');
+});
+
+test('a foreign-only saved sign-in never becomes a central application session', async () => {
+  const h = harness(); h.disk.project = 'other'; h.disk.sessions.set(OTHER, record('fixture-foreign-token', OTHER));
+  const hook = h.mount(); await settle();
+  assert.equal(hook.read().status, 'logged-out'); assert.equal(hook.read().activeProject.id, 'tyrerescue');
+  assert.equal(h.state.apiBaseUrl, TYRE); assert.equal(h.state.token, null);
+  assert.deepEqual(h.calls.readBackends, [TYRE]); assert.equal(h.calls.requests.length, 0); assert.equal(h.calls.clears.length, 0);
+});
+
+test('obsolete foreign project actions cannot change the central API or authenticate another account', async () => {
+  const h = harness({ session: record() }); const hook = h.mount(); await settle();
+  await hook.read().selectProject('other');
+  assert.equal(hook.read().status, 'logged-in'); assert.equal(h.state.apiBaseUrl, TYRE); assert.equal(h.state.token, OPAQUE);
+  assert.equal(h.calls.requests.length, 0); assert.equal(h.calls.clears.length, 0);
+  await hook.read().clearProject();
+  assert.equal(hook.read().status, 'logged-in'); assert.equal(hook.read().activeProject.id, 'tyrerescue');
+  assert.equal(h.state.token, OPAQUE); assert.equal(h.disk.sessions.get(TYRE).token, OPAQUE);
+});
+
+test('an old picker marker does not hide a valid central application sign-in', async () => {
+  const h = harness({ session: record() }); h.disk.project = null; h.disk.picker = true;
+  const hook = h.mount(); await settle();
+  assert.equal(hook.read().status, 'logged-in'); assert.equal(hook.read().activeProject.id, 'tyrerescue');
+  assert.equal(h.state.token, OPAQUE); assert.deepEqual(h.calls.readBackends, [TYRE]);
 });
 
 test('diagnostics never include credentials or token values', async () => {
@@ -610,77 +624,8 @@ test('an eight-second renewal timeout aborts its request but preserves cached le
   assert.equal(h.timers.size, 0);
 });
 
-test('failed project persistence never switches backend or deletes the current saved sign-in, including restart', async () => {
-  const h = harness({ session: record() });
-  const hook = h.mount();
-  await settle();
-  h.state.projectWriteError = true;
-  await hook.read().selectProject('other');
-  assert.equal(hook.read().status, 'recovery');
-  assert.equal(h.state.apiBaseUrl, TYRE);
-  assert.equal(h.disk.project, 'tyrerescue');
-  assert.equal(h.disk.sessions.get(TYRE).token, OPAQUE);
-  assert.equal(h.calls.clears.length, 0);
-  const reopened = harness({ disk: h.disk });
-  const next = reopened.mount();
-  await settle();
-  assert.equal(next.read().status, 'logged-in');
-  assert.equal(reopened.state.token, OPAQUE);
-  h.state.projectWriteError = false;
-  await hook.read().retryRestore();
-  assert.equal(h.state.apiBaseUrl, OTHER);
-  assert.equal(h.disk.project, 'other');
-  assert.equal(hook.read().activeProject.id, 'other');
-});
 
-test('failed picker persistence keeps the selected project and credentials; successful retry persists picker intent', async () => {
-  const h = harness({ session: record() });
-  const hook = h.mount();
-  await settle();
-  h.state.projectClearError = true;
-  await hook.read().clearProject();
-  assert.equal(hook.read().status, 'recovery');
-  assert.equal(h.disk.project, 'tyrerescue');
-  assert.equal(h.disk.sessions.get(TYRE).token, OPAQUE);
-  const reopenedBeforeRetry = harness({ disk: h.disk });
-  const beforeRetry = reopenedBeforeRetry.mount();
-  await settle();
-  assert.equal(beforeRetry.read().status, 'logged-in');
-  h.state.projectClearError = false;
-  await hook.read().retryRestore();
-  assert.equal(hook.read().activeProject, null);
-  assert.equal(h.disk.picker, true);
-  assert.equal(h.disk.sessions.get(TYRE).token, OPAQUE);
-  const reopened = harness({ disk: h.disk });
-  const next = reopened.mount();
-  await settle();
-  assert.equal(next.read().status, 'logged-out');
-  assert.equal(reopened.state.token, null);
-  assert.equal(reopened.calls.reads, 0);
-  await next.read().selectProject('tyrerescue');
-  assert.equal(next.read().status, 'logged-in');
-  assert.equal(reopened.state.token, OPAQUE);
-});
 
-test('a project write finishing after explicit logout cannot leave a new backend selection on disk', async () => {
-  const h = harness({ session: record() });
-  const hook = h.mount();
-  await settle();
-  const gate = deferred();
-  h.state.projectGate = gate.promise;
-  const switching = hook.read().selectProject('other');
-  await settle();
-  await hook.read().logout();
-  gate.resolve();
-  await switching;
-  assert.equal(h.disk.project, 'tyrerescue');
-  assert.equal(h.state.apiBaseUrl, TYRE);
-  assert.equal(hook.read().status, 'logged-out');
-  const reopened = harness({ disk: h.disk });
-  const next = reopened.mount();
-  await settle();
-  assert.equal(next.read().status, 'logged-out');
-});
 
 test('external diagnostic clear fences a pending login before the tombstone write can finish', async () => {
   const h = harness();
@@ -832,20 +777,4 @@ test('a delayed remote removal callback from an old token cannot sign out a late
   assert.equal(hook.read().status, 'logged-in');
   assert.equal(h.state.token, replacementToken);
   assert.equal(h.calls.clears.length, clearCount);
-});
-
-test('an old backend remote removal cannot clear the newly selected backend session', async () => {
-  const h = harness({ session: record() });
-  const otherToken = OPAQUE.replace('000000000001', '000000000003');
-  h.disk.sessions.set(OTHER, record(otherToken, OTHER));
-  const hook = h.mount();
-  await settle();
-  const oldContext = h.state.heartbeatContext;
-  await hook.read().selectProject('other');
-  oldContext.onRevoked();
-  await settle();
-  assert.equal(h.state.apiBaseUrl, OTHER);
-  assert.equal(h.state.token, otherToken);
-  assert.equal(hook.read().status, 'logged-in');
-  assert.equal(h.calls.clears.length, 0);
 });

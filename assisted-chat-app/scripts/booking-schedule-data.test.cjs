@@ -67,7 +67,7 @@ test('the real draft hook restores timing and review protection, and migrates le
   ]) {
     const state = { hooks: [], cursor: 0, effects: [], writes: [] };
     const react = {
-      useState(initial) { const i = state.cursor++; if (!(i in state.hooks)) state.hooks[i] = { value: initial }; return [state.hooks[i].value, (next) => { state.hooks[i].value = typeof next === 'function' ? next(state.hooks[i].value) : next; }]; },
+      useState(initial) { const i = state.cursor++; if (!(i in state.hooks)) state.hooks[i] = { value: typeof initial === 'function' ? initial() : initial }; return [state.hooks[i].value, (next) => { state.hooks[i].value = typeof next === 'function' ? next(state.hooks[i].value) : next; }]; },
       useRef(initial) { const i = state.cursor++; if (!(i in state.hooks)) state.hooks[i] = { current: initial }; return state.hooks[i]; },
       useCallback(fn) { return fn; },
       useEffect(effect) { const i = state.cursor++; if (!(i in state.hooks)) { state.hooks[i] = {}; state.effects.push(effect); } },
@@ -76,7 +76,7 @@ test('the real draft hook restores timing and review protection, and migrates le
     const loaded = load('hooks/useAssistedChatDraft.ts', {
       react, '@/lib/booking-schedule': schedule, '@/lib/assisted-chat-workflow': workflow,
       '@/lib/money': load('lib/money.ts', {}),
-      '@react-native-async-storage/async-storage': { default: storage },
+      '@/lib/workspace-storage': { createWorkspaceStorage: () => storage },
       '@/lib/startup-logging': { logStartupModuleCompleted() {}, logStartupModuleFailed() {}, logStartupModuleStarted() {} },
     }, { setTimeout(fn) { fn(); return 1; }, clearTimeout() {} });
     const read = () => { state.cursor = 0; return loaded.useAssistedChatDraft(); };

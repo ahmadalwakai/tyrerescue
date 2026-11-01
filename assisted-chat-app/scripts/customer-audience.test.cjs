@@ -173,7 +173,7 @@ test('manual refresh replaces the outstanding request so its late response canno
 
 function cardHarness() {
   const h = runtime();
-  const state = { enabled: true, refreshes: 0, audience: {
+  const state = { enabled: true, refreshes: 0, managementOpens: 0, audience: {
     customers: { data: null, loading: false, error: 'Customer count unavailable. Tap Refresh to try again.' },
     downloads: { visible: false, data: null, loading: false, error: null },
     refresh: async () => { state.refreshes += 1; },
@@ -186,11 +186,24 @@ function cardHarness() {
     '@/hooks/useCustomerAudience': { useCustomerAudience: () => state.audience },
     './ui': { AppButton: 'AppButton' }, './theme': theme,
   });
-  const read = () => h.render(() => module.CustomerAudienceCard({ enabled: state.enabled, projectId: 'tyrerescue' }));
+  const read = () => h.render(() => module.CustomerAudienceCard({ enabled: state.enabled, projectId: 'tyrerescue', onManageCustomers: () => { state.managementOpens += 1; } }));
   const walk = (tree) => !tree || typeof tree !== 'object' ? [] : Array.isArray(tree) ? tree.flatMap(walk) : [tree, ...walk(tree.props?.children)];
   const find = (id) => walk(read()).find((item) => item.props?.testID === id);
   return { state, read, find };
 }
+
+test('customer count opens account management even when the count feed is unavailable', () => {
+  const h = cardHarness();
+  const entry = h.find('manage-registered-customers');
+  assert.equal(entry.props.accessibilityRole, 'button');
+  assert.match(JSON.stringify(h.read()), /Manage customers/);
+  entry.props.onPress();
+  assert.equal(h.state.managementOpens, 1);
+  h.state.audience.customers = { ...h.state.audience.customers, data: customerSummary(923), error: null };
+  h.find('manage-registered-customers').props.onPress();
+  assert.equal(h.state.managementOpens, 2);
+  assert.equal(h.find('registered-customers-count').props.children, '923');
+});
 
 test('the visible card never labels unavailable data as zero and makes manual retry available', () => {
   const h = cardHarness();

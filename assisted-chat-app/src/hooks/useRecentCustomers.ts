@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createWorkspaceStorage } from '@/lib/workspace-storage';
 import type { RecentCustomer } from '@/types/assisted-chat';
 
 /**
@@ -44,6 +44,7 @@ export interface RecentCustomersState {
 }
 
 export function useRecentCustomers(): RecentCustomersState {
+  const [storage] = useState(() => createWorkspaceStorage());
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<RecentCustomer[]>([]);
 
@@ -51,7 +52,7 @@ export function useRecentCustomers(): RecentCustomersState {
     let cancelled = false;
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await storage.getItem(STORAGE_KEY);
         if (!cancelled && raw) {
           const parsed = JSON.parse(raw) as unknown;
           if (Array.isArray(parsed)) {
@@ -67,12 +68,12 @@ export function useRecentCustomers(): RecentCustomersState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storage]);
 
   useEffect(() => {
     if (!hydrated) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items)).catch(() => {});
-  }, [hydrated, items]);
+    storage.setItem(STORAGE_KEY, JSON.stringify(items)).catch(() => {});
+  }, [hydrated, items, storage]);
 
   const saveCustomer = useCallback((item: RecentCustomer) => {
     if (!item.customerPhone && !item.customerAddress) return;
