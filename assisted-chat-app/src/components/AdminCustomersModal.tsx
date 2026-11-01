@@ -235,7 +235,7 @@ export function AdminCustomersModal({ visible, projectId, onClose, onDismiss, on
   const active = visible && api.hasAdminToken;
   const scopeKey = `${projectId ?? 'tyrerescue'}:${getApiContextRevision()}:${getAdminSessionRevision()}`;
   return <Modal visible={active} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose} onDismiss={onDismiss}>
-    <AdminModalShell>{active ? <CustomerManager key={scopeKey} onClose={onClose} onCustomerUpdated={onCustomerUpdated} /> : null}</AdminModalShell>
+    <AdminModalShell chrome="solid">{active ? <CustomerManager key={scopeKey} onClose={onClose} onCustomerUpdated={onCustomerUpdated} /> : null}</AdminModalShell>
   </Modal>;
 }
 

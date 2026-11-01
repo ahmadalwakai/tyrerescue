@@ -19,7 +19,7 @@ interface AdminModalShellProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   keyboardAvoidingEnabled?: boolean;
-  chrome?: 'default' | 'plain';
+  chrome?: 'default' | 'plain' | 'solid';
 }
 
 interface AdminModalHeaderProps {
@@ -56,7 +56,7 @@ export function AdminModalShell({
       style={[styles.shell, style]}
       edges={['left', 'right', 'bottom']}
     >
-      {chrome === 'default' ? <AdminChromeBackdrop /> : <PlainChromeBackdrop />}
+      {chrome === 'default' ? <AdminChromeBackdrop /> : chrome === 'plain' ? <PlainChromeBackdrop /> : null}
       {keyboardAvoidingEnabled ? (
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
