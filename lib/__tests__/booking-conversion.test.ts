@@ -10,6 +10,13 @@ function readSource(relativePath: string): string {
 }
 
 describe('booking conversion payloads', () => {
+  it('carries stored Duke attribution only when a payment actually succeeded', () => {
+    const booking = { refNumber: 'DST-123', sourceApp: 'duke_street_tyres' };
+    expect(buildBookingConversionPayload({ ...booking, payment: null })).toBeNull();
+    expect(buildBookingConversionPayload({ ...booking, payment: { amount: '99', currency: 'gbp', status: 'processing' } })).toBeNull();
+    expect(buildBookingConversionPayload({ ...booking, payment: { amount: '99', currency: 'gbp', status: 'succeeded' } }))
+      .toMatchObject({ sourceApp: 'duke_street_tyres', transactionId: 'DST-123', value: 99 });
+  });
   it('uses succeeded GBP server payment amounts without pence conversion', () => {
     expect(
       buildBookingConversionPayload({
@@ -81,6 +88,8 @@ describe('booking conversion integration guards', () => {
     expect(pageSource).toContain("eq(payments.status, 'succeeded')");
     expect(pageSource).toContain('buildBookingConversionPayload');
     expect(pageSource).toContain('isPaymentFullySettledForInvoice(paymentSummary, booking.status)');
+    expect(pageSource).toContain('paymentSucceeded ? buildBookingConversionPayload');
+    expect(pageSource).toContain('sourceApp: booking.sourceApp');
     expect(pageSource).not.toContain('paymentSucceeded: Boolean(succeededPayment)');
 
     expect(contentSource).toContain('useState(booking.paymentSucceeded)');

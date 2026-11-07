@@ -68,6 +68,7 @@ function readBookingConversionPayload(value: unknown): BookingConversionPayload 
     currency?: unknown;
     email?: unknown;
     paymentIntentId?: unknown;
+    sourceApp?: unknown;
   };
   if (typeof payload.transactionId !== 'string' || !payload.transactionId.trim()) return null;
   if (payload.currency !== 'GBP') return null;
@@ -81,6 +82,7 @@ function readBookingConversionPayload(value: unknown): BookingConversionPayload 
     currency: 'GBP',
     email: typeof payload.email === 'string' ? payload.email : undefined,
     paymentIntentId: typeof payload.paymentIntentId === 'string' ? payload.paymentIntentId : null,
+    sourceApp: typeof payload.sourceApp === 'string' ? payload.sourceApp : undefined,
   };
 }
 
@@ -133,12 +135,17 @@ export function SuccessContent({ booking }: SuccessContentProps) {
 
   useEffect(() => {
     if (!serverConversion) return;
-    trackBookingConversion(
-      serverConversion.transactionId,
-      serverConversion.value,
-      serverConversion.email ?? booking.customerEmail,
-    );
-  }, [serverConversion, booking.customerEmail]);
+    const trackConfirmedBooking = () => trackBookingConversion(
+        serverConversion.transactionId,
+        serverConversion.value,
+        serverConversion.email ?? booking.customerEmail,
+        serverConversion.sourceApp ?? booking.sourceApp,
+      );
+    trackConfirmedBooking();
+    // A visitor can accept on the currently displayed, server-verified receipt.
+    window.addEventListener('cookie-consent-updated', trackConfirmedBooking);
+    return () => window.removeEventListener('cookie-consent-updated', trackConfirmedBooking);
+  }, [serverConversion, booking.customerEmail, booking.sourceApp]);
 
   // Auto-redirect countdown once payment is confirmed
   useEffect(() => {

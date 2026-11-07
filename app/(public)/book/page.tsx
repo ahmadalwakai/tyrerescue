@@ -61,6 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 interface BookSearchParams {
+  sourceApp?: string;
   postcode?: string;
   vrm?: string;
   size?: string;            // "205/55R16"
@@ -140,7 +141,7 @@ export default async function BookPage({
       initialState={hasInitialState ? initialState : undefined}
       initialStep={initialStep}
       resumeDraft={!hasInitialState}
-      sourceApp={brand.sourceApp}
+      sourceApp={params.sourceApp === 'duke_street_tyres' ? 'duke_street_tyres' : brand.sourceApp}
     />
   );
 }

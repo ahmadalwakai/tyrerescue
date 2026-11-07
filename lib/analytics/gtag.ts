@@ -1,4 +1,4 @@
-import { hasMarketingConsent } from '@/lib/analytics/consent';
+import { buildGoogleConsentModeState, getStoredConsent, hasMarketingConsent } from '@/lib/analytics/consent';
 import { ADS_ACTUAL_WEBSITE_CALL_CONVERSION } from '@/lib/analytics/website-calls';
 import { trackEvent } from '@/lib/analytics-tracker';
 import { analyticsUrl } from '@/lib/analytics/private-urls';
@@ -53,6 +53,13 @@ const RAW_ADS_PHONE_CONVERSION: string | null =
  */
 export const ADS_BOOKING_CONVERSION: string | null =
   normalizeAdsSendTo(process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION);
+
+/** Duke bookings complete here; the marketing site's /thanks is not a receipt. */
+export const ADS_DUKE_BOOKING_CONVERSION: string | null =
+  /^AW-18255173604\/[A-Za-z0-9_-]+$/.test(process.env.NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION?.trim() ?? '')
+    ? process.env.NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION!.trim()
+    : null;
+let dukeAdsConfigured = false;
 
 /**
  * Contact-lead ads conversion send_to value (format: AW-XXXX/LABEL).
@@ -182,10 +189,18 @@ function buildPurchasePayload(value: number, transactionId?: string): Record<str
   return payload;
 }
 
-function dispatchConversion(value: number, email?: string, transactionId?: string): boolean {
+function dispatchConversion(value: number, email?: string, transactionId?: string, sourceApp?: string): boolean {
   const gtag = getGtag();
   if (!gtag) return false;
-  if (email) setEnhancedUserData({ email });
+  const isDuke = sourceApp === 'duke_street_tyres';
+  // Consent must also be checked on retries, in case it was withdrawn.
+  if (isDuke && !hasMarketingConsent()) return false;
+  // Duke enhanced conversions have not been enabled/verified. Do not send PII.
+  if (email && !isDuke) setEnhancedUserData({ email });
+  if (isDuke) {
+    clearEnhancedUserData();
+    safeGtag('consent', 'update', buildGoogleConsentModeState(getStoredConsent()));
+  }
 
   const payload = buildPurchasePayload(value, transactionId);
 
@@ -195,9 +210,14 @@ function dispatchConversion(value: number, email?: string, transactionId?: strin
 
   // Google Ads conversion — separate send_to keeps it out of GA4 reports.
   let adsSent = true;
-  if (ADS_BOOKING_CONVERSION) {
+  const adsDestination = isDuke ? ADS_DUKE_BOOKING_CONVERSION : ADS_BOOKING_CONVERSION;
+  if (adsDestination) {
+    if (isDuke && !dukeAdsConfigured) {
+      dukeAdsConfigured = safeGtag('config', adsDestination.split('/')[0], { send_page_view: false });
+      if (!dukeAdsConfigured) return false;
+    }
     adsSent = safeGtag('event', 'conversion', {
-      send_to: ADS_BOOKING_CONVERSION,
+      send_to: adsDestination,
       ...payload,
     });
   }
@@ -220,6 +240,7 @@ interface PendingBookingConversion {
   ref: string;
   value: number;
   email?: string;
+  sourceApp?: string;
   attempts: number;
   timer?: ReturnType<typeof setTimeout>;
 }
@@ -309,7 +330,7 @@ function flushPendingBookingConversion(ref: string): void {
     return;
   }
 
-  const fired = dispatchConversion(pending.value, pending.email, pending.ref);
+  const fired = dispatchConversion(pending.value, pending.email, pending.ref, pending.sourceApp);
   if (!fired) {
     scheduleBookingConversionRetry(pending);
     return;
@@ -325,7 +346,8 @@ function flushPendingBookingConversion(ref: string): void {
  * Safe to call from both the payment step (no-redirect flow) and the success
  * page (redirect / 3-D Secure flow) — only the first call fires.
  */
-export function trackBookingConversion(ref: string, value: number, email?: string): void {
+export function trackBookingConversion(ref: string, value: number, email?: string, sourceApp?: string): void {
+  if (sourceApp === 'duke_street_tyres' && !hasMarketingConsent()) return;
   const transactionId = ref.trim();
   if (!transactionId || hasPurchaseFired(transactionId)) return;
   if (pendingBookingConversions.has(transactionId)) return;
@@ -334,6 +356,7 @@ export function trackBookingConversion(ref: string, value: number, email?: strin
     ref: transactionId,
     value,
     email,
+    sourceApp,
     attempts: 0,
   });
   flushPendingBookingConversion(transactionId);

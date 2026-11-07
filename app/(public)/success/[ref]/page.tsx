@@ -93,13 +93,16 @@ export default async function SuccessPage({ params }: PageProps) {
     .orderBy(desc(payments.createdAt))
     .limit(1);
 
-  const conversion = buildBookingConversionPayload({
-    refNumber: booking.refNumber,
-    customerEmail: booking.customerEmail,
-    payment: succeededPayment ?? null,
-  });
   const paymentSummary = await getBookingPaymentSummary(booking);
   const paymentSucceeded = isPaymentFullySettledForInvoice(paymentSummary, booking.status);
+  const conversion = paymentSucceeded ? buildBookingConversionPayload({
+    refNumber: booking.refNumber,
+    customerEmail: booking.customerEmail,
+    payment: succeededPayment
+      ? { ...succeededPayment, amount: booking.sourceApp === 'duke_street_tyres' ? booking.totalAmount : succeededPayment.amount }
+      : null,
+    sourceApp: booking.sourceApp,
+  }) : null;
 
   // Transform booking data for client component
   const bookingData = {

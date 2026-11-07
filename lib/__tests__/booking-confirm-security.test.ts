@@ -52,14 +52,22 @@ const intent = {
   metadata: { bookingId: booking.id, refNumber: booking.refNumber, project: 'tyrerescue' },
 };
 
-async function confirm() {
+async function confirm(sourceApp?: string) {
   return POST(new NextRequest('http://localhost/api/bookings/confirm', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bookingId: booking.refNumber, paymentIntentId: intent.id }),
+    body: JSON.stringify({ bookingId: booking.refNumber, paymentIntentId: intent.id, sourceApp }),
   }));
 }
 
 describe('booking confirmation server payment evidence', () => {
+  it('uses the stored booking source rather than a caller-supplied conversion destination', async () => {
+    mocks.rows = [[{ ...booking, sourceApp: 'duke_street_tyres' }], [{ ...payment }]];
+    const response = await confirm('tyre_rescue');
+    expect(response.status).toBe(200);
+    expect((await response.json()).conversion).toMatchObject({
+      transactionId: booking.refNumber, sourceApp: 'duke_street_tyres', value: 150,
+    });
+  });
   afterEach(() => { vi.unstubAllEnvs(); });
   beforeEach(() => {
     vi.stubEnv('CUSTOMER_BOOKING_ACCESS_SECRET', 'isolated-confirm-capability-key-never-production');

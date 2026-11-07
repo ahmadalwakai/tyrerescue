@@ -11,6 +11,8 @@ export interface BookingConversionPayload {
   currency: 'GBP';
   email?: string;
   paymentIntentId?: string | null;
+  /** Attribution from the stored booking, never from the return URL. */
+  sourceApp?: string;
 }
 
 function normalizeAmount(value: string | number | null): number | null {
@@ -23,10 +25,12 @@ export function buildBookingConversionPayload({
   refNumber,
   customerEmail,
   payment,
+  sourceApp,
 }: {
   refNumber: string;
   customerEmail?: string | null;
   payment: BookingConversionPaymentRecord | null | undefined;
+  sourceApp?: string | null;
 }): BookingConversionPayload | null {
   const transactionId = refNumber.trim();
   if (!transactionId || payment?.status !== 'succeeded') return null;
@@ -44,5 +48,6 @@ export function buildBookingConversionPayload({
     currency: 'GBP',
     email,
     paymentIntentId: payment.stripePiId ?? null,
+    ...(sourceApp ? { sourceApp } : {}),
   };
 }

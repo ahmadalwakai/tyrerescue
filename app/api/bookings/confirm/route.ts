@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
         }),
         conversion: buildBookingConversionPayload({
           refNumber: booking.refNumber, customerEmail: booking.customerEmail, payment: recordedPayment,
+          sourceApp: booking.sourceApp,
         }),
       }), booking.refNumber, bookingAccessToken);
     }
@@ -263,6 +264,7 @@ export async function POST(request: NextRequest) {
         refNumber: booking.refNumber,
         customerEmail: booking.customerEmail,
         payment: recordedPayment,
+        sourceApp: booking.sourceApp,
       }),
     }), booking.refNumber, bookingAccessToken);
   } catch (error) {

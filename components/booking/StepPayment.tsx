@@ -38,24 +38,29 @@ export interface StepPaymentProps {
   onError: (error: string) => void;
 }
 
-function readServerConversion(value: unknown): { value: number; email?: string } | null {
+function readServerConversion(value: unknown): { transactionId: string; value: number; email?: string; sourceApp?: string } | null {
   if (!value || typeof value !== 'object') return null;
   const conversion = (value as { conversion?: unknown }).conversion;
   if (!conversion || typeof conversion !== 'object') return null;
 
   const payload = conversion as {
+    transactionId?: unknown;
     value?: unknown;
     currency?: unknown;
     email?: unknown;
+    sourceApp?: unknown;
   };
+  if (typeof payload.transactionId !== 'string' || !payload.transactionId.trim()) return null;
   if (payload.currency !== 'GBP') return null;
   if (typeof payload.value !== 'number' || !Number.isFinite(payload.value) || payload.value <= 0) {
     return null;
   }
 
   return {
+    transactionId: payload.transactionId,
     value: payload.value,
     email: typeof payload.email === 'string' ? payload.email : undefined,
+    sourceApp: typeof payload.sourceApp === 'string' ? payload.sourceApp : undefined,
   };
 }
 
@@ -98,7 +103,7 @@ function CheckoutForm({
       onError(error.message || 'Payment failed');
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       // Payment succeeded without redirect — confirm server-side before navigating
-      let serverConversion: { value: number; email?: string } | null = null;
+      let serverConversion: ReturnType<typeof readServerConversion> = null;
       try {
         const res = await fetch('/api/bookings/confirm', {
           method: 'POST',
@@ -116,7 +121,7 @@ function CheckoutForm({
         // Non-blocking — webhook will handle it if this fails
       }
       if (serverConversion) {
-        trackBookingConversion(refNumber, serverConversion.value, serverConversion.email ?? customerEmail);
+        trackBookingConversion(serverConversion.transactionId, serverConversion.value, serverConversion.email ?? customerEmail, serverConversion.sourceApp);
       }
       onSuccess(refNumber);
     } else if (paymentIntent && paymentIntent.status === 'processing') {

@@ -685,6 +685,7 @@ export function BookingWizard({
         return (
           <StepCustomerDetails
             state={state}
+            sourceApp={brand.sourceApp}
             updateState={updateState}
             goToNext={goToNext}
             goToPrev={goToPrev}

@@ -25,6 +25,7 @@ import { formatPrice } from '@/lib/pricing-engine';
 
 interface StepCustomerDetailsProps {
   state: WizardState;
+  sourceApp?: string;
   updateState: (updates: Partial<WizardState>) => void;
   goToNext: () => void;
   goToPrev: () => void;
@@ -33,6 +34,7 @@ interface StepCustomerDetailsProps {
 
 export function StepCustomerDetails({
   state,
+  sourceApp,
   updateState,
   goToNext,
   goToPrev,
@@ -117,6 +119,8 @@ export function StepCustomerDetails({
           lockingNutStatus: state.lockingNutStatus || undefined,
           notes: undefined,
           ...(utm || {}),
+          // Persist brand attribution with the booking; return-page params cannot confirm it.
+          sourceApp,
         }),
       });
 

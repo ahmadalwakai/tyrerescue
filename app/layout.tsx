@@ -181,7 +181,7 @@ export default async function RootLayout({
         </a>
         <Providers>
           {children}
-          {!isDukeStreet ? <CookieBanner /> : null}
+          <CookieBanner />
           <AnalyticsProvider />
           <PageviewTracker />
           {!isDukeStreet ? <CallMeBack /> : null}
