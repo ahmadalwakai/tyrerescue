@@ -263,7 +263,7 @@ describe('gtag analytics helpers', () => {
     it('routes a consenting Duke booking only to its account and deduplicates payment/success mounts', async () => {
       const { mod } = await loadGtag({
         NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-999/tyreRescue',
-        NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18255173604/dukeBooking',
+        NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18563782369/-PlLCKfDyLQdEOGt85NF',
       });
       const local = makeStorage();
       local.setItem(CONSENT_KEY, JSON.stringify({ essential: true, analytics: true, marketing: true, timestamp: 1, version: '2' }));
@@ -275,14 +275,14 @@ describe('gtag analytics helpers', () => {
       mod.trackBookingConversion('DST-001', 129.99, 'private@example.com', 'duke_street_tyres');
       const conversions = gtag.mock.calls.filter(([, name]) => name === 'conversion');
       expect(conversions).toEqual([['event', 'conversion', {
-        send_to: 'AW-18255173604/dukeBooking', value: 129.99, currency: 'GBP', transaction_id: 'DST-001',
+        send_to: 'AW-18563782369/-PlLCKfDyLQdEOGt85NF', value: 129.99, currency: 'GBP', transaction_id: 'DST-001',
       }]]);
-      expect(gtag).toHaveBeenCalledWith('config', 'AW-18255173604', { send_page_view: false });
+      expect(gtag).toHaveBeenCalledWith('config', 'AW-18563782369', { send_page_view: false });
       expect(gtag).not.toHaveBeenCalledWith('set', 'user_data', { email: 'private@example.com' });
     });
 
     it('never emits or remembers a Duke conversion without marketing consent', async () => {
-      const { mod } = await loadGtag({ NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18255173604/dukeBooking' });
+      const { mod } = await loadGtag({ NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18563782369/-PlLCKfDyLQdEOGt85NF' });
       const gtag = vi.fn();
       vi.stubGlobal('window', { gtag });
       const local = makeStorage();
@@ -301,7 +301,7 @@ describe('gtag analytics helpers', () => {
     it('does not substitute the Tyre Rescue label for missing or malformed Duke configuration', async () => {
       const { mod } = await loadGtag({
         NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-999/tyreRescue',
-        NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18255173604/invalid label',
+        NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18563782369/invalid label',
       });
       const local = makeStorage();
       local.setItem(CONSENT_KEY, JSON.stringify({ essential: true, analytics: true, marketing: true, timestamp: 1, version: '2' }));
@@ -312,6 +312,13 @@ describe('gtag analytics helpers', () => {
       mod.trackBookingConversion('DST-003', 89, undefined, 'duke_street_tyres');
       expect(mod.ADS_DUKE_BOOKING_CONVERSION).toBeNull();
       expect(gtag.mock.calls.filter(([, name]) => name === 'conversion')).toEqual([]);
+    });
+
+    it('rejects a Duke label from the retired Google Ads account', async () => {
+      const { mod } = await loadGtag({
+        NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18255173604/dukeBooking',
+      });
+      expect(mod.ADS_DUKE_BOOKING_CONVERSION).toBeNull();
     });
 
     function makeSessionStorage() {

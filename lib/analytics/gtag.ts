@@ -56,7 +56,7 @@ export const ADS_BOOKING_CONVERSION: string | null =
 
 /** Duke bookings complete here; the marketing site's /thanks is not a receipt. */
 export const ADS_DUKE_BOOKING_CONVERSION: string | null =
-  /^AW-18255173604\/[A-Za-z0-9_-]+$/.test(process.env.NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION?.trim() ?? '')
+  /^AW-18563782369\/[A-Za-z0-9_-]+$/.test(process.env.NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION?.trim() ?? '')
     ? process.env.NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION!.trim()
     : null;
 let dukeAdsConfigured = false;
