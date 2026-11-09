@@ -193,12 +193,14 @@ function dispatchConversion(value: number, email?: string, transactionId?: strin
   const gtag = getGtag();
   if (!gtag) return false;
   const isDuke = sourceApp === 'duke_street_tyres';
-  // Consent must also be checked on retries, in case it was withdrawn.
-  if (isDuke && !hasMarketingConsent()) return false;
   // Duke enhanced conversions have not been enabled/verified. Do not send PII.
   if (email && !isDuke) setEnhancedUserData({ email });
   if (isDuke) {
     clearEnhancedUserData();
+    // Advanced consent mode, matching dukestreettyres.com: the conversion is
+    // always sent, under the visitor's current consent state (re-read on every
+    // retry). Without marketing consent Google receives a cookieless ping with
+    // no identifiers, which it can only use for modelled conversions.
     safeGtag('consent', 'update', buildGoogleConsentModeState(getStoredConsent()));
   }
 
@@ -290,8 +292,10 @@ function writePurchaseFiredRefs(refs: string[]): void {
   }
 }
 
-function markPurchaseFired(ref: string): void {
+function markPurchaseFired(ref: string, persist = true): void {
   memoryPurchaseFired.add(ref);
+  // Without consent the ref stays in memory only; Google also dedupes on transaction_id.
+  if (!persist) return;
   const fired = readPurchaseFiredRefs();
   if (!fired.includes(ref)) writePurchaseFiredRefs([...fired, ref]);
 }
@@ -336,7 +340,7 @@ function flushPendingBookingConversion(ref: string): void {
     return;
   }
 
-  markPurchaseFired(ref);
+  markPurchaseFired(ref, pending.sourceApp !== 'duke_street_tyres' || hasMarketingConsent());
   clearPendingTimer(pending);
   pendingBookingConversions.delete(ref);
 }
@@ -347,7 +351,6 @@ function flushPendingBookingConversion(ref: string): void {
  * page (redirect / 3-D Secure flow) — only the first call fires.
  */
 export function trackBookingConversion(ref: string, value: number, email?: string, sourceApp?: string): void {
-  if (sourceApp === 'duke_street_tyres' && !hasMarketingConsent()) return;
   const transactionId = ref.trim();
   if (!transactionId || hasPurchaseFired(transactionId)) return;
   if (pendingBookingConversions.has(transactionId)) return;

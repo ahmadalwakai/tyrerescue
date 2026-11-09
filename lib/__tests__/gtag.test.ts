@@ -281,21 +281,45 @@ describe('gtag analytics helpers', () => {
       expect(gtag).not.toHaveBeenCalledWith('set', 'user_data', { email: 'private@example.com' });
     });
 
-    it('never emits or remembers a Duke conversion without marketing consent', async () => {
+    it('sends a cookieless Duke conversion without marketing consent and never persists it', async () => {
+      const { mod } = await loadGtag({ NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18563782369/-PlLCKfDyLQdEOGt85NF' });
+      const gtag = vi.fn();
+      vi.stubGlobal('window', { gtag });
+      vi.stubGlobal('localStorage', makeStorage());
+      const session = makeStorage();
+      vi.stubGlobal('sessionStorage', session);
+      mod.trackBookingConversion('DST-002', 89, 'private@example.com', 'duke_street_tyres');
+      mod.trackBookingConversion('DST-002', 89, 'private@example.com', 'duke_street_tyres');
+
+      const calls = gtag.mock.calls;
+      const consentIdx = calls.findIndex(([cmd]) => cmd === 'consent');
+      const conversionIdx = calls.findIndex(([, name]) => name === 'conversion');
+      // Denied consent is applied before the conversion, so Google sends a cookieless ping.
+      expect(calls[consentIdx]).toEqual(['consent', 'update', expect.objectContaining({
+        ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied',
+      })]);
+      expect(consentIdx).toBeGreaterThan(-1);
+      expect(consentIdx).toBeLessThan(conversionIdx);
+      expect(calls.filter(([, name]) => name === 'conversion')).toEqual([['event', 'conversion', {
+        send_to: 'AW-18563782369/-PlLCKfDyLQdEOGt85NF', value: 89, currency: 'GBP', transaction_id: 'DST-002',
+      }]]);
+      // No identifiers and nothing written to browser storage without consent.
+      expect(gtag).not.toHaveBeenCalledWith('set', 'user_data', expect.objectContaining({ email: expect.anything() }));
+      expect(session.length).toBe(0);
+    });
+
+    it('re-reads consent on every Duke conversion so a later grant is applied', async () => {
       const { mod } = await loadGtag({ NEXT_PUBLIC_DUKE_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-18563782369/-PlLCKfDyLQdEOGt85NF' });
       const gtag = vi.fn();
       vi.stubGlobal('window', { gtag });
       const local = makeStorage();
+      local.setItem(CONSENT_KEY, JSON.stringify({ essential: true, analytics: true, marketing: true, timestamp: 1, version: '2' }));
       vi.stubGlobal('localStorage', local);
       const session = makeStorage();
       vi.stubGlobal('sessionStorage', session);
-      mod.trackBookingConversion('DST-002', 89, undefined, 'duke_street_tyres');
-      expect(gtag).not.toHaveBeenCalled();
-      expect(session.length).toBe(0);
-      // Consent on the currently displayed verified receipt can be measured.
-      local.setItem(CONSENT_KEY, JSON.stringify({ essential: true, analytics: true, marketing: true, timestamp: 1, version: '2' }));
-      mod.trackBookingConversion('DST-002', 89, undefined, 'duke_street_tyres');
-      expect(gtag).toHaveBeenCalledWith('event', 'conversion', expect.objectContaining({ transaction_id: 'DST-002' }));
+      mod.trackBookingConversion('DST-004', 120, undefined, 'duke_street_tyres');
+      expect(gtag).toHaveBeenCalledWith('consent', 'update', expect.objectContaining({ ad_storage: 'granted', ad_user_data: 'granted' }));
+      expect(session.length).toBe(1);
     });
 
     it('does not substitute the Tyre Rescue label for missing or malformed Duke configuration', async () => {
